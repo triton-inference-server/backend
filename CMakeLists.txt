@@ -74,8 +74,27 @@ target_compile_options(
     -Wall -Wextra -Wno-unused-parameter -Werror>
 )
 
-set_property(TARGET triton-backend-utils PROPERTY POSITION_INDEPENDENT_CODE ON)
-set_property(TARGET triton-backend-utils PROPERTY OUTPUT_NAME tritonbackendutils)
+# TRITON_ENABLE_GPU exposed in header so set PUBLIC
+if(${TRITON_ENABLE_GPU})
+target_compile_definitions(
+  triton-backend-utils
+  PUBLIC TRITON_ENABLE_GPU=1
+)
+endif() # TRITON_ENABLE_GPU
+
+# TRITON_ENABLE_STATS exposed in header so set PUBLIC
+if(${TRITON_ENABLE_STATS})
+target_compile_definitions(
+  triton-backend-utils
+  PUBLIC TRITON_ENABLE_STATS=1
+)
+endif() # TRITON_ENABLE_STATS
+
+set_target_properties(
+  triton-backend-utils PROPERTIES
+  POSITION_INDEPENDENT_CODE ON
+  OUTPUT_NAME tritonbackendutils
+)
 
 target_link_libraries(
   triton-backend-utils
