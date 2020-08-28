@@ -31,6 +31,9 @@ project(tritonbackend LANGUAGES C CXX)
 #
 # Options
 #
+option(TRITON_ENABLE_GPU "Enable GPU support in backend" ON)
+option(TRITON_ENABLE_STATS "Include statistics collections in backend" ON)
+
 set(TRITON_COMMON_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/common repo")
 
 #
