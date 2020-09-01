@@ -34,13 +34,13 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "tritonbackend.h"
+#include "triton/common/tritonbackend.h"
 
 #define TRITONJSON_STATUSTYPE TRITONSERVER_Error*
 #define TRITONJSON_STATUSRETURN(M) \
   return TRITONSERVER_ErrorNew(TRITONSERVER_ERROR_INTERNAL, (M).c_str())
 #define TRITONJSON_STATUSSUCCESS nullptr
-#include "triton_json.h"
+#include "triton/common/triton_json.h"
 
 #ifdef TRITON_ENABLE_GPU
 #include <cuda_runtime_api.h>

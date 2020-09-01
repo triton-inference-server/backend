@@ -64,7 +64,7 @@ add_library(
 target_include_directories(
   triton-backend-utils
   PUBLIC
-    $<INSTALL_INTERFACE:include/triton/backend>
+    $<INSTALL_INTERFACE:include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -124,7 +124,7 @@ install(
 
 install(
   DIRECTORY include/
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/triton/backend
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 install(
