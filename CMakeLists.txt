@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.17)
 
 project(tritonbackend LANGUAGES C CXX)
 
@@ -48,6 +48,13 @@ FetchContent_Declare(
   GIT_SHALLOW ON
 )
 FetchContent_MakeAvailable(repo-common)
+
+#
+# CUDA
+#
+if(${TRITON_ENABLE_GPU})
+  find_package(CUDAToolkit REQUIRED)
+endif() # TRITON_ENABLE_GPU
 
 #
 # Backend library containing common defines and utilities
@@ -111,6 +118,14 @@ target_link_libraries(
     triton-common-serverapi   # from repo-common
     triton-common-json        # from repo-common
 )
+
+if(${TRITON_ENABLE_GPU})
+  target_link_libraries(
+    triton-backend-utils
+    PUBLIC
+      CUDA::cudart
+  )
+endif() # TRITON_ENABLE_GPU
 
 #
 # Install
