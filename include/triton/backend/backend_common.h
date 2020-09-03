@@ -145,66 +145,6 @@ struct ResponseFactoryDeleter {
   }
 };
 
-//
-// BlockingQueue
-//
-// A blocking queue is useful for communicating between multiple
-// threads within a backend. Multiple threads are often used to
-// implement model instances.
-///
-template <typename T>
-class BlockingQueue {
- public:
-  bool WaitNotEmpty() const
-  {
-    std::unique_lock<std::mutex> lk(mu_);
-    if (queue_.empty()) {
-      cv_.wait(lk, [this] { return !queue_.empty(); });
-    }
-    return true;
-  }
-
-  bool Empty() const
-  {
-    std::lock_guard<std::mutex> lk(mu_);
-    return queue_.empty();
-  }
-
-  T Pop()
-  {
-    std::unique_lock<std::mutex> lk(mu_);
-    if (queue_.empty()) {
-      cv_.wait(lk, [this] { return !queue_.empty(); });
-    }
-    auto res = std::move(queue_.front());
-    queue_.pop_front();
-    return res;
-  }
-
-  void Push(const T& value)
-  {
-    {
-      std::lock_guard<std::mutex> lk(mu_);
-      queue_.emplace_back(value);
-    }
-    cv_.notify_one();
-  }
-
-  void Push(T&& value)
-  {
-    {
-      std::lock_guard<std::mutex> lk(mu_);
-      queue_.emplace_back(std::move(value));
-    }
-    cv_.notify_one();
-  }
-
- private:
-  mutable std::mutex mu_;
-  mutable std::condition_variable cv_;
-  std::deque<T> queue_;
-};
-
 /// The value for a dimension in a shape that indicates that that
 /// dimension can take on any size.
 constexpr int WILDCARD_DIM = -1;
@@ -339,6 +279,30 @@ TRITONSERVER_Error* GetTypedSequenceControlProperties(
     const std::string& control_kind, const bool required,
     std::string* tensor_name, std::string* tensor_datatype);
 
+/// Create and send an error response for a set of requests. This
+/// function takes ownership of 'response_err' and so the caller must
+/// not access or delete it after this call returns.
+///
+/// \param requests The requests.
+/// \param request_count The number of 'requests'.
+/// \param response_err The error to send to each request.
+/// \param release_request If true the requests will be released after
+/// sending the error responses.
+void RequestsRespondWithError(
+    TRITONBACKEND_Request** requests, const uint32_t request_count,
+    TRITONSERVER_Error* response_err, const bool release_request = true);
+
+/// Send an error response for a set of responses. This function takes
+/// ownership of 'response_err' and so the caller must not access or
+/// delete it after this call returns.
+///
+/// \param responses The responses.
+/// \param response_count The number of 'responses'.
+/// \param response_err The error to send.
+void SendErrorForResponses(
+    std::vector<TRITONBACKEND_Response*>* responses,
+    const uint32_t response_count, TRITONSERVER_Error* response_err);
+
 /// Copy buffer from 'src' to 'dst' for given 'byte_size'. The buffer location
 /// is identified by the memory type and id, and the corresponding copy will be
 /// initiated.
@@ -363,6 +327,23 @@ TRITONSERVER_Error* CopyBuffer(
     const int64_t dst_memory_type_id, const size_t byte_size, const void* src,
     void* dst, cudaStream_t cuda_stream, bool* cuda_used);
 
+/// Does a file or directory exist?
+/// \param path The path to check for existance.
+/// \param exists Returns true if file/dir exists
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error* FileExists(const std::string& path, bool* exists);
+
+/// Is a path a directory?
+/// \param path The path to check.
+/// \param is_dir Returns true if path represents a directory
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error* IsDirectory(const std::string& path, bool* is_dir);
+
+/// Join path segments into a longer path
+/// \param segments The path segments.
+/// \return the path formed by joining the segments.
+std::string JoinPath(std::initializer_list<std::string> segments);
+
 /// Returns the content in the model version path and the path to the content as
 /// key-value pair.
 /// \param model_repository_path The path to the model repository.
@@ -373,8 +354,50 @@ TRITONSERVER_Error* CopyBuffer(
 /// the path to the content.
 /// \return a TRITONSERVER_Error indicating success or failure.
 TRITONSERVER_Error* ModelPaths(
-    const char* model_repository_path, uint64_t version,
+    const std::string& model_repository_path, uint64_t version,
     const bool ignore_directories, const bool ignore_files,
     std::unordered_map<std::string, std::string>* model_paths);
+
+/// Create a CUDA stream appropriate for GPU<->CPU data transfer
+/// operations for a given GPU device. The caller takes ownership of
+/// the stream. 'stream' returns nullptr if GPU support is disabled.
+///
+/// \param device_id The ID of the GPU.
+/// \param priority The stream priority. Use 0 for normal priority.
+/// \param stream Returns the created stream.
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error* CreateCudaStream(
+    const int device_id, const int cuda_stream_priority, cudaStream_t* stream);
+
+/// Parse the string as long long integer.
+///
+/// \param value The string.
+/// \param parse_value The long long integral value of the string.
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error* ParseLongLongValue(
+    const std::string& value, int64_t* parsed_value);
+
+/// Parse the string as boolean.
+///
+/// \param value The string.
+/// \param parse_value The boolean value of the string.
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error* ParseBoolValue(
+    const std::string& value, bool* parsed_value);
+
+/// Parse the string as integer.
+///
+/// \param value The string.
+/// \param parse_value The integral value of the string.
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error* ParseIntValue(const std::string& value, int* parsed_value);
+
+/// Parse the string as double.
+///
+/// \param value The string.
+/// \param parse_value The double value of the string.
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error* ParseDoubleValue(
+    const std::string& value, double* parsed_value);
 
 }}  // namespace triton::backend

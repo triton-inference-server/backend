@@ -28,12 +28,16 @@
 
 #include <dirent.h>
 #include <sys/stat.h>
+#include <unistd.h>
+#include <algorithm>
+#include <cerrno>
 
 namespace triton { namespace backend {
 
 TRITONSERVER_Error*
 ParseShape(
-    common::TritonJson::Value& io, const std::string& name, std::vector<int64_t>* shape)
+    common::TritonJson::Value& io, const std::string& name,
+    std::vector<int64_t>* shape)
 {
   common::TritonJson::Value shape_array;
   RETURN_IF_ERROR(io.MemberAsArray(name.c_str(), &shape_array));
@@ -132,7 +136,7 @@ ReadInputTensor(
   RETURN_ERROR_IF_FALSE(
       input_byte_size <= *buffer_byte_size, TRITONSERVER_ERROR_INVALID_ARG,
       std::string(
-          "buffer to small for input tensor '" + input_name + "', " +
+          "buffer too small for input tensor '" + input_name + "', " +
           std::to_string(*buffer_byte_size) + " < " +
           std::to_string(input_byte_size)));
 
@@ -467,7 +471,57 @@ GetTypedSequenceControlProperties(
   return nullptr;  // success
 }
 
-namespace {
+void
+RequestsRespondWithError(
+    TRITONBACKEND_Request** requests, const uint32_t request_count,
+    TRITONSERVER_Error* response_err, const bool release_request)
+{
+  for (size_t i = 0; i < request_count; i++) {
+    TRITONBACKEND_Response* response;
+    auto err = TRITONBACKEND_ResponseNew(&response, requests[i]);
+    if (err != nullptr) {
+      LOG_MESSAGE(TRITONSERVER_LOG_ERROR, "fail to create response");
+      TRITONSERVER_ErrorDelete(err);
+    } else {
+      std::unique_ptr<
+          TRITONBACKEND_Response, decltype(&TRITONBACKEND_ResponseDelete)>
+          response_handle(response, TRITONBACKEND_ResponseDelete);
+      LOG_IF_ERROR(
+          TRITONBACKEND_ResponseSend(
+              response, TRITONSERVER_RESPONSE_COMPLETE_FINAL, response_err),
+          "fail to send error response");
+    }
+
+    if (release_request) {
+      LOG_IF_ERROR(
+          TRITONBACKEND_RequestRelease(
+              requests[i], TRITONSERVER_REQUEST_RELEASE_ALL),
+          "fail to release request");
+    }
+  }
+
+  TRITONSERVER_ErrorDelete(response_err);
+}
+
+void
+SendErrorForResponses(
+    std::vector<TRITONBACKEND_Response*>* responses,
+    const uint32_t response_count, TRITONSERVER_Error* response_err)
+{
+  for (size_t i = 0; i < response_count; i++) {
+    TRITONBACKEND_Response* response = (*responses)[i];
+    if (response != nullptr) {
+      LOG_IF_ERROR(
+          TRITONBACKEND_ResponseSend(
+              response, TRITONSERVER_RESPONSE_COMPLETE_FINAL, response_err),
+          "fail to send error response");
+      (*responses)[i] = nullptr;
+    }
+  }
+
+  TRITONSERVER_ErrorDelete(response_err);
+}
+
 #ifdef TRITON_ENABLE_GPU
 #define RETURN_IF_CUDA_ERR(X, MSG)                                        \
   do {                                                                    \
@@ -479,7 +533,6 @@ namespace {
     }                                                                     \
   } while (false)
 #endif  // TRITON_ENABLE_GPU
-}  // namespace
 
 TRITONSERVER_Error*
 CopyBuffer(
@@ -532,7 +585,6 @@ CopyBuffer(
   return nullptr;  // success
 }
 
-namespace {
 TRITONSERVER_Error*
 GetDirectoryContents(const std::string& path, std::set<std::string>* contents)
 {
@@ -553,6 +605,13 @@ GetDirectoryContents(const std::string& path, std::set<std::string>* contents)
 
   closedir(dir);
 
+  return nullptr;  // success
+}
+
+TRITONSERVER_Error*
+FileExists(const std::string& path, bool* exists)
+{
+  *exists = (access(path.c_str(), F_OK) == 0);
   return nullptr;  // success
 }
 
@@ -597,11 +656,9 @@ JoinPath(std::initializer_list<std::string> segments)
   return joined;
 }
 
-}  // namespace
-
 TRITONSERVER_Error*
 ModelPaths(
-    const char* model_repository_path, uint64_t version,
+    const std::string& model_repository_path, uint64_t version,
     const bool ignore_directories, const bool ignore_files,
     std::unordered_map<std::string, std::string>* model_paths)
 {
@@ -640,8 +697,119 @@ ModelPaths(
         std::piecewise_construct, std::make_tuple(filename),
         std::make_tuple(model_path));
   }
+
   return nullptr;  // success
 }
 
+TRITONSERVER_Error*
+CreateCudaStream(
+    const int device_id, const int cuda_stream_priority, cudaStream_t* stream)
+{
+  *stream = nullptr;
+
+#ifdef TRITON_ENABLE_GPU
+  // Make sure that correct device is set before creating stream and
+  // then restore the device to what was set by the caller.
+  int current_device;
+  auto cuerr = cudaGetDevice(&current_device);
+  bool overridden = false;
+  if (cuerr == cudaSuccess) {
+    overridden = (current_device != device_id);
+    if (overridden) {
+      cuerr = cudaSetDevice(device_id);
+    }
+  }
+
+  if (cuerr == cudaSuccess) {
+    cuerr = cudaStreamCreateWithPriority(
+        stream, cudaStreamDefault, cuda_stream_priority);
+  }
+
+  if (overridden) {
+    cudaSetDevice(current_device);
+  }
+
+  if (cuerr != cudaSuccess) {
+    *stream = nullptr;
+    return TRITONSERVER_ErrorNew(
+        TRITONSERVER_ERROR_INTERNAL,
+        (std::string("unable to create stream: ") + cudaGetErrorString(cuerr))
+            .c_str());
+  }
+#endif  // TRITON_ENABLE_GPU
+
+  return nullptr;  // success
+}
+
+TRITONSERVER_Error*
+ParseLongLongValue(const std::string& value, int64_t* parsed_value)
+{
+  try {
+    *parsed_value = std::stoll(value);
+  }
+  catch (const std::invalid_argument& ia) {
+    return TRITONSERVER_ErrorNew(
+        TRITONSERVER_ERROR_INVALID_ARG,
+        (std::string("failed to convert '") + value +
+         "' to long long integral number")
+            .c_str());
+  }
+
+  return nullptr;  // success
+}
+
+TRITONSERVER_Error*
+ParseBoolValue(const std::string& value, bool* parsed_value)
+{
+  std::string lvalue = value;
+  std::transform(
+      lvalue.begin(), lvalue.end(), lvalue.begin(),
+      [](unsigned char c) { return std::tolower(c); });
+
+  if ((lvalue == "true") || (lvalue == "on") || (lvalue == "1")) {
+    *parsed_value = true;
+    return nullptr;  // success
+  }
+  if ((lvalue == "false") || (lvalue == "off") || (lvalue == "0")) {
+    *parsed_value = false;
+    return nullptr;  // success
+  }
+
+  return TRITONSERVER_ErrorNew(
+      TRITONSERVER_ERROR_INVALID_ARG,
+      (std::string("failed to convert '") + value + "' to boolean").c_str());
+}
+
+TRITONSERVER_Error*
+ParseIntValue(const std::string& value, int* parsed_value)
+{
+  try {
+    *parsed_value = std::stoi(value);
+  }
+  catch (const std::invalid_argument& ia) {
+    return TRITONSERVER_ErrorNew(
+        TRITONSERVER_ERROR_INVALID_ARG,
+        (std::string("failed to convert '") + value + "' to integral number")
+            .c_str());
+  }
+
+  return nullptr;  // success
+}
+
+TRITONSERVER_Error*
+ParseDoubleValue(const std::string& value, double* parsed_value)
+{
+  try {
+    *parsed_value = std::stod(value);
+  }
+  catch (const std::invalid_argument& ia) {
+    return TRITONSERVER_ErrorNew(
+        TRITONSERVER_ERROR_INVALID_ARG,
+        (std::string("failed to convert '") + value + "' to double number")
+            .c_str());
+  }
+
+  return nullptr;  // success
+}
 
 }}  // namespace triton::backend

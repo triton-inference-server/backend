@@ -55,6 +55,11 @@ FetchContent_MakeAvailable(repo-common)
 add_library(
   triton-backend-utils
   src/backend_common.cc
+  src/backend_input_collector.cc
+  src/backend_memory.cc
+  src/backend_model_instance.cc
+  src/backend_model.cc
+  src/backend_output_responder.cc
 )
 
 add_library(
