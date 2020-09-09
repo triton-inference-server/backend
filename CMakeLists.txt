@@ -33,8 +33,11 @@ project(tritonbackend LANGUAGES C CXX)
 #
 option(TRITON_ENABLE_GPU "Enable GPU support in backend" ON)
 option(TRITON_ENABLE_STATS "Include statistics collections in backend" ON)
-
 set(TRITON_COMMON_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/common repo")
+
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
 
 #
 # Dependencies
@@ -84,9 +87,9 @@ target_include_directories(
 
 target_compile_features(triton-backend-utils PRIVATE cxx_std_11)
 target_compile_options(
-  triton-backend-utils PRIVATE
-  $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-    -Wall -Wextra -Wno-unused-parameter -Werror>
+  triton-backend-utils
+  PRIVATE
+    -Wall -Wextra -Wno-unused-parameter -Werror
 )
 
 # TRITON_ENABLE_GPU exposed in header so set PUBLIC
