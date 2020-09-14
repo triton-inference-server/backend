@@ -33,7 +33,9 @@ project(tritonbackend LANGUAGES C CXX)
 #
 option(TRITON_ENABLE_GPU "Enable GPU support in backend utilities" ON)
 option(TRITON_ENABLE_STATS "Include statistics collections in backend utilities" ON)
+
 set(TRITON_COMMON_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/common repo")
+set(TRITON_CORE_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/core repo")
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
@@ -50,7 +52,13 @@ FetchContent_Declare(
   GIT_TAG ${TRITON_COMMON_REPO_TAG}
   GIT_SHALLOW ON
 )
-FetchContent_MakeAvailable(repo-common)
+FetchContent_Declare(
+  repo-core
+  GIT_REPOSITORY https://github.com/triton-inference-server/core.git
+  GIT_TAG ${TRITON_CORE_REPO_TAG}
+  GIT_SHALLOW ON
+)
+FetchContent_MakeAvailable(repo-common repo-core)
 
 #
 # CUDA
@@ -60,7 +68,7 @@ if(${TRITON_ENABLE_GPU})
 endif() # TRITON_ENABLE_GPU
 
 #
-# Backend library containing common defines and utilities
+# Backend library containing useful source and utilities
 #
 add_library(
   triton-backend-utils
@@ -117,8 +125,8 @@ set_target_properties(
 target_link_libraries(
   triton-backend-utils
   PUBLIC
-    triton-common-backendapi  # from repo-common
-    triton-common-serverapi   # from repo-common
+    triton-core-backendapi    # from repo-core
+    triton-core-serverapi     # from repo-core
     triton-common-json        # from repo-common
 )
 
