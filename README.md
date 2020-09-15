@@ -136,6 +136,7 @@ the build. By default the "main" branch/tag will be used for each repo
 but the listed CMake argument can be used to override.
 
 * triton-inference-server/common: -DTRITON_COMMON_REPO_TAG=[tag]
+* triton-inference-server/core: -DTRITON_CORE_REPO_TAG=[tag]
 
 See the [CMakeLists.txt](CMakeLists.txt) file for other build options.
 
@@ -196,7 +197,7 @@ The -\\-backend-directory flag can be used to override the default.
 ### Triton Backend API
 
 A Triton backend must implement the C interface defined in
-[tritonbackend.h](https://github.com/triton-inference-server/common/tree/master/include/triton/common/tritonbackend.h). The
+[tritonbackend.h](https://github.com/triton-inference-server/core/tree/master/include/triton/core/tritonbackend.h). The
 following abstractions are used by the API.
 
 #### TRITONBACKEND\_Backend

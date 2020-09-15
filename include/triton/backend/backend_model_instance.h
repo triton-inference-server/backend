@@ -26,7 +26,7 @@
 #pragma once
 
 #include <string>
-#include "triton/common/tritonbackend.h"
+#include "triton/core/tritonbackend.h"
 
 #ifdef TRITON_ENABLE_GPU
 #include <cuda_runtime_api.h>

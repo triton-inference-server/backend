@@ -34,7 +34,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "triton/common/tritonbackend.h"
+#include "triton/core/tritonbackend.h"
 
 #define TRITONJSON_STATUSTYPE TRITONSERVER_Error*
 #define TRITONJSON_STATUSRETURN(M) \
