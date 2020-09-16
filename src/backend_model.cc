@@ -68,7 +68,7 @@ BackendModel::BackendModel(TRITONBACKEND_Model* triton_model)
   max_batch_size_ = mbs;
 
   const char* repository_path = nullptr;
-  TRITONBACKEND_ModelArtifactType repository_artifact_type;
+  TRITONBACKEND_ArtifactType repository_artifact_type;
   THROW_IF_BACKEND_MODEL_ERROR(TRITONBACKEND_ModelRepository(
       triton_model, &repository_artifact_type, &repository_path));
   if (repository_artifact_type != TRITONBACKEND_ARTIFACT_FILESYSTEM) {
