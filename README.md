@@ -89,9 +89,9 @@ repo contains the source for the backend.
 
 **Python**: The Python backend allows you to write your model logic in
 Python. For example, you can use this backend to execute pre/post
-processing code written in Python, or to run a PyTorch script directly
-as Python (instead of first converting it to TorchScript and then
-using the PyTorch backend). The
+processing code written in Python, or to execute a PyTorch Python
+script directly (instead of first converting it to TorchScript and
+then using the PyTorch backend). The
 [python\_backend](https://github.com/triton-inference-server/python_backend)
 repo contains the documentation and source for the backend.
 
