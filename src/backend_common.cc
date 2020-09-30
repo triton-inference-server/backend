@@ -617,6 +617,26 @@ FileExists(const std::string& path, bool* exists)
 }
 
 TRITONSERVER_Error*
+ReadTextFile(const std::string& path, std::string* contents)
+{
+  std::ifstream in(path, std::ios::in | std::ios::binary);
+  if (!in) {
+    return TRITONSERVER_ErrorNew(
+        TRITONSERVER_ERROR_INTERNAL,
+        ("failed to open/read file '" + path + "': " + strerror(errno))
+            .c_str());
+  }
+
+  in.seekg(0, std::ios::end);
+  contents->resize(in.tellg());
+  in.seekg(0, std::ios::beg);
+  in.read(&(*contents)[0], contents->size());
+  in.close();
+
+  return nullptr;  // success
+}
+
+TRITONSERVER_Error*
 IsDirectory(const std::string& path, bool* is_dir)
 {
   *is_dir = false;
