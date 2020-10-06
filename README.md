@@ -117,6 +117,18 @@ read about [building the backend
 utilities](#build-the-backend-utilities) and then the complete
 documentation on [Triton backends](#backends).
 
+### Can I add (or remove) a backend to an existing Triton installation?
+
+Yes. See [Backend Shared Library](#backend-shared-library) for general
+information about how the shared library implementing a backend is
+managed by Triton. For a standard install the globally available
+backends are in /opt/tritonserver/backends. To remove one of those
+backends stop tritonserver, delete the
+/opt/tritonserver/backends/<backend> directory, and then start
+tritonserver. Adding a backend follows a similar process except you
+create and populate the /opt/tritonserver/backends/<backend>
+directory.
+
 ### What about backends developed using the "custom backend" API.
 
 If you have custom backends that you developed using the older,
