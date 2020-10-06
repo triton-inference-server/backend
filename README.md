@@ -95,6 +95,14 @@ then using the PyTorch backend). The
 [python\_backend](https://github.com/triton-inference-server/python_backend)
 repo contains the documentation and source for the backend.
 
+**DALI**: [DALI](https://github.com/NVIDIA/DALI) is a collection of
+highly optimized building blocks and an execution engine that
+accelerate the pre-processing of the input data for deep learning
+applications. The DALI backend allows you to execute your DALI
+pipeline within Triton.  The
+[dali\_backend](https://github.com/triton-inference-server/dali_backend)
+repo contains the documentation and source for the backend.
+
 The Triton project also maintains a number of simple, example backends
 that are useful for testing and for understanding how backends
 work. The example backends are described in [Example
