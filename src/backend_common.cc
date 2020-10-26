@@ -31,6 +31,7 @@
 #include <unistd.h>
 #include <algorithm>
 #include <cerrno>
+#include <memory>
 
 namespace triton { namespace backend {
 
