@@ -34,47 +34,67 @@ namespace triton { namespace backend {
 //
 // BackendMemory
 //
-// Utility class for allocating and deallocating memory using
-// TRITONBACKEND_MemoryManager.
+// Utility class for allocating and deallocating memory using both
+// TRITONBACKEND_MemoryManager and direct GPU and CPU malloc/free.
 //
 class BackendMemory {
  public:
-  // Create a memory allocation using the specified memory type. See
-  // TRITONBACKEND_MemoryManagerAllocate for explanation of the
-  // returned error codes.
+  enum class AllocationType { CPU, CPU_PINNED, GPU, CPU_PINNED_POOL, GPU_POOL };
+
+  // Allocate a contiguous block of 'alloc_type' memory.  'mem'
+  // returns the pointer to the allocated memory.
+  //
+  // CPU_PINNED_POOL and GPU_POOL are allocated using
+  // TRITONBACKEND_MemoryManagerAllocate. Note that CPU_PINNED and GPU
+  // allocations can be much slower than the POOL variants.
+  //
+  // Two error codes have specific interpretations for this function:
+  //
+  //   TRITONSERVER_ERROR_UNSUPPORTED: Indicates that function is
+  //     incapable of allocating the requested memory type and memory
+  //     type ID. Requests for the memory type and ID will always fail
+  //     no matter 'byte_size' of the request.
+  //
+  //   TRITONSERVER_ERROR_UNAVAILABLE: Indicates that function can
+  //      allocate the memory type and ID but that currently it cannot
+  //      allocate a contiguous block of memory of the requested
+  //      'byte_size'.
+  static TRITONSERVER_Error* Create(
+      TRITONBACKEND_MemoryManager* manager, const AllocationType alloc_type,
+      const int64_t memory_type_id, const size_t byte_size,
+      BackendMemory** mem);
+
+  // Allocate a contiguous block of memory by attempting the
+  // allocation using 'alloc_types' in order until one is successful.
+  // See BackendMemory::Create() above for details.
   static TRITONSERVER_Error* Create(
       TRITONBACKEND_MemoryManager* manager,
-      const TRITONSERVER_MemoryType memory_type, const int64_t memory_type_id,
-      const size_t byte_size, BackendMemory** mem);
-
-  // Create a memory allocation using the preferred memory type if
-  // possible. If not possible fallback to allocate memory using CPU
-  // memory. See TRITONBACKEND_MemoryManagerAllocate for explanation
-  // of the returned error codes.
-  static TRITONSERVER_Error* CreateWithFallback(
-      TRITONBACKEND_MemoryManager* manager,
-      const TRITONSERVER_MemoryType preferred_memory_type,
+      std::initializer_list<AllocationType> alloc_types,
       const int64_t memory_type_id, const size_t byte_size,
       BackendMemory** mem);
 
   ~BackendMemory();
 
+  AllocationType AllocType() const { return alloctype_; }
   TRITONSERVER_MemoryType MemoryType() const { return memtype_; }
   int64_t MemoryTypeId() const { return memtype_id_; }
   char* MemoryPtr() { return buffer_; }
   size_t ByteSize() const { return byte_size_; }
 
+  static const char* AllocTypeString(const AllocationType a);
+
  private:
   BackendMemory(
-      TRITONBACKEND_MemoryManager* manager,
+      TRITONBACKEND_MemoryManager* manager, const AllocationType alloctype,
       const TRITONSERVER_MemoryType memtype, const int64_t memtype_id,
       char* buffer, const size_t byte_size)
-      : manager_(manager), memtype_(memtype), memtype_id_(memtype_id),
-        buffer_(buffer), byte_size_(byte_size)
+      : manager_(manager), alloctype_(alloctype), memtype_(memtype),
+        memtype_id_(memtype_id), buffer_(buffer), byte_size_(byte_size)
   {
   }
 
   TRITONBACKEND_MemoryManager* manager_;
+  AllocationType alloctype_;
   TRITONSERVER_MemoryType memtype_;
   int64_t memtype_id_;
   char* buffer_;

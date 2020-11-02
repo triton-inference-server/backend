@@ -99,6 +99,17 @@ namespace triton { namespace backend {
     }                                    \
   } while (false)
 
+#ifdef TRITON_ENABLE_GPU
+#define RETURN_IF_CUDA_ERROR(X, C, MSG)                                \
+  do {                                                                 \
+    cudaError_t rice_err__ = (X);                                      \
+    if (rice_err__ != cudaSuccess) {                                   \
+      return TRITONSERVER_ErrorNew(                                    \
+          C, ((MSG) + ": " + cudaGetErrorString(rice_err__)).c_str()); \
+    }                                                                  \
+  } while (false)
+#endif  // TRITON_ENABLE_GPU
+
 #define RESPOND_AND_SET_NULL_IF_ERROR(RESPONSE_PTR, X)               \
   do {                                                               \
     TRITONSERVER_Error* rarie_err__ = (X);                           \

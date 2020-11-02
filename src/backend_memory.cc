@@ -26,53 +26,141 @@
 
 #include "triton/backend/backend_memory.h"
 
+#include <map>
 #include "triton/backend/backend_common.h"
 
 namespace triton { namespace backend {
 
 TRITONSERVER_Error*
 BackendMemory::Create(
-    TRITONBACKEND_MemoryManager* manager,
-    const TRITONSERVER_MemoryType memory_type, const int64_t memory_type_id,
-    const size_t byte_size, BackendMemory** mem)
+    TRITONBACKEND_MemoryManager* manager, const AllocationType alloc_type,
+    const int64_t memory_type_id, const size_t byte_size, BackendMemory** mem)
 {
   *mem = nullptr;
 
+  TRITONSERVER_MemoryType memory_type = TRITONSERVER_MEMORY_CPU;
   void* ptr = nullptr;
-  RETURN_IF_ERROR(TRITONBACKEND_MemoryManagerAllocate(
-      manager, &ptr, memory_type, memory_type_id, byte_size));
+  switch (alloc_type) {
+    case AllocationType::CPU: {
+      memory_type = TRITONSERVER_MEMORY_CPU;
+      ptr = malloc(byte_size);
+      RETURN_ERROR_IF_TRUE(
+          ptr == nullptr, TRITONSERVER_ERROR_UNAVAILABLE,
+          std::string("CPU memory allocation failed"));
+      break;
+    }
+
+    case AllocationType::CPU_PINNED: {
+      memory_type = TRITONSERVER_MEMORY_CPU_PINNED;
+
+#ifdef TRITON_ENABLE_GPU
+      RETURN_IF_CUDA_ERROR(
+          cudaHostAlloc(&ptr, byte_size, cudaHostAllocPortable),
+          TRITONSERVER_ERROR_UNAVAILABLE,
+          std::string("failed to allocate pinned system memory"));
+#else
+      return TRITONSERVER_ErrorNew(
+          TRITONSERVER_ERROR_UNSUPPORTED,
+          "pinned-memory allocation not supported");
+#endif  // TRITON_ENABLE_GPU
+      break;
+    }
+
+    case AllocationType::GPU: {
+      memory_type = TRITONSERVER_MEMORY_GPU;
+
+#ifdef TRITON_ENABLE_GPU
+      int current_device;
+      RETURN_IF_CUDA_ERROR(
+          cudaGetDevice(&current_device), TRITONSERVER_ERROR_INTERNAL,
+          std::string("failed to get device"));
+      bool overridden = (current_device != memory_type_id);
+      if (overridden) {
+        RETURN_IF_CUDA_ERROR(
+            cudaSetDevice(memory_type_id), TRITONSERVER_ERROR_INTERNAL,
+            std::string("failed to set device"));
+      }
+
+      auto err = cudaMalloc(&ptr, byte_size);
+
+      if (overridden) {
+        cudaSetDevice(current_device);
+      }
+
+      RETURN_ERROR_IF_FALSE(
+          err == cudaSuccess, TRITONSERVER_ERROR_UNAVAILABLE,
+          std::string("failed to allocate GPU memory: ") +
+              cudaGetErrorString(err));
+#else
+      return TRITONSERVER_ErrorNew(
+          TRITONSERVER_ERROR_UNSUPPORTED, "GPU allocation not supported");
+#endif  // TRITON_ENABLE_GPU
+      break;
+    }
+
+    case AllocationType::CPU_PINNED_POOL: {
+      memory_type = TRITONSERVER_MEMORY_CPU_PINNED;
+      RETURN_IF_ERROR(TRITONBACKEND_MemoryManagerAllocate(
+          manager, &ptr, TRITONSERVER_MEMORY_CPU_PINNED, memory_type_id,
+          byte_size));
+      break;
+    }
+
+    case AllocationType::GPU_POOL: {
+      memory_type = TRITONSERVER_MEMORY_GPU;
+      RETURN_IF_ERROR(TRITONBACKEND_MemoryManagerAllocate(
+          manager, &ptr, TRITONSERVER_MEMORY_GPU, memory_type_id, byte_size));
+      break;
+    }
+  }
 
   *mem = new BackendMemory(
-      manager, memory_type, memory_type_id, reinterpret_cast<char*>(ptr),
-      byte_size);
+      manager, alloc_type, memory_type, memory_type_id,
+      reinterpret_cast<char*>(ptr), byte_size);
 
   return nullptr;  // success
 }
 
 TRITONSERVER_Error*
-BackendMemory::CreateWithFallback(
+BackendMemory::Create(
     TRITONBACKEND_MemoryManager* manager,
-    const TRITONSERVER_MemoryType preferred_memory_type,
+    std::initializer_list<AllocationType> alloc_types,
     const int64_t memory_type_id, const size_t byte_size, BackendMemory** mem)
 {
   *mem = nullptr;
+  RETURN_ERROR_IF_TRUE(
+      alloc_types.size() == 0, TRITONSERVER_ERROR_INVALID_ARG,
+      std::string("BackendMemory::Create, at least one allocation type must be "
+                  "specified"));
 
-  TRITONSERVER_MemoryType memory_type = preferred_memory_type;
-  void* ptr = nullptr;
-  TRITONSERVER_Error* err = TRITONBACKEND_MemoryManagerAllocate(
-      manager, &ptr, memory_type, memory_type_id, byte_size);
-  if (err != nullptr) {
-    TRITONSERVER_ErrorDelete(err);
+  bool found = false;
+  std::unordered_map<AllocationType, TRITONSERVER_Error*> errors;
+  for (const AllocationType alloc_type : alloc_types) {
+    TRITONSERVER_Error* err =
+        Create(manager, alloc_type, memory_type_id, byte_size, mem);
+    if (err == nullptr) {
+      found = true;
+      break;
+    }
 
-    // Fallback to CPU memory...
-    memory_type = TRITONSERVER_MEMORY_CPU;
-    RETURN_IF_ERROR(TRITONBACKEND_MemoryManagerAllocate(
-        manager, &ptr, memory_type, 0 /* memory_type_id */, byte_size));
+    errors.insert({alloc_type, err});
   }
 
-  *mem = new BackendMemory(
-      manager, memory_type, memory_type_id, reinterpret_cast<char*>(ptr),
-      byte_size);
+  // If allocation failed for all allocation types then display all
+  // the error messages and show the entire allocation request as
+  // failing.
+  if (!found) {
+    std::string msg = "BackendMemory::Create, all allocation types failed:";
+    for (const auto& pr : errors) {
+      const AllocationType alloc_type = pr.first;
+      TRITONSERVER_Error* err = pr.second;
+      msg += std::string("\n\t") + AllocTypeString(alloc_type) + ": " +
+             TRITONSERVER_ErrorMessage(err);
+      TRITONSERVER_ErrorDelete(err);
+    }
+
+    return TRITONSERVER_ErrorNew(TRITONSERVER_ERROR_UNAVAILABLE, msg.c_str());
+  }
 
   return nullptr;  // success
 }
@@ -82,6 +170,25 @@ BackendMemory::~BackendMemory()
   LOG_IF_ERROR(
       TRITONBACKEND_MemoryManagerFree(manager_, buffer_, memtype_, memtype_id_),
       "failed to free memory buffer");
+}
+
+const char*
+BackendMemory::AllocTypeString(const AllocationType a)
+{
+  switch (a) {
+    case AllocationType::CPU:
+      return "CPU";
+    case AllocationType::CPU_PINNED:
+      return "CPU_PINNED";
+    case AllocationType::GPU:
+      return "GPU";
+    case AllocationType::CPU_PINNED_POOL:
+      return "CPU_PINNED_POOL";
+    case AllocationType::GPU_POOL:
+      return "GPU_POOL";
+  }
+
+  return "<unknown>";
 }
 
 }}  // namespace triton::backend
