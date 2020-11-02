@@ -26,9 +26,9 @@
 
 #include "triton/backend/backend_output_responder.h"
 
+#include "triton/backend/backend_common.h"
 #include "triton/backend/backend_model.h"
 #include "triton/backend/backend_model_instance.h"
-#include "triton/backend/backend_common.h"
 
 namespace triton { namespace backend {
 
