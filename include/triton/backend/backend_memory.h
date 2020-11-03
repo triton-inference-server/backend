@@ -44,7 +44,7 @@ class BackendMemory {
   // Allocate a contiguous block of 'alloc_type' memory.  'mem'
   // returns the pointer to the allocated memory.
   //
-  // CPU_PINNED_POOL and GPU_POOL are allocated using
+  // CPU, CPU_PINNED_POOL and GPU_POOL are allocated using
   // TRITONBACKEND_MemoryManagerAllocate. Note that CPU_PINNED and GPU
   // allocations can be much slower than the POOL variants.
   //

@@ -40,14 +40,6 @@ BackendMemory::Create(
 
   void* ptr = nullptr;
   switch (alloc_type) {
-    case AllocationType::CPU: {
-      ptr = malloc(byte_size);
-      RETURN_ERROR_IF_TRUE(
-          ptr == nullptr, TRITONSERVER_ERROR_UNAVAILABLE,
-          std::string("CPU memory allocation failed"));
-      break;
-    }
-
     case AllocationType::CPU_PINNED: {
 #ifdef TRITON_ENABLE_GPU
       RETURN_IF_CUDA_ERROR(
@@ -78,7 +70,8 @@ BackendMemory::Create(
       auto err = cudaMalloc(&ptr, byte_size);
 
       if (overridden) {
-        cudaSetDevice(current_device);
+        LOG_IF_CUDA_ERROR(
+            cudaSetDevice(current_device), "failed to set CUDA device");
       }
 
       RETURN_ERROR_IF_FALSE(
@@ -92,18 +85,13 @@ BackendMemory::Create(
       break;
     }
 
-    case AllocationType::CPU_PINNED_POOL: {
+    case AllocationType::CPU:
+    case AllocationType::CPU_PINNED_POOL:
+    case AllocationType::GPU_POOL:
       RETURN_IF_ERROR(TRITONBACKEND_MemoryManagerAllocate(
-          manager, &ptr, TRITONSERVER_MEMORY_CPU_PINNED, memory_type_id,
+          manager, &ptr, AllocTypeToMemoryType(alloc_type), memory_type_id,
           byte_size));
       break;
-    }
-
-    case AllocationType::GPU_POOL: {
-      RETURN_IF_ERROR(TRITONBACKEND_MemoryManagerAllocate(
-          manager, &ptr, TRITONSERVER_MEMORY_GPU, memory_type_id, byte_size));
-      break;
-    }
   }
 
   *mem = new BackendMemory(
@@ -159,9 +147,34 @@ BackendMemory::Create(
 
 BackendMemory::~BackendMemory()
 {
-  LOG_IF_ERROR(
-      TRITONBACKEND_MemoryManagerFree(manager_, buffer_, memtype_, memtype_id_),
-      "failed to free memory buffer");
+  switch (alloctype_) {
+    case AllocationType::CPU_PINNED:
+#ifdef TRITON_ENABLE_GPU
+      if (buffer_ != nullptr) {
+        LOG_IF_CUDA_ERROR(
+            cudaFreeHost(buffer_), "failed to free pinned memory");
+      }
+#endif  // TRITON_ENABLE_GPU
+      break;
+
+    case AllocationType::GPU:
+#ifdef TRITON_ENABLE_GPU
+      if (buffer_ != nullptr) {
+        LOG_IF_CUDA_ERROR(cudaFree(buffer_), "failed to free CUDA memory");
+      }
+#endif  // TRITON_ENABLE_GPU
+      break;
+
+    case AllocationType::CPU:
+    case AllocationType::CPU_PINNED_POOL:
+    case AllocationType::GPU_POOL:
+      LOG_IF_ERROR(
+          TRITONBACKEND_MemoryManagerFree(
+              manager_, buffer_, AllocTypeToMemoryType(alloctype_),
+              memtype_id_),
+          "failed to free memory buffer");
+      break;
+  }
 }
 
 TRITONSERVER_MemoryType

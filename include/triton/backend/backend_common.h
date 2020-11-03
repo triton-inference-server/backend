@@ -100,6 +100,17 @@ namespace triton { namespace backend {
   } while (false)
 
 #ifdef TRITON_ENABLE_GPU
+#define LOG_IF_CUDA_ERROR(X, MSG)                                    \
+  do {                                                               \
+    cudaError_t lice_err__ = (X);                                    \
+    if (lice_err__ != cudaSuccess) {                                 \
+      IGNORE_ERROR(TRITONSERVER_LogMessage(                          \
+          TRITONSERVER_LOG_INFO, __FILE__, __LINE__,                 \
+          (std::string(MSG) + ": " + cudaGetErrorString(lice_err__)) \
+              .c_str()));                                            \
+    }                                                                \
+  } while (false)
+
 #define RETURN_IF_CUDA_ERROR(X, C, MSG)                                \
   do {                                                                 \
     cudaError_t rice_err__ = (X);                                      \
