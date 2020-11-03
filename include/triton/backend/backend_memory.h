@@ -76,26 +76,24 @@ class BackendMemory {
   ~BackendMemory();
 
   AllocationType AllocType() const { return alloctype_; }
-  TRITONSERVER_MemoryType MemoryType() const { return memtype_; }
   int64_t MemoryTypeId() const { return memtype_id_; }
   char* MemoryPtr() { return buffer_; }
   size_t ByteSize() const { return byte_size_; }
 
+  static TRITONSERVER_MemoryType AllocTypeToMemoryType(const AllocationType a);
   static const char* AllocTypeString(const AllocationType a);
 
  private:
   BackendMemory(
       TRITONBACKEND_MemoryManager* manager, const AllocationType alloctype,
-      const TRITONSERVER_MemoryType memtype, const int64_t memtype_id,
-      char* buffer, const size_t byte_size)
-      : manager_(manager), alloctype_(alloctype), memtype_(memtype),
-        memtype_id_(memtype_id), buffer_(buffer), byte_size_(byte_size)
+      const int64_t memtype_id, char* buffer, const size_t byte_size)
+      : manager_(manager), alloctype_(alloctype), memtype_id_(memtype_id),
+        buffer_(buffer), byte_size_(byte_size)
   {
   }
 
   TRITONBACKEND_MemoryManager* manager_;
   AllocationType alloctype_;
-  TRITONSERVER_MemoryType memtype_;
   int64_t memtype_id_;
   char* buffer_;
   size_t byte_size_;

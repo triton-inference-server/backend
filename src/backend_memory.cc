@@ -38,11 +38,9 @@ BackendMemory::Create(
 {
   *mem = nullptr;
 
-  TRITONSERVER_MemoryType memory_type = TRITONSERVER_MEMORY_CPU;
   void* ptr = nullptr;
   switch (alloc_type) {
     case AllocationType::CPU: {
-      memory_type = TRITONSERVER_MEMORY_CPU;
       ptr = malloc(byte_size);
       RETURN_ERROR_IF_TRUE(
           ptr == nullptr, TRITONSERVER_ERROR_UNAVAILABLE,
@@ -51,8 +49,6 @@ BackendMemory::Create(
     }
 
     case AllocationType::CPU_PINNED: {
-      memory_type = TRITONSERVER_MEMORY_CPU_PINNED;
-
 #ifdef TRITON_ENABLE_GPU
       RETURN_IF_CUDA_ERROR(
           cudaHostAlloc(&ptr, byte_size, cudaHostAllocPortable),
@@ -67,8 +63,6 @@ BackendMemory::Create(
     }
 
     case AllocationType::GPU: {
-      memory_type = TRITONSERVER_MEMORY_GPU;
-
 #ifdef TRITON_ENABLE_GPU
       int current_device;
       RETURN_IF_CUDA_ERROR(
@@ -99,7 +93,6 @@ BackendMemory::Create(
     }
 
     case AllocationType::CPU_PINNED_POOL: {
-      memory_type = TRITONSERVER_MEMORY_CPU_PINNED;
       RETURN_IF_ERROR(TRITONBACKEND_MemoryManagerAllocate(
           manager, &ptr, TRITONSERVER_MEMORY_CPU_PINNED, memory_type_id,
           byte_size));
@@ -107,7 +100,6 @@ BackendMemory::Create(
     }
 
     case AllocationType::GPU_POOL: {
-      memory_type = TRITONSERVER_MEMORY_GPU;
       RETURN_IF_ERROR(TRITONBACKEND_MemoryManagerAllocate(
           manager, &ptr, TRITONSERVER_MEMORY_GPU, memory_type_id, byte_size));
       break;
@@ -115,8 +107,8 @@ BackendMemory::Create(
   }
 
   *mem = new BackendMemory(
-      manager, alloc_type, memory_type, memory_type_id,
-      reinterpret_cast<char*>(ptr), byte_size);
+      manager, alloc_type, memory_type_id, reinterpret_cast<char*>(ptr),
+      byte_size);
 
   return nullptr;  // success
 }
@@ -133,13 +125,13 @@ BackendMemory::Create(
       std::string("BackendMemory::Create, at least one allocation type must be "
                   "specified"));
 
-  bool found = false;
+  bool success = false;
   std::unordered_map<AllocationType, TRITONSERVER_Error*> errors;
   for (const AllocationType alloc_type : alloc_types) {
     TRITONSERVER_Error* err =
         Create(manager, alloc_type, memory_type_id, byte_size, mem);
     if (err == nullptr) {
-      found = true;
+      success = true;
       break;
     }
 
@@ -149,7 +141,7 @@ BackendMemory::Create(
   // If allocation failed for all allocation types then display all
   // the error messages and show the entire allocation request as
   // failing.
-  if (!found) {
+  if (!success) {
     std::string msg = "BackendMemory::Create, all allocation types failed:";
     for (const auto& pr : errors) {
       const AllocationType alloc_type = pr.first;
@@ -170,6 +162,23 @@ BackendMemory::~BackendMemory()
   LOG_IF_ERROR(
       TRITONBACKEND_MemoryManagerFree(manager_, buffer_, memtype_, memtype_id_),
       "failed to free memory buffer");
+}
+
+TRITONSERVER_MemoryType
+BackendMemory::AllocTypeToMemoryType(const AllocationType a)
+{
+  switch (a) {
+    case AllocationType::CPU:
+      return TRITONSERVER_MEMORY_CPU;
+    case AllocationType::CPU_PINNED:
+    case AllocationType::CPU_PINNED_POOL:
+      return TRITONSERVER_MEMORY_CPU_PINNED;
+    case AllocationType::GPU:
+    case AllocationType::GPU_POOL:
+      return TRITONSERVER_MEMORY_GPU;
+  }
+
+  return TRITONSERVER_MEMORY_CPU;  // unreachable
 }
 
 const char*
