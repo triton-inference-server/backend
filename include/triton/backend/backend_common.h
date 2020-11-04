@@ -355,6 +355,13 @@ TRITONSERVER_Error* CopyBuffer(
 /// \return a TRITONSERVER_Error indicating success or failure.
 TRITONSERVER_Error* FileExists(const std::string& path, bool* exists);
 
+/// Read a text file into a string.
+/// \param path The path of the file.
+/// \param contents Returns the contents of the file.
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error* ReadTextFile(
+    const std::string& path, std::string* contents);
+
 /// Is a path a directory?
 /// \param path The path to check.
 /// \param is_dir Returns true if path represents a directory
