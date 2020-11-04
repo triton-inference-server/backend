@@ -79,6 +79,10 @@ class BackendMemory {
   int64_t MemoryTypeId() const { return memtype_id_; }
   char* MemoryPtr() { return buffer_; }
   size_t ByteSize() const { return byte_size_; }
+  TRITONSERVER_MemoryType MemoryType() const
+  {
+    return AllocTypeToMemoryType(alloctype_);
+  }
 
   static TRITONSERVER_MemoryType AllocTypeToMemoryType(const AllocationType a);
   static const char* AllocTypeString(const AllocationType a);
