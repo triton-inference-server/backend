@@ -84,8 +84,8 @@ repo contains the documentation and source for the backend.
 
 **PyTorch**: The PyTorch backend is used to execute TorchScript
 models. The
-[server](https://github.com/triton-inference-server/server/tree/master/src/backends/pytorch)
-repo contains the source for the backend.
+[pytorch_backend](https://github.com/triton-inference-server/pytorch_backend)
+repo contains the documentation and source for the backend.
 
 **Python**: The Python backend allows you to write your model logic in
 Python. For example, you can use this backend to execute pre/post
