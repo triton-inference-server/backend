@@ -26,12 +26,33 @@
 
 #include "triton/backend/backend_common.h"
 
-#include <sys/stat.h>
+#ifdef _WIN32
+// suppress the min and max definitions in Windef.h.
+#define NOMINMAX
+#include <Windows.h>
+
+// _CRT_INTERNAL_NONSTDC_NAMES 1 before including Microsoft provided C Runtime
+// library to expose declarations without "_" prefix to match POSIX style.
+#define _CRT_INTERNAL_NONSTDC_NAMES 1
+#include <io.h>
+#include <direct.h>
+#else
+#include <dirent.h>
 #include <unistd.h>
+#endif
+#include <sys/stat.h>
 #include <algorithm>
 #include <cerrno>
 #include <fstream>
 #include <memory>
+
+#ifdef _WIN32
+// <sys/stat.h> in Windows doesn't define S_ISDIR macro
+#if !defined(S_ISDIR) && defined(S_IFMT) && defined(S_IFDIR)
+  #define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#endif
+#define F_OK 0
+#endif
 
 namespace triton { namespace backend {
 
@@ -589,11 +610,32 @@ CopyBuffer(
 TRITONSERVER_Error*
 GetDirectoryContents(const std::string& path, std::set<std::string>* contents)
 {
+#ifdef _WIN32
+  WIN32_FIND_DATA entry;
+  HANDLE dir = FindFirstFile(path.c_str(), &entry);
+  if (dir == INVALID_HANDLE_VALUE) {
+    return TRITONSERVER_ErrorNew(
+        TRITONSERVER_ERROR_INTERNAL,
+        (std::string("failed to open directory: ") + path)
+            .c_str());
+  }
+  if ((entry.cFileName != ".") && (entry.cFileName != "..")) {
+    contents->insert(entry.cFileName);
+  }
+  while (FindNextFileA(dir, &entry)) {
+    if ((entry.cFileName != ".") && (entry.cFileName != "..")) {
+      contents->insert(entry.cFileName);
+    }
+  }
+
+  FindClose(dir);
+#else
   DIR* dir = opendir(path.c_str());
   if (dir == nullptr) {
     return TRITONSERVER_ErrorNew(
         TRITONSERVER_ERROR_INTERNAL,
-        (std::string("failed to open directory ") + path).c_str());
+        (std::string("failed to open directory: ") + path)
+            .c_str());
   }
 
   struct dirent* entry;
@@ -605,7 +647,7 @@ GetDirectoryContents(const std::string& path, std::set<std::string>* contents)
   }
 
   closedir(dir);
-
+#endif
   return nullptr;  // success
 }
 
