@@ -26,7 +26,6 @@
 
 #include "triton/backend/backend_common.h"
 
-#include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <algorithm>
