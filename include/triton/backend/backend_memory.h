@@ -26,6 +26,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 #include "triton/core/tritonbackend.h"
 #include "triton/core/tritonserver.h"
 
@@ -69,7 +70,7 @@ class BackendMemory {
   // See BackendMemory::Create() above for details.
   static TRITONSERVER_Error* Create(
       TRITONBACKEND_MemoryManager* manager,
-      std::initializer_list<AllocationType> alloc_types,
+      const std::vector<AllocationType>& alloc_types,
       const int64_t memory_type_id, const size_t byte_size,
       BackendMemory** mem);
 

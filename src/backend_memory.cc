@@ -104,7 +104,7 @@ BackendMemory::Create(
 TRITONSERVER_Error*
 BackendMemory::Create(
     TRITONBACKEND_MemoryManager* manager,
-    std::initializer_list<AllocationType> alloc_types,
+    const std::vector<AllocationType>& alloc_types,
     const int64_t memory_type_id, const size_t byte_size, BackendMemory** mem)
 {
   *mem = nullptr;
