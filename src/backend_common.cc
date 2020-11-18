@@ -34,8 +34,8 @@
 // _CRT_INTERNAL_NONSTDC_NAMES 1 before including Microsoft provided C Runtime
 // library to expose declarations without "_" prefix to match POSIX style.
 #define _CRT_INTERNAL_NONSTDC_NAMES 1
-#include <io.h>
 #include <direct.h>
+#include <io.h>
 #else
 #include <dirent.h>
 #include <unistd.h>
@@ -49,7 +49,7 @@
 #ifdef _WIN32
 // <sys/stat.h> in Windows doesn't define S_ISDIR macro
 #if !defined(S_ISDIR) && defined(S_IFMT) && defined(S_IFDIR)
-  #define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#define S_ISDIR(m) (((m)&S_IFMT) == S_IFDIR)
 #endif
 #define F_OK 0
 #endif
@@ -616,8 +616,7 @@ GetDirectoryContents(const std::string& path, std::set<std::string>* contents)
   if (dir == INVALID_HANDLE_VALUE) {
     return TRITONSERVER_ErrorNew(
         TRITONSERVER_ERROR_INTERNAL,
-        (std::string("failed to open directory: ") + path)
-            .c_str());
+        (std::string("failed to open directory: ") + path).c_str());
   }
   if ((entry.cFileName != ".") && (entry.cFileName != "..")) {
     contents->insert(entry.cFileName);
@@ -634,8 +633,7 @@ GetDirectoryContents(const std::string& path, std::set<std::string>* contents)
   if (dir == nullptr) {
     return TRITONSERVER_ErrorNew(
         TRITONSERVER_ERROR_INTERNAL,
-        (std::string("failed to open directory: ") + path)
-            .c_str());
+        (std::string("failed to open directory: ") + path).c_str());
   }
 
   struct dirent* entry;

@@ -139,11 +139,11 @@ namespace triton { namespace backend {
 
 #ifdef TRITON_ENABLE_STATS
 #define TIMESPEC_TO_NANOS(TS) ((TS).tv_sec * 1000000000 + (TS).tv_nsec)
-#define SET_TIMESTAMP(TS_NS)             \
-  {                                      \
-    TS_NS = std::chrono::duration_cast<std::chrono::nanoseconds>( \
-    std::chrono::steady_clock::now().time_since_epoch()) \
-    .count();                                            \
+#define SET_TIMESTAMP(TS_NS)                                         \
+  {                                                                  \
+    TS_NS = std::chrono::duration_cast<std::chrono::nanoseconds>(    \
+                std::chrono::steady_clock::now().time_since_epoch()) \
+                .count();                                            \
   }
 #define DECL_TIMESTAMP(TS_NS) \
   uint64_t TS_NS;             \
