@@ -25,7 +25,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
-#include <time.h>
+#include <chrono>
 #include <condition_variable>
 #include <deque>
 #include <iostream>
@@ -139,11 +139,11 @@ namespace triton { namespace backend {
 
 #ifdef TRITON_ENABLE_STATS
 #define TIMESPEC_TO_NANOS(TS) ((TS).tv_sec * 1000000000 + (TS).tv_nsec)
-#define SET_TIMESTAMP(TS_NS)             \
-  {                                      \
-    struct timespec ts;                  \
-    clock_gettime(CLOCK_MONOTONIC, &ts); \
-    TS_NS = TIMESPEC_TO_NANOS(ts);       \
+#define SET_TIMESTAMP(TS_NS)                                         \
+  {                                                                  \
+    TS_NS = std::chrono::duration_cast<std::chrono::nanoseconds>(    \
+                std::chrono::steady_clock::now().time_since_epoch()) \
+                .count();                                            \
   }
 #define DECL_TIMESTAMP(TS_NS) \
   uint64_t TS_NS;             \

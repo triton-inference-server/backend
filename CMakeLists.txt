@@ -93,11 +93,18 @@ target_include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  message("Using MSVC as compiler, default target on Windows 10. "
+      "If the target system is not Windows 10, please update _WIN32_WINNT "
+      "to corresponding value.")
+endif()
 target_compile_features(triton-backend-utils PRIVATE cxx_std_11)
 target_compile_options(
   triton-backend-utils
   PRIVATE
-    -Wall -Wextra -Wno-unused-parameter -Werror
+  $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
+    -Wall -Wextra -Wno-unused-parameter -Werror>
+  $<$<CXX_COMPILER_ID:MSVC>:/Wall /D_WIN32_WINNT=0x0A00 /EHsc>
 )
 
 # TRITON_ENABLE_GPU exposed in header so set PUBLIC
@@ -118,6 +125,7 @@ endif() # TRITON_ENABLE_STATS
 
 set_target_properties(
   triton-backend-utils PROPERTIES
+  WINDOWS_EXPORT_ALL_SYMBOLS TRUE
   POSITION_INDEPENDENT_CODE ON
   OUTPUT_NAME tritonbackendutils
 )
