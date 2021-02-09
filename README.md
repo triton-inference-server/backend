@@ -1,5 +1,5 @@
 <!--
-# Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
+# Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -124,9 +124,9 @@ information about how the shared library implementing a backend is
 managed by Triton. For a standard install the globally available
 backends are in /opt/tritonserver/backends. To remove one of those
 backends stop tritonserver, delete the
-/opt/tritonserver/backends/<backend> directory, and then start
+/opt/tritonserver/backends/\<backend\> directory, and then start
 tritonserver. Adding a backend follows a similar process except you
-create and populate the /opt/tritonserver/backends/<backend>
+create and populate the /opt/tritonserver/backends/\<backend\>
 directory.
 
 ### What about backends developed using the "custom backend" API.
@@ -202,7 +202,7 @@ these properties is optional.
 ### Backend Shared Library
 
 Each backend must be implemented as a shared library and the name of
-the shared library must be *libtriton_<backend-name>.so*. For
+the shared library must be *libtriton_\<backend-name\>.so*. For
 example, if the name of the backend is "mybackend", a model indicates
 that it uses the backend by setting the model configuration 'backend'
 setting to "mybackend", and Triton looks for *libtriton_mybackend.so*
@@ -213,13 +213,13 @@ backend logic into the appropriate shared library.
 For a model, *M* that specifies backend *B*, Triton searches for the
 backend shared library in the following places, in this order:
 
-* <model_repository>/M/<version_directory>/libtriton_B.so
+* \<model_repository\>/M/\<version_directory\>/libtriton_B.so
 
-* <model_repository>/M/libtriton_B.so
+* \<model_repository\>/M/libtriton_B.so
 
-* <backend_directory>/B/libtriton_B.so
+* \<backend_directory\>/B/libtriton_B.so
 
-Where <backend_directory> is by default /opt/tritonserver/backends.
+Where \<backend_directory\> is by default /opt/tritonserver/backends.
 The --backend-directory flag can be used to override the default.
 
 ### Triton Backend API
