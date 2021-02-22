@@ -505,9 +505,6 @@ RequestsRespondWithError(
       LOG_MESSAGE(TRITONSERVER_LOG_ERROR, "fail to create response");
       TRITONSERVER_ErrorDelete(err);
     } else {
-      std::unique_ptr<
-          TRITONBACKEND_Response, decltype(&TRITONBACKEND_ResponseDelete)>
-          response_handle(response, TRITONBACKEND_ResponseDelete);
       LOG_IF_ERROR(
           TRITONBACKEND_ResponseSend(
               response, TRITONSERVER_RESPONSE_COMPLETE_FINAL, response_err),
