@@ -674,6 +674,23 @@ ReadTextFile(const std::string& path, std::string* contents)
 }
 
 TRITONSERVER_Error*
+ReadBinaryFile(const std::string& path, std::vector<uint8_t>& contents)
+{
+  std::ifstream in(path, std::ios::in | std::ios::binary);
+  if (!in) {
+    return TRITONSERVER_ErrorNew(
+        TRITONSERVER_ERROR_INTERNAL,
+        ("failed to open binary file for read " + path + ": " + strerror(errno)).c_str();
+  }
+
+  contents.assign(
+      (std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+  in.close();
+
+  return nullptr;  // success
+}
+
+TRITONSERVER_Error*
 IsDirectory(const std::string& path, bool* is_dir)
 {
   *is_dir = false;

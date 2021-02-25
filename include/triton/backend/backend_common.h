@@ -362,6 +362,13 @@ TRITONSERVER_Error* FileExists(const std::string& path, bool* exists);
 TRITONSERVER_Error* ReadTextFile(
     const std::string& path, std::string* contents);
 
+/// Read a binary file into a uint8_t vector.
+/// \param path The path of the file.
+/// \param contents Returns the contents of the file.
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error* ReadBinaryFile(
+    const std::string& path, std::vector<uint8_t>& contents);
+
 /// Is a path a directory?
 /// \param path The path to check.
 /// \param is_dir Returns true if path represents a directory
