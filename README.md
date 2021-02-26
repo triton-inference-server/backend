@@ -129,13 +129,13 @@ tritonserver. Adding a backend follows a similar process except you
 create and populate the /opt/tritonserver/backends/\<backend\>
 directory.
 
-### What about backends developed using the "custom backend" API.
+### What about backends developed using the "legacy custom backend" API.
 
-If you have custom backends that you developed using the older,
-deprecated custom backend API you should consider porting them to the
-new [Triton Backend API](#triton-backend-api), but you are not
-required to. Models using the custom backend API will continue to be
-supported by Triton.
+As of release 21.02 the legacy custom API is deprecated and will soon
+be removed. If you have custom backends that you developed using this
+older, deprecated API you should porting them to the new [Triton
+Backend API](#triton-backend-api). Support for the legacy API will be
+remove completely in an upcoming release.
 
 ## Build the Backend Utilities
 
