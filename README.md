@@ -133,9 +133,9 @@ directory.
 
 As of release 21.02 the legacy custom API is deprecated and will soon
 be removed. If you have custom backends that you developed using this
-older, deprecated API you should porting them to the new [Triton
-Backend API](#triton-backend-api). Support for the legacy API will be
-remove completely in an upcoming release.
+older, deprecated API you should port them to the new [Triton Backend
+API](#triton-backend-api). Support for the legacy API will be remove
+completely in an upcoming release.
 
 ## Build the Backend Utilities
 
