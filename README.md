@@ -121,13 +121,11 @@ documentation on [Triton backends](#backends).
 
 Yes. See [Backend Shared Library](#backend-shared-library) for general
 information about how the shared library implementing a backend is
-managed by Triton. For a standard install the globally available
-backends are in /opt/tritonserver/backends. To remove one of those
-backends stop tritonserver, delete the
-/opt/tritonserver/backends/\<backend\> directory, and then start
-tritonserver. Adding a backend follows a similar process except you
-create and populate the /opt/tritonserver/backends/\<backend\>
-directory.
+managed by Triton, and [Triton with Unsupported and Custom
+Backends](https://github.com/triton-inference-server/server/blob/master/docs/compose.md#triton-with-unsupported-and-custom-backends)
+for documentation on how to add your backend to the released Triton
+Docker image. For a standard install the globally available backends
+are in /opt/tritonserver/backends.
 
 ### What about backends developed using the "legacy custom backend" API.
 
@@ -217,10 +215,25 @@ backend shared library in the following places, in this order:
 
 * \<model_repository\>/M/libtriton_B.so
 
-* \<backend_directory\>/B/libtriton_B.so
+* \<global_backend_directory\>/B/libtriton_B.so
 
-Where \<backend_directory\> is by default /opt/tritonserver/backends.
-The --backend-directory flag can be used to override the default.
+Where \<global_backend_directory\> is by default
+/opt/tritonserver/backends.  The --backend-directory flag can be used
+to override the default.
+
+Typically you will install your backend into the global backend
+directory. For example, if using Triton Docker images you can follow
+the instructions in [Triton with Unsupported and Custom
+Backends](https://github.com/triton-inference-server/server/blob/master/docs/compose.md#triton-with-unsupported-and-custom-backends). Continuing the example of a backend names "mybackend", you would install into the Triton image as:
+
+```
+/opt/
+  tritonserver/
+    backends/
+      mybackend/
+        libtriton_mybackend.so
+        ... # other files needed by mybackend
+```
 
 ### Triton Backend API
 
