@@ -87,6 +87,12 @@ models. The
 [pytorch_backend](https://github.com/triton-inference-server/pytorch_backend)
 repo contains the documentation and source for the backend.
 
+**OpenVINO**: The OpenVINO backend is used to execute
+[OpenVINO](https://docs.openvinotoolkit.org/latest/index.html)
+models. The
+[openvino_backend](https://github.com/triton-inference-server/openvino_backend)
+repo contains the documentation and source for the backend.
+
 **Python**: The Python backend allows you to write your model logic in
 Python. For example, you can use this backend to execute pre/post
 processing code written in Python, or to execute a PyTorch Python
@@ -170,8 +176,8 @@ See the [CMakeLists.txt](CMakeLists.txt) file for other build options.
 
 A Triton *backend* is the implementation that executes a model. A
 backend can be a wrapper around a deep-learning framework, like
-PyTorch, TensorFlow, TensorRT or ONNX Runtime. A backend can also
-implement any functionality you want as long as it adheres to the
+PyTorch, TensorFlow, TensorRT, ONNX Runtime or OpenVINO. A backend can
+also implement any functionality you want as long as it adheres to the
 [backend API](#triton-backend-api). Triton uses this API to send
 requests to the backend for execution and the backend uses the API to
 communicate with Triton.
