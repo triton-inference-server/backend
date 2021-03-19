@@ -870,4 +870,17 @@ ParseDoubleValue(const std::string& value, double* parsed_value)
   return nullptr;  // success
 }
 
+TRITONSERVER_Error*
+GetParameterValue(
+    triton::common::TritonJson::Value& params, const std::string& key,
+    std::string* value)
+{
+  triton::common::TritonJson::Value json_value;
+  RETURN_ERROR_IF_FALSE(
+      params.Find(key.c_str(), &json_value), TRITONSERVER_ERROR_NOT_FOUND,
+      std::string("model configuration is missing the parameter ") + key);
+  RETURN_IF_ERROR(json_value.MemberAsString("string_value", value));
+  return nullptr;  // success
+}
+
 }}  // namespace triton::backend
