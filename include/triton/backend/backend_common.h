@@ -429,4 +429,14 @@ TRITONSERVER_Error* ParseIntValue(const std::string& value, int* parsed_value);
 TRITONSERVER_Error* ParseDoubleValue(
     const std::string& value, double* parsed_value);
 
+/// Return the value of the specified key in a JSON object.
+///
+/// \param params The JSON object containing the key-value mapping.
+/// \param key The key to look up the value in the JSON object.
+/// \param value Returns the value.
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error* GetParameterValue(
+    triton::common::TritonJson::Value& params, const std::string& key,
+    std::string* value);
+
 }}  // namespace triton::backend
