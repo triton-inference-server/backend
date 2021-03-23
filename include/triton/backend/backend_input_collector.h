@@ -62,6 +62,12 @@ class BackendInputCollector {
 
   ~BackendInputCollector();
 
+  // Return whether the entire input is in a contiguous buffer. If returns true,
+  // the properties of the contiguous input buffer will also be returned.
+  bool GetInputBufferIfContiguous(
+      const char* input_name, const char** buffer, size_t* buffer_byte_size,
+      TRITONSERVER_MemoryType* memory_type, int64_t* memory_type_id);
+
   // Process all requests for a named input tensor.
   void ProcessTensor(
       const char* input_name, char* buffer, const size_t buffer_byte_size,

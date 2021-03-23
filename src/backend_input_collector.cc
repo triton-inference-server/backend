@@ -44,6 +44,64 @@ BackendInputCollector::~BackendInputCollector()
   }
 }
 
+bool
+BackendInputCollector::GetInputBufferIfContiguous(
+    const char* input_name, const char** buffer, size_t* buffer_byte_size,
+    TRITONSERVER_MemoryType* memory_type, int64_t* memory_type_id)
+{
+  *buffer = nullptr;
+  const char* expected_next_buffer = nullptr;
+  for (size_t idx = 0; idx < request_count_; idx++) {
+    auto& request = requests_[idx];
+    auto& response = (*responses_)[idx];
+
+    TRITONBACKEND_Input* input;
+    RESPOND_AND_SET_NULL_IF_ERROR(
+        &response, TRITONBACKEND_RequestInput(request, input_name, &input));
+    if (response == nullptr) {
+      return false;
+    }
+    uint64_t byte_size;
+    uint32_t buffer_count;
+    RESPOND_AND_SET_NULL_IF_ERROR(
+        &response,
+        TRITONBACKEND_InputProperties(
+            input, nullptr, nullptr, nullptr, nullptr, &byte_size, &buffer_count));
+    if (response == nullptr) {
+      return false;
+    }
+    for (size_t idx = 0; idx < buffer_count; ++idx) {
+      const void* src_buffer;
+      size_t src_byte_size;
+      TRITONSERVER_MemoryType src_memory_type;
+      int64_t src_memory_type_id;
+
+      RESPOND_AND_SET_NULL_IF_ERROR(
+          &response, TRITONBACKEND_InputBuffer(
+                        input, idx, &src_buffer, &src_byte_size,
+                        &src_memory_type, &src_memory_type_id));
+      if (response == nullptr) {
+        return false;
+      }
+      if (*buffer != nullptr) {
+        if ((expected_next_buffer == src_buffer) && (*memory_type == src_memory_type) && (*memory_type_id == src_memory_type_id)) {
+          *buffer_byte_size += src_byte_size;
+          expected_next_buffer += src_byte_size;
+        } else {
+          return false;
+        }
+      } else {
+        *buffer = reinterpret_cast<const char*>(src_buffer);
+        *memory_type = src_memory_type;
+        *memory_type_id = src_memory_type_id;
+        *buffer_byte_size = src_byte_size;
+        expected_next_buffer = *buffer + src_byte_size;
+      }
+    }
+  }
+  return true;
+}
+
 void
 BackendInputCollector::ProcessTensor(
     const char* input_name, char* buffer, const size_t buffer_byte_size,
