@@ -64,9 +64,9 @@ BackendInputCollector::GetInputBufferIfContiguous(
     uint64_t byte_size;
     uint32_t buffer_count;
     RESPOND_AND_SET_NULL_IF_ERROR(
-        &response,
-        TRITONBACKEND_InputProperties(
-            input, nullptr, nullptr, nullptr, nullptr, &byte_size, &buffer_count));
+        &response, TRITONBACKEND_InputProperties(
+                       input, nullptr, nullptr, nullptr, nullptr, &byte_size,
+                       &buffer_count));
     if (response == nullptr) {
       return false;
     }
@@ -78,13 +78,15 @@ BackendInputCollector::GetInputBufferIfContiguous(
 
       RESPOND_AND_SET_NULL_IF_ERROR(
           &response, TRITONBACKEND_InputBuffer(
-                        input, idx, &src_buffer, &src_byte_size,
-                        &src_memory_type, &src_memory_type_id));
+                         input, idx, &src_buffer, &src_byte_size,
+                         &src_memory_type, &src_memory_type_id));
       if (response == nullptr) {
         return false;
       }
       if (*buffer != nullptr) {
-        if ((expected_next_buffer == src_buffer) && (*memory_type == src_memory_type) && (*memory_type_id == src_memory_type_id)) {
+        if ((expected_next_buffer == src_buffer) &&
+            (*memory_type == src_memory_type) &&
+            (*memory_type_id == src_memory_type_id)) {
           *buffer_byte_size += src_byte_size;
           expected_next_buffer += src_byte_size;
         } else {
