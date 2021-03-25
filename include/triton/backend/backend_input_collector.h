@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020, NVIDIA CORPORATION. All rights reserved.
+// Copyright (c) 2019-2021, NVIDIA CORPORATION. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -26,8 +26,10 @@
 #pragma once
 
 #include <list>
+#include <memory>
 #include <string>
 #include <vector>
+#include "triton/backend/backend_memory.h"
 #include "triton/core/tritonbackend.h"
 
 #ifdef TRITON_ENABLE_GPU
@@ -60,18 +62,34 @@ class BackendInputCollector {
   {
   }
 
-  ~BackendInputCollector();
-
-  // Return whether the entire input is in a contiguous buffer. If returns true,
-  // the properties of the contiguous input buffer will also be returned.
-  bool GetInputBufferIfContiguous(
-      const char* input_name, const char** buffer, size_t* buffer_byte_size,
-      TRITONSERVER_MemoryType* memory_type, int64_t* memory_type_id);
+  ~BackendInputCollector() = default;
 
   // Process all requests for a named input tensor.
   void ProcessTensor(
       const char* input_name, char* buffer, const size_t buffer_byte_size,
       const TRITONSERVER_MemoryType memory_type, const int64_t memory_type_id);
+
+  // Process all requests for a named input tensor and returns the contiguous
+  // buffer of the input tensor. This overload of the function can avoid data
+  // copy if the input buffer is already contiguous and the caller doesn't
+  // provide a designated buffer.
+  // 'buffer' is used to determine whether the input should be placed at the
+  //   'buffer' provided by the caller. If 'buffer' == nullptr, the returned
+  //   buffer will be managed by the BackendInputCollector object and
+  //   has the same lifecycle as the BackendInputCollector object.
+  // 'buffer_byte_size' is the byte size of 'buffer' if it is not nullptr.
+  // 'allowed_input_types' is the ordered list of the memory type and id pairs
+  //   that the returned buffer can be. It must only contain the memory type
+  //   and id of 'buffer' if it is not nullptr.
+  // 'dst_buffer' returns the contiguous buffer of the input tensor.
+  // 'dst_memory_type' returns the memory type of 'dst_buffer'.
+  // 'dst_memory_type_id' returns the memory type id of 'dst_buffer'.
+  TRITONSERVER_Error* ProcessTensor(
+      const char* input_name, char* buffer, const size_t buffer_byte_size,
+      const std::vector<std::pair<TRITONSERVER_MemoryType, int64_t>>&
+          allowed_input_types,
+      const char** dst_buffer, size_t* dst_buffer_byte_size,
+      TRITONSERVER_MemoryType* dst_memory_type, int64_t* dst_memory_type_id);
 
   // Finalize processing of all requests for all input tensors. Return
   // true if cudaMemcpyAsync is called, and the caller should call
@@ -80,6 +98,13 @@ class BackendInputCollector {
   bool Finalize();
 
  private:
+  // Return whether the entire input is in a contiguous buffer. If returns true,
+  // the properties of the contiguous input buffer will also be returned.
+  // Otherwise, only 'buffer_byte_size' will be set and return the total byte
+  // size of the input.
+  bool GetInputBufferIfContiguous(
+      const char* input_name, const char** buffer, size_t* buffer_byte_size,
+      TRITONSERVER_MemoryType* memory_type, int64_t* memory_type_id);
   bool FlushPendingPinned(
       char* tensor_buffer, const size_t tensor_buffer_byte_size,
       const TRITONSERVER_MemoryType tensor_memory_type,
@@ -108,10 +133,9 @@ class BackendInputCollector {
   size_t pending_pinned_offset_;
   RequestsList pending_pinned_inputs_;
 
-  // FIXME provide memory utilities to avoid calls to CUDA memory functions
-  // Pinned memories that need to live over the lifetime of this
+  // managed memories that need to live over the lifetime of this
   // BackendInputCollector object.
-  std::list<char*> pinned_memories_;
+  std::list<std::unique_ptr<BackendMemory>> backend_memories_;
 
   // Pinned memory buffers and the corresponding request_inputs where
   // the final copy to the tensor is deferred until Finalize() after
