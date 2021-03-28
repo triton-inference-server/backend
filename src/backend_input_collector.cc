@@ -40,6 +40,7 @@ BackendInputCollector::GetInputBufferIfContiguous(
     TRITONSERVER_MemoryType* memory_type, int64_t* memory_type_id)
 {
   *buffer = nullptr;
+  *buffer_byte_size = 0;
   const char* expected_next_buffer = nullptr;
   bool contiguous = true;
   for (size_t idx = 0; idx < request_count_; idx++) {
@@ -166,11 +167,15 @@ BackendInputCollector::ProcessTensor(
     if (GetInputBufferIfContiguous(
             input_name, dst_buffer, dst_buffer_byte_size, dst_memory_type,
             dst_memory_type_id)) {
-      // If the buffer is contiguous, check if the caller expects its type
-      for (const auto& allowed_type : allowed_input_types) {
-        if ((*dst_memory_type == allowed_type.first) &&
-            ((*dst_memory_type_id == allowed_type.second))) {
-          return nullptr;  // success
+      // zero size buffer will be treated as contiguous as well,
+      // but we want to invoke backend memory to have a valid address.
+      if (*dst_buffer_byte_size != 0) {
+        // If the buffer is contiguous, check if the caller expects its type
+        for (const auto& allowed_type : allowed_input_types) {
+          if ((*dst_memory_type == allowed_type.first) &&
+              ((*dst_memory_type_id == allowed_type.second))) {
+            return nullptr;  // success
+          }
         }
       }
     }
@@ -233,9 +238,11 @@ BackendInputCollector::ProcessTensor(
     *dst_memory_type = allowed_input_types[0].first;
     *dst_memory_type_id = allowed_input_types[0].second;
   }
-  ProcessTensor(
-      input_name, buffer, *dst_buffer_byte_size, *dst_memory_type,
-      *dst_memory_type_id);
+  if (*dst_buffer_byte_size != 0) {
+    ProcessTensor(
+        input_name, buffer, *dst_buffer_byte_size, *dst_memory_type,
+        *dst_memory_type_id);
+  }
   return nullptr;  // success
 }
 
