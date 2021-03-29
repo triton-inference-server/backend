@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020, NVIDIA CORPORATION. All rights reserved.
+// Copyright (c) 2019-2021, NVIDIA CORPORATION. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -33,15 +33,59 @@ namespace triton { namespace backend {
 //
 // BackendInputCollector
 //
-BackendInputCollector::~BackendInputCollector()
+
+bool
+BackendInputCollector::GetInputBufferIfContiguous(
+    const char* input_name, const char** buffer, size_t* buffer_byte_size,
+    TRITONSERVER_MemoryType* memory_type, int64_t* memory_type_id)
 {
-  for (auto& pinned_memory : pinned_memories_) {
-    LOG_IF_ERROR(
-        TRITONBACKEND_MemoryManagerFree(
-            memory_manager_, reinterpret_cast<void*>(pinned_memory),
-            TRITONSERVER_MEMORY_CPU_PINNED, 0),
-        "failed to free pinned memory");
+  *buffer = nullptr;
+  *buffer_byte_size = 0;
+  const char* expected_next_buffer = nullptr;
+  bool contiguous = true;
+  for (size_t idx = 0; idx < request_count_; idx++) {
+    auto& request = requests_[idx];
+    auto& response = (*responses_)[idx];
+
+    TRITONBACKEND_Input* input;
+    RESPOND_AND_SET_NULL_IF_ERROR(
+        &response, TRITONBACKEND_RequestInput(request, input_name, &input));
+    uint64_t byte_size;
+    uint32_t buffer_count;
+    RESPOND_AND_SET_NULL_IF_ERROR(
+        &response, TRITONBACKEND_InputProperties(
+                       input, nullptr, nullptr, nullptr, nullptr, &byte_size,
+                       &buffer_count));
+    for (size_t idx = 0; idx < buffer_count; ++idx) {
+      const void* src_buffer;
+      size_t src_byte_size;
+      TRITONSERVER_MemoryType src_memory_type;
+      int64_t src_memory_type_id;
+
+      RESPOND_AND_SET_NULL_IF_ERROR(
+          &response, TRITONBACKEND_InputBuffer(
+                         input, idx, &src_buffer, &src_byte_size,
+                         &src_memory_type, &src_memory_type_id));
+      if (*buffer != nullptr) {
+        if ((expected_next_buffer == src_buffer) &&
+            (*memory_type == src_memory_type) &&
+            (*memory_type_id == src_memory_type_id)) {
+          expected_next_buffer += src_byte_size;
+        } else {
+          contiguous = false;
+        }
+        // Want to know total buffer byte size even if it is not contiguous
+        *buffer_byte_size += src_byte_size;
+      } else {
+        *buffer = reinterpret_cast<const char*>(src_buffer);
+        *memory_type = src_memory_type;
+        *memory_type_id = src_memory_type_id;
+        *buffer_byte_size = src_byte_size;
+        expected_next_buffer = *buffer + src_byte_size;
+      }
+    }
   }
+  return contiguous;
 }
 
 void
@@ -103,6 +147,103 @@ BackendInputCollector::ProcessTensor(
     cudaEventRecord(event_, stream_);
   }
 #endif  // TRITON_ENABLE_GPU
+}
+
+TRITONSERVER_Error*
+BackendInputCollector::ProcessTensor(
+    const char* input_name, char* buffer, const size_t buffer_byte_size,
+    const std::vector<std::pair<TRITONSERVER_MemoryType, int64_t>>&
+        allowed_input_types,
+    const char** dst_buffer, size_t* dst_buffer_byte_size,
+    TRITONSERVER_MemoryType* dst_memory_type, int64_t* dst_memory_type_id)
+{
+  if (buffer == nullptr) {
+    if (allowed_input_types.size() == 0) {
+      return TRITONSERVER_ErrorNew(
+          TRITONSERVER_ERROR_INTERNAL,
+          "'allowed_input_types' must contain at least one pair of memory type "
+          "and id");
+    }
+    if (GetInputBufferIfContiguous(
+            input_name, dst_buffer, dst_buffer_byte_size, dst_memory_type,
+            dst_memory_type_id)) {
+      // zero size buffer will be treated as contiguous as well,
+      // but we want to invoke backend memory to have a valid address.
+      if (*dst_buffer_byte_size != 0) {
+        // If the buffer is contiguous, check if the caller expects its type
+        for (const auto& allowed_type : allowed_input_types) {
+          if ((*dst_memory_type == allowed_type.first) &&
+              ((*dst_memory_type_id == allowed_type.second))) {
+            return nullptr;  // success
+          }
+        }
+      }
+    }
+    // A separate buffer is needed
+    BackendMemory* backend_memory = nullptr;
+    for (const auto& allowed_type : allowed_input_types) {
+      std::vector<BackendMemory::AllocationType> alloc_types;
+      const int64_t memory_type_id = allowed_type.second;
+      switch (allowed_type.first) {
+        case TRITONSERVER_MEMORY_GPU:
+          alloc_types = {BackendMemory::AllocationType::GPU_POOL,
+                         BackendMemory::AllocationType::GPU};
+          break;
+        case TRITONSERVER_MEMORY_CPU_PINNED:
+          alloc_types = {BackendMemory::AllocationType::CPU_PINNED_POOL,
+                         BackendMemory::AllocationType::CPU_PINNED};
+          break;
+        case TRITONSERVER_MEMORY_CPU:
+          alloc_types = {BackendMemory::AllocationType::CPU};
+          break;
+      }
+      auto err = BackendMemory::Create(
+          memory_manager_, alloc_types, memory_type_id, *dst_buffer_byte_size,
+          &backend_memory);
+      if (err != nullptr) {
+        LOG_MESSAGE(
+            TRITONSERVER_LOG_VERBOSE,
+            (std::string("unable to create backend memory for type: ") +
+             TRITONSERVER_MemoryTypeString(allowed_type.first) +
+             " id: " + std::to_string(memory_type_id) + ": " +
+             TRITONSERVER_ErrorMessage(err))
+                .c_str());
+        TRITONSERVER_ErrorDelete(err);
+      } else {
+        backend_memories_.emplace_back(backend_memory);
+        break;
+      }
+    }
+    if (backend_memory == nullptr) {
+      return TRITONSERVER_ErrorNew(
+          TRITONSERVER_ERROR_INTERNAL,
+          (std::string("failed to allocate contiguous buffer for input '") +
+           input_name + "'")
+              .c_str());
+    }
+    buffer = backend_memory->MemoryPtr();
+    *dst_buffer = backend_memory->MemoryPtr();
+    *dst_buffer_byte_size = backend_memory->ByteSize();
+    *dst_memory_type = backend_memory->MemoryType();
+    *dst_memory_type_id = backend_memory->MemoryTypeId();
+  } else {
+    if (allowed_input_types.size() != 0) {
+      return TRITONSERVER_ErrorNew(
+          TRITONSERVER_ERROR_INTERNAL,
+          "'allowed_input_types' must only contain the memory type and id of "
+          "'buffer'");
+    }
+    *dst_buffer = buffer;
+    *dst_buffer_byte_size = buffer_byte_size;
+    *dst_memory_type = allowed_input_types[0].first;
+    *dst_memory_type_id = allowed_input_types[0].second;
+  }
+  if (*dst_buffer_byte_size != 0) {
+    ProcessTensor(
+        input_name, buffer, *dst_buffer_byte_size, *dst_memory_type,
+        *dst_memory_type_id);
+  }
+  return nullptr;  // success
 }
 
 bool
@@ -282,13 +423,19 @@ BackendInputCollector::FlushPendingPinned(
   // directly go CPU->GPU or GPU->CPU.
   char* pinned_memory = nullptr;
   if (pending_pinned_byte_size_ > 0) {
-    TRITONSERVER_Error* err = TRITONBACKEND_MemoryManagerAllocate(
-        memory_manager_, reinterpret_cast<void**>(&pinned_memory),
-        TRITONSERVER_MEMORY_CPU_PINNED, 0 /* memory_type_id */,
-        pending_pinned_byte_size_);
+    BackendMemory* backend_memory;
+    TRITONSERVER_Error* err = BackendMemory::Create(
+        memory_manager_,
+        {BackendMemory::AllocationType::CPU_PINNED_POOL,
+         BackendMemory::AllocationType::CPU_PINNED},
+        0 /* memory_type_id */, pending_pinned_byte_size_, &backend_memory);
     if (err != nullptr) {
-      pinned_memory = nullptr;
       TRITONSERVER_ErrorDelete(err);
+    } else {
+      // Need to hold on to the allocated pinned buffer as there will be
+      // copies in flight. Will delete it in finalize.
+      backend_memories_.emplace_back(backend_memory);
+      pinned_memory = backend_memory->MemoryPtr();
     }
   }
 
@@ -381,12 +528,6 @@ BackendInputCollector::FlushPendingPinned(
   pending_pinned_byte_size_ = 0;
   pending_pinned_offset_ = 0;
   pending_pinned_inputs_.clear();
-
-  // Need to hold on to the allocated pinned buffer as there are still
-  // copies in flight. Will delete it in finalize.
-  if (pinned_memory != nullptr) {
-    pinned_memories_.push_back(pinned_memory);
-  }
 
   return cuda_copy;
 }
