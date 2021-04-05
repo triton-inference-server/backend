@@ -883,4 +883,109 @@ GetParameterValue(
   return nullptr;  // success
 }
 
+TRITONSERVER_Error*
+BatchInput::ParseBatchInputs(
+    triton::common::TritonJson::Value& config,
+    std::vector<BatchInput>* batch_inputs)
+{
+  batch_inputs->clear();
+  triton::common::TritonJson::Value bis;
+  RETURN_IF_ERROR(config.MemberAsArray("batch_input", &bis));
+  for (size_t i = 0; i < bis.ArraySize(); ++i) {
+    batch_inputs->emplace_back();
+    BatchInput& batch_input = batch_inputs->back();
+    triton::common::TritonJson::Value bi;
+    RETURN_IF_ERROR(bis.IndexAsObject(i, &bi));
+    {
+      triton::common::TritonJson::Value bi_target_names;
+      RETURN_IF_ERROR(bi.MemberAsArray("target_name", &bi_target_names));
+      for (size_t i = 0; i < bi_target_names.ArraySize(); ++i) {
+        std::string tn;
+        RETURN_IF_ERROR(bi_target_names.IndexAsString(i, &tn));
+        batch_input.target_names_.emplace_back(std::move(tn));
+      }
+    }
+    {
+      std::string bi_kind;
+      RETURN_IF_ERROR(bi.MemberAsString("kind", &bi_kind));
+      if (bi_kind == "BATCH_ELEMENT_COUNT") {
+        batch_input.kind_ = Kind::BATCH_ELEMENT_COUNT;
+      } else if (bi_kind == "BATCH_ACCUMULATED_ELEMENT_COUNT") {
+        batch_input.kind_ = Kind::BATCH_ACCUMULATED_ELEMENT_COUNT;
+      } else if (bi_kind == "BATCH_ACCUMULATED_ELEMENT_COUNT_WITH_ZERO") {
+        batch_input.kind_ = Kind::BATCH_ACCUMULATED_ELEMENT_COUNT_WITH_ZERO;
+      } else if (bi_kind == "BATCH_MAX_ELEMENT_COUNT_AS_SHAPE") {
+        batch_input.kind_ = Kind::BATCH_MAX_ELEMENT_COUNT_AS_SHAPE;
+      } else {
+        RETURN_ERROR_IF_FALSE(
+            false, TRITONSERVER_ERROR_INVALID_ARG,
+            std::string("unexpected batch input kind '" + bi_kind + "'"));
+      }
+    }
+    {
+      std::string bi_dtype;
+      RETURN_IF_ERROR(bi.MemberAsString("data_type", &bi_dtype));
+      batch_input.data_type_ =
+          ModelConfigDataTypeToTritonServerDataType(bi_dtype);
+      RETURN_ERROR_IF_FALSE(
+          batch_input.data_type_ == TRITONSERVER_TYPE_INVALID,
+          TRITONSERVER_ERROR_INVALID_ARG,
+          std::string("unexpected batch input data type '" + bi_dtype + "'"));
+    }
+    {
+      triton::common::TritonJson::Value bi_source_inputs;
+      RETURN_IF_ERROR(bi.MemberAsArray("source_input", &bi_source_inputs));
+      for (size_t i = 0; i < bi_source_inputs.ArraySize(); ++i) {
+        std::string si;
+        RETURN_IF_ERROR(bi_source_inputs.IndexAsString(i, &si));
+        batch_input.source_inputs_.emplace_back(std::move(si));
+      }
+    }
+  }
+
+  return nullptr;  // success
+}
+
+TRITONSERVER_DataType
+ModelConfigDataTypeToTritonServerDataType(const std::string& data_type_str)
+{
+  // Must start with "TYPE_".
+  if (data_type_str.rfind("TYPE_", 0) != 0) {
+    return TRITONSERVER_TYPE_INVALID;
+  }
+
+  const std::string dtype = data_type_str.substr(strlen("TYPE_"));
+
+  if (dtype == "BOOL") {
+    return TRITONSERVER_TYPE_BOOL;
+  } else if (dtype == "UINT8") {
+    return TRITONSERVER_TYPE_UINT8;
+  } else if (dtype == "UINT16") {
+    return TRITONSERVER_TYPE_UINT16;
+  } else if (dtype == "UINT32") {
+    return TRITONSERVER_TYPE_UINT32;
+  } else if (dtype == "UINT64") {
+    return TRITONSERVER_TYPE_UINT64;
+  } else if (dtype == "INT8") {
+    return TRITONSERVER_TYPE_INT8;
+  } else if (dtype == "INT16") {
+    return TRITONSERVER_TYPE_INT16;
+  } else if (dtype == "INT32") {
+    return TRITONSERVER_TYPE_INT32;
+  } else if (dtype == "INT64") {
+    return TRITONSERVER_TYPE_INT64;
+  } else if (dtype == "FP16") {
+    return TRITONSERVER_TYPE_FP16;
+  } else if (dtype == "FP32") {
+    return TRITONSERVER_TYPE_FP32;
+  } else if (dtype == "FP64") {
+    return TRITONSERVER_TYPE_FP64;
+  } else if (dtype == "STRING") {
+    return TRITONSERVER_TYPE_BYTES;
+  }
+
+  return TRITONSERVER_TYPE_INVALID;
+}
+
+
 }}  // namespace triton::backend

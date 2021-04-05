@@ -29,6 +29,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "triton/backend/backend_common.h"
 #include "triton/backend/backend_memory.h"
 #include "triton/core/tritonbackend.h"
 
@@ -91,6 +92,34 @@ class BackendInputCollector {
       const char** dst_buffer, size_t* dst_buffer_byte_size,
       TRITONSERVER_MemoryType* dst_memory_type, int64_t* dst_memory_type_id);
 
+  // Process the batch input and return its shape. Returning error indicates
+  // that the batch input can't be formed properly and the caller should abort
+  // the whole batch.
+  TRITONSERVER_Error* BatchInputShape(
+      const BatchInput& batch_input, std::vector<int64_t>* shape);
+
+  // Process the batch input and derive its value into 'buffer'. Returning
+  // error indicates that the batch input can't be formed properly and
+  // the caller should abort the whole batch.
+  // 'buffer' is used to determine whether the input should be placed at the
+  //   'buffer' provided by the caller. If 'buffer' == nullptr, the returned
+  //   buffer will be managed by the BackendInputCollector object and
+  //   has the same lifecycle as the BackendInputCollector object.
+  // 'buffer_byte_size' is the byte size of 'buffer' if it is not nullptr.
+  // 'allowed_input_types' is the ordered list of the memory type and id pairs
+  //   that the returned buffer can be. It must only contain the memory type
+  //   and id of 'buffer' if it is not nullptr.
+  // 'dst_buffer' returns the contiguous buffer of the input tensor.
+  // 'dst_memory_type' returns the memory type of 'dst_buffer'.
+  // 'dst_memory_type_id' returns the memory type id of 'dst_buffer'.
+  TRITONSERVER_Error* ProcessBatchInput(
+      const BatchInput& batch_input, char* buffer,
+      const size_t buffer_byte_size,
+      const std::vector<std::pair<TRITONSERVER_MemoryType, int64_t>>&
+          allowed_input_types,
+      const char** dst_buffer, size_t* dst_buffer_byte_size,
+      TRITONSERVER_MemoryType* dst_memory_type, int64_t* dst_memory_type_id);
+
   // Finalize processing of all requests for all input tensors. Return
   // true if cudaMemcpyAsync is called, and the caller should call
   // should call cudaStreamSynchronize (or cudaEventSynchronize on 'event')
@@ -116,6 +145,14 @@ class BackendInputCollector {
       const int64_t tensor_memory_type_id,
       const TRITONSERVER_MemoryType use_pinned_memory_type,
       TRITONBACKEND_Response** response);
+  template <typename T>
+  TRITONSERVER_Error* SetElementCount(
+      const std::string& source_input, char* buffer,
+      const size_t buffer_byte_size);
+  template <typename T>
+  TRITONSERVER_Error* SetAccumulatedElementCount(
+      const std::string& source_input, char* buffer,
+      const size_t buffer_byte_size);
 
   bool need_sync_;
   TRITONBACKEND_Request** requests_;

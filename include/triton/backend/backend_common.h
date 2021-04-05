@@ -167,6 +167,33 @@ struct ResponseFactoryDeleter {
   }
 };
 
+// A representation of the BatchInput message in model config
+class BatchInput {
+ public:
+  enum class Kind {
+    BATCH_ELEMENT_COUNT,
+    BATCH_ACCUMULATED_ELEMENT_COUNT,
+    BATCH_ACCUMULATED_ELEMENT_COUNT_WITH_ZERO,
+    BATCH_MAX_ELEMENT_COUNT_AS_SHAPE
+  };
+  static TRITONSERVER_Error* ParseBatchInputs(
+      triton::common::TritonJson::Value& config,
+      std::vector<BatchInput>* batch_inputs);
+  const std::vector<std::string>& TargetNames() const { return target_names_; }
+  TRITONSERVER_DataType DataType() const { return data_type_; }
+  Kind BatchInputKind() const { return kind_; }
+  const std::vector<std::string>& SourceInputs() const
+  {
+    return source_inputs_;
+  }
+
+ private:
+  Kind kind_;
+  std::vector<std::string> target_names_;
+  TRITONSERVER_DataType data_type_;
+  std::vector<std::string> source_inputs_;
+};
+
 /// The value for a dimension in a shape that indicates that that
 /// dimension can take on any size.
 constexpr int WILDCARD_DIM = -1;
@@ -438,5 +465,13 @@ TRITONSERVER_Error* ParseDoubleValue(
 TRITONSERVER_Error* GetParameterValue(
     triton::common::TritonJson::Value& params, const std::string& key,
     std::string* value);
+
+/// Return the Triton server data type of the data type string specified
+/// in model config JSON.
+///
+/// \param data_type_str The string representation of the data type.
+/// \return the Triton server data type.
+TRITONSERVER_DataType ModelConfigDataTypeToTritonServerDataType(
+    const std::string& data_type_str);
 
 }}  // namespace triton::backend
