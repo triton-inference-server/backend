@@ -884,7 +884,7 @@ GetParameterValue(
 }
 
 TRITONSERVER_Error*
-BatchInput::ParseBatchInputs(
+BatchInput::ParseFromModelConfig(
     triton::common::TritonJson::Value& config,
     std::vector<BatchInput>* batch_inputs)
 {
@@ -893,7 +893,7 @@ BatchInput::ParseBatchInputs(
   RETURN_IF_ERROR(config.MemberAsArray("batch_input", &bis));
   for (size_t i = 0; i < bis.ArraySize(); ++i) {
     batch_inputs->emplace_back();
-    BatchInput& batch_input = batch_inputs->back();
+    auto& batch_input = batch_inputs->back();
     triton::common::TritonJson::Value bi;
     RETURN_IF_ERROR(bis.IndexAsObject(i, &bi));
     {
@@ -987,5 +987,81 @@ ModelConfigDataTypeToTritonServerDataType(const std::string& data_type_str)
   return TRITONSERVER_TYPE_INVALID;
 }
 
+TRITONSERVER_Error*
+BatchOutput::ParseFromModelConfig(
+    triton::common::TritonJson::Value& config,
+    std::vector<BatchOutput>* batch_outputs)
+{
+  batch_outputs->clear();
+  triton::common::TritonJson::Value bos;
+  RETURN_IF_ERROR(config.MemberAsArray("batch_output", &bos));
+  for (size_t i = 0; i < bos.ArraySize(); ++i) {
+    batch_outputs->emplace_back();
+    auto& batch_output = batch_outputs->back();
+    triton::common::TritonJson::Value bo;
+    RETURN_IF_ERROR(bos.IndexAsObject(i, &bo));
+    {
+      triton::common::TritonJson::Value bo_target_names;
+      RETURN_IF_ERROR(bo.MemberAsArray("target_name", &bo_target_names));
+      for (size_t i = 0; i < bo_target_names.ArraySize(); ++i) {
+        std::string tn;
+        RETURN_IF_ERROR(bo_target_names.IndexAsString(i, &tn));
+        batch_output.target_names_.emplace_back(std::move(tn));
+      }
+    }
+    {
+      std::string bo_kind;
+      RETURN_IF_ERROR(bo.MemberAsString("kind", &bo_kind));
+      if (bo_kind == "BATCH_SCATTER_WITH_INPUT_SHAPE") {
+        batch_output.kind_ = Kind::BATCH_SCATTER_WITH_INPUT_SHAPE;
+        // Keep track of the output info for later cross reference with input
+        int64_t mbs = 0;
+        RETURN_IF_ERROR(config.MemberAsInt("max_batch_size", &mbs));
+        if (mbs != 0) {
+          batch_output.shape_.push_back(-1);
+        }
+        triton::common::TritonJson::Value ios;
+        RETURN_IF_ERROR(config.MemberAsArray("output", &ios));
+        for (size_t i = 0; i < ios.ArraySize(); i++) {
+          triton::common::TritonJson::Value io;
+          RETURN_IF_ERROR(ios.IndexAsObject(i, &io));
+          std::string io_name;
+          RETURN_IF_ERROR(io.MemberAsString("name", &io_name));
+          if (io_name == batch_output.target_names_[0]) {
+            std::string io_dtype;
+            RETURN_IF_ERROR(io.MemberAsString("data_type", &io_dtype));
+            batch_output.data_type_ =
+                ModelConfigDataTypeToTritonServerDataType(io_dtype);
+            // If a reshape is provided for the input then use that when
+            // validating that the model matches what is expected.
+            triton::common::TritonJson::Value reshape;
+            if (io.Find("reshape", &reshape)) {
+              RETURN_IF_ERROR(
+                  ParseShape(reshape, "shape", &batch_output.shape_));
+            } else {
+              RETURN_IF_ERROR(ParseShape(io, "dims", &batch_output.shape_));
+            }
+            break;
+          }
+        }
+      } else {
+        RETURN_ERROR_IF_FALSE(
+            false, TRITONSERVER_ERROR_INVALID_ARG,
+            std::string("unexpected batch output kind '" + bo_kind + "'"));
+      }
+    }
+    {
+      triton::common::TritonJson::Value bo_source_inputs;
+      RETURN_IF_ERROR(bo.MemberAsArray("source_input", &bo_source_inputs));
+      for (size_t i = 0; i < bo_source_inputs.ArraySize(); ++i) {
+        std::string si;
+        RETURN_IF_ERROR(bo_source_inputs.IndexAsString(i, &si));
+        batch_output.source_inputs_.emplace_back(std::move(si));
+      }
+    }
+  }
+
+  return nullptr;  // success
+}
 
 }}  // namespace triton::backend

@@ -176,7 +176,7 @@ class BatchInput {
     BATCH_ACCUMULATED_ELEMENT_COUNT_WITH_ZERO,
     BATCH_MAX_ELEMENT_COUNT_AS_SHAPE
   };
-  static TRITONSERVER_Error* ParseBatchInputs(
+  static TRITONSERVER_Error* ParseFromModelConfig(
       triton::common::TritonJson::Value& config,
       std::vector<BatchInput>* batch_inputs);
   const std::vector<std::string>& TargetNames() const { return target_names_; }
@@ -191,6 +191,30 @@ class BatchInput {
   Kind kind_;
   std::vector<std::string> target_names_;
   TRITONSERVER_DataType data_type_;
+  std::vector<std::string> source_inputs_;
+};
+
+// A representation of the BatchOutput message in model config
+class BatchOutput {
+ public:
+  enum class Kind { BATCH_SCATTER_WITH_INPUT_SHAPE };
+  static TRITONSERVER_Error* ParseFromModelConfig(
+      triton::common::TritonJson::Value& config,
+      std::vector<BatchOutput>* batch_outputs);
+  const std::vector<std::string>& TargetNames() const { return target_names_; }
+  TRITONSERVER_DataType DataType() const { return data_type_; }
+  const std::vector<int64_t>& OutputShape() const { return shape_; }
+  Kind BatchOutputKind() const { return kind_; }
+  const std::vector<std::string>& SourceInputs() const
+  {
+    return source_inputs_;
+  }
+
+ private:
+  Kind kind_;
+  std::vector<std::string> target_names_;
+  TRITONSERVER_DataType data_type_;
+  std::vector<int64_t> shape_;
   std::vector<std::string> source_inputs_;
 };
 

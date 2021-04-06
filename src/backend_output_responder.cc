@@ -82,10 +82,8 @@ BackendOutputResponder::ProcessTensor(
 
     // Override shape to be correct for this response.
     if (max_batch_size_ != 0) {
-      const char* name;
-      TRITONBACKEND_RequestInputName(request, 0, &name);
       TRITONBACKEND_Input* input;
-      TRITONBACKEND_RequestInput(request, name, &input);
+      TRITONBACKEND_RequestInputByIndex(request, 0, &input);
       const int64_t* shape;
       TRITONBACKEND_InputProperties(
           input, nullptr, nullptr, &shape, nullptr, nullptr, nullptr);
@@ -364,6 +362,113 @@ BackendOutputResponder::FlushPendingPinned(
   }
 
   return cuda_copy;
+}
+
+void
+BackendOutputResponder::ProcessBatchOutput(
+    const BatchOutput& batch_output, const char* buffer,
+    const TRITONSERVER_MemoryType memory_type, const int64_t memory_type_id)
+{
+  // A value of CPU_PINNED indicates that pinned memory buffer is not
+  // needed for this tensor. Any other value indicates that a pinned
+  // memory buffer is needed when the target memory type matches
+  // 'use_pinned_memory_type'.
+  TRITONSERVER_MemoryType use_pinned_memory_type =
+      TRITONSERVER_MEMORY_CPU_PINNED;
+  if (pinned_enabled_ && (memory_type != TRITONSERVER_MEMORY_CPU_PINNED)) {
+    use_pinned_memory_type = (memory_type == TRITONSERVER_MEMORY_CPU)
+                                 ? TRITONSERVER_MEMORY_GPU
+                                 : TRITONSERVER_MEMORY_CPU;
+  }
+
+  // Batch output may be processed differently based on the kind
+  switch (batch_output.BatchOutputKind()) {
+    case BatchOutput::Kind::BATCH_SCATTER_WITH_INPUT_SHAPE: {
+      const auto& output_name = batch_output.TargetNames()[0];
+      const auto& input_name = batch_output.SourceInputs()[0];
+      const auto& datatype = batch_output.DataType();
+      size_t tensor_offset = 0;
+
+      for (size_t idx = 0; idx < responses_->size(); idx++) {
+        auto& request = requests_[idx];
+        auto& response = (*responses_)[idx];
+
+        // If then pending copies are from tensor buffer that is not
+        // contiguous with 'response's part of that buffer, then need to
+        // go ahead and perform the pending copies so that can start a
+        // new contiguous region if necessary.
+        if ((pending_pinned_byte_size_ > 0) &&
+            (tensor_offset !=
+             (pending_pinned_byte_size_ + pending_pinned_offset_))) {
+          need_sync_ |= FlushPendingPinned(buffer, memory_type, memory_type_id);
+        }
+
+        // Override shape to be correct for this response, with a naive
+        // assumption that the dynamic dimension in output is mapped to the same
+        // dimension in the input
+        auto output_batchn_shape = batch_output.OutputShape();
+        {
+          TRITONBACKEND_Input* input;
+          TRITONBACKEND_RequestInput(request, input_name.c_str(), &input);
+          const int64_t* shape;
+          TRITONBACKEND_InputProperties(
+              input, nullptr, nullptr, &shape, nullptr, nullptr, nullptr);
+          for (size_t dim_idx = 0; dim_idx < output_batchn_shape.size();
+               dim_idx++) {
+            if (output_batchn_shape[dim_idx] == -1) {
+              output_batchn_shape[dim_idx] = shape[dim_idx];
+            }
+          }
+        }
+
+        const size_t tensor_byte_size =
+            GetByteSize(datatype, output_batchn_shape);
+
+        TRITONBACKEND_Output* response_output;
+        if (response != nullptr) {
+          uint32_t output_count;
+          RESPOND_AND_SET_NULL_IF_ERROR(
+              &response,
+              TRITONBACKEND_RequestOutputCount(request, &output_count));
+          if (response != nullptr) {
+            for (uint32_t output_idx = 0; output_idx < output_count;
+                 output_idx++) {
+              const char* name;
+              RESPOND_AND_SET_NULL_IF_ERROR(
+                  &response,
+                  TRITONBACKEND_RequestOutputName(request, output_idx, &name));
+              if ((response != nullptr) && (output_name == name)) {
+                RESPOND_AND_SET_NULL_IF_ERROR(
+                    &response, TRITONBACKEND_ResponseOutput(
+                                   response, &response_output, name, datatype,
+                                   output_batchn_shape.data(),
+                                   output_batchn_shape.size()));
+                if (response != nullptr) {
+                  need_sync_ |= SetFixedSizeOutputBuffer(
+                      &response, response_output, output_name, tensor_byte_size,
+                      tensor_offset, buffer, memory_type, memory_type_id,
+                      use_pinned_memory_type);
+                }
+
+                break;
+              }
+            }
+          }
+        }
+
+        tensor_offset += tensor_byte_size;
+      }
+      break;
+    }
+  }
+
+  // Done with the tensor, flush any pending pinned copies.
+  need_sync_ |= FlushPendingPinned(buffer, memory_type, memory_type_id);
+#ifdef TRITON_ENABLE_GPU
+  if (need_sync_ && (event_ != nullptr)) {
+    cudaEventRecord(event_, stream_);
+  }
+#endif  // TRITON_ENABLE_GPU
 }
 
 }}  // namespace triton::backend

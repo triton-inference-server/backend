@@ -28,6 +28,7 @@
 #include <list>
 #include <string>
 #include <vector>
+#include "triton/backend/backend_common.h"
 #include "triton/core/tritonbackend.h"
 
 #ifdef TRITON_ENABLE_GPU
@@ -66,6 +67,12 @@ class BackendOutputResponder {
   void ProcessTensor(
       const std::string& name, const TRITONSERVER_DataType datatype,
       std::vector<int64_t>& batchn_shape, const char* buffer,
+      const TRITONSERVER_MemoryType memory_type, const int64_t memory_type_id);
+
+  // Process all responses for a batch output and derive its value from
+  // 'buffer'.
+  void ProcessBatchOutput(
+      const BatchOutput& batch_output, const char* buffer,
       const TRITONSERVER_MemoryType memory_type, const int64_t memory_type_id);
 
   // Finalize processing of all responses for all output
