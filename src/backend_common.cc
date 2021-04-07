@@ -927,7 +927,7 @@ BatchInput::ParseFromModelConfig(
       RETURN_IF_ERROR(bi.MemberAsString("data_type", &bi_dtype));
       batch_input.data_type_ =
           ModelConfigDataTypeToTritonServerDataType(bi_dtype);
-      RETURN_ERROR_IF_FALSE(
+      RETURN_ERROR_IF_TRUE(
           batch_input.data_type_ == TRITONSERVER_TYPE_INVALID,
           TRITONSERVER_ERROR_INVALID_ARG,
           std::string("unexpected batch input data type '" + bi_dtype + "'"));
