@@ -227,7 +227,7 @@ BackendInputCollector::ProcessTensor(
     *dst_memory_type = backend_memory->MemoryType();
     *dst_memory_type_id = backend_memory->MemoryTypeId();
   } else {
-    if (allowed_input_types.size() != 0) {
+    if (allowed_input_types.size() != 1) {
       return TRITONSERVER_ErrorNew(
           TRITONSERVER_ERROR_INTERNAL,
           "'allowed_input_types' must only contain the memory type and id of "
@@ -634,7 +634,7 @@ BackendInputCollector::ProcessBatchInput(
     *dst_memory_type = backend_memory->MemoryType();
     *dst_memory_type_id = backend_memory->MemoryTypeId();
   } else {
-    if (allowed_input_types.size() != 0) {
+    if (allowed_input_types.size() != 1) {
       return TRITONSERVER_ErrorNew(
           TRITONSERVER_ERROR_INTERNAL,
           "'allowed_input_types' must only contain the memory type and id of "
