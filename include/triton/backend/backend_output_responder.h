@@ -72,8 +72,9 @@ class BackendOutputResponder {
   // Process all responses for a batch output and derive its value from
   // 'buffer'.
   void ProcessBatchOutput(
-      const BatchOutput& batch_output, const char* buffer,
-      const TRITONSERVER_MemoryType memory_type, const int64_t memory_type_id);
+      const std::string& name, const BatchOutput& batch_output,
+      const char* buffer, const TRITONSERVER_MemoryType memory_type,
+      const int64_t memory_type_id);
 
   // Finalize processing of all responses for all output
   // tensors. Return true if cudaMemcpyAsync is called, and the caller

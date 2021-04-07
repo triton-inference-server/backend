@@ -104,6 +104,16 @@ BackendModel::BackendModel(TRITONBACKEND_Model* triton_model)
       }
     }
   }
+
+  THROW_IF_BACKEND_MODEL_ERROR(
+      BatchInput::ParseFromModelConfig(model_config_, &batch_inputs_));
+  THROW_IF_BACKEND_MODEL_ERROR(
+      BatchOutput::ParseFromModelConfig(model_config_, &batch_outputs_));
+  for (const auto& batch_output : batch_outputs_) {
+    for (const auto& name : batch_output.TargetNames()) {
+      batch_output_map_.emplace(name, &batch_output);
+    }
+  }
 }
 
 TRITONSERVER_Error*
@@ -122,6 +132,20 @@ BackendModel::SupportsFirstDimBatching(bool* supports)
 
   *supports = supports_batching_;
   return nullptr;  // success
+}
+
+const BatchOutput*
+BackendModel::FindBatchOutput(const std::string& output_name) const
+{
+  const auto it = batch_output_map_.find(output_name);
+  return ((it == batch_output_map_.end()) ? nullptr : it->second);
+}
+
+bool
+BackendModel::IsInputRagged(const std::string& input_name) const
+{
+  const auto it = input_ragged_.find(input_name);
+  return ((it != input_ragged_.end()) && it->second);
 }
 
 }}  // namespace triton::backend

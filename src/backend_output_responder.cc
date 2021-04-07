@@ -366,8 +366,9 @@ BackendOutputResponder::FlushPendingPinned(
 
 void
 BackendOutputResponder::ProcessBatchOutput(
-    const BatchOutput& batch_output, const char* buffer,
-    const TRITONSERVER_MemoryType memory_type, const int64_t memory_type_id)
+    const std::string& name, const BatchOutput& batch_output,
+    const char* buffer, const TRITONSERVER_MemoryType memory_type,
+    const int64_t memory_type_id)
 {
   // A value of CPU_PINNED indicates that pinned memory buffer is not
   // needed for this tensor. Any other value indicates that a pinned

@@ -64,7 +64,7 @@ ParseShape(
   common::TritonJson::Value shape_array;
   RETURN_IF_ERROR(io.MemberAsArray(name.c_str(), &shape_array));
   for (size_t i = 0; i < shape_array.ArraySize(); ++i) {
-    int64_t d;
+    int64_t d = 0;
     RETURN_IF_ERROR(shape_array.IndexAsInt(i, &d));
     shape->push_back(d);
   }
