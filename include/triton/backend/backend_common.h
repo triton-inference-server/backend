@@ -137,6 +137,24 @@ namespace triton { namespace backend {
     }                                                                \
   } while (false)
 
+#define RESPOND_ALL_AND_SET_NULL_IF_ERROR(RESPONSES, RESPONSES_COUNT, X) \
+  do {                                                                   \
+    TRITONSERVER_Error* raasnie_err__ = (X);                             \
+    if (raasnie_err__ != nullptr) {                                      \
+      for (size_t ridx = 0; ridx < RESPONSES_COUNT; ++ridx) {            \
+        if (RESPONSES[ridx] != nullptr) {                                \
+          LOG_IF_ERROR(                                                  \
+              TRITONBACKEND_ResponseSend(                                \
+                  RESPONSES[ridx], TRITONSERVER_RESPONSE_COMPLETE_FINAL, \
+                  raasnie_err__),                                        \
+              "failed to send error response");                          \
+          RESPONSES[ridx] = nullptr;                                     \
+        }                                                                \
+      }                                                                  \
+      TRITONSERVER_ErrorDelete(raasnie_err__);                           \
+    }                                                                    \
+  } while (false)
+
 #ifdef TRITON_ENABLE_STATS
 #define TIMESPEC_TO_NANOS(TS) ((TS).tv_sec * 1000000000 + (TS).tv_nsec)
 #define SET_TIMESTAMP(TS_NS)                                         \
@@ -165,6 +183,57 @@ struct ResponseFactoryDeleter {
         TRITONBACKEND_ResponseFactoryDelete(f),
         "failed deleting response factory");
   }
+};
+
+// A representation of the BatchInput message in model config
+class BatchInput {
+ public:
+  enum class Kind {
+    BATCH_ELEMENT_COUNT,
+    BATCH_ACCUMULATED_ELEMENT_COUNT,
+    BATCH_ACCUMULATED_ELEMENT_COUNT_WITH_ZERO,
+    BATCH_MAX_ELEMENT_COUNT_AS_SHAPE
+  };
+  static TRITONSERVER_Error* ParseFromModelConfig(
+      triton::common::TritonJson::Value& config,
+      std::vector<BatchInput>* batch_inputs);
+  const std::vector<std::string>& TargetNames() const { return target_names_; }
+  TRITONSERVER_DataType DataType() const { return data_type_; }
+  Kind BatchInputKind() const { return kind_; }
+  const std::vector<std::string>& SourceInputs() const
+  {
+    return source_inputs_;
+  }
+
+ private:
+  Kind kind_;
+  std::vector<std::string> target_names_;
+  TRITONSERVER_DataType data_type_;
+  std::vector<std::string> source_inputs_;
+};
+
+// A representation of the BatchOutput message in model config
+class BatchOutput {
+ public:
+  enum class Kind { BATCH_SCATTER_WITH_INPUT_SHAPE };
+  static TRITONSERVER_Error* ParseFromModelConfig(
+      triton::common::TritonJson::Value& config,
+      std::vector<BatchOutput>* batch_outputs);
+  const std::vector<std::string>& TargetNames() const { return target_names_; }
+  TRITONSERVER_DataType DataType() const { return data_type_; }
+  const std::vector<int64_t>& OutputShape() const { return shape_; }
+  Kind BatchOutputKind() const { return kind_; }
+  const std::vector<std::string>& SourceInputs() const
+  {
+    return source_inputs_;
+  }
+
+ private:
+  Kind kind_;
+  std::vector<std::string> target_names_;
+  TRITONSERVER_DataType data_type_;
+  std::vector<int64_t> shape_;
+  std::vector<std::string> source_inputs_;
 };
 
 /// The value for a dimension in a shape that indicates that that
@@ -438,5 +507,13 @@ TRITONSERVER_Error* ParseDoubleValue(
 TRITONSERVER_Error* GetParameterValue(
     triton::common::TritonJson::Value& params, const std::string& key,
     std::string* value);
+
+/// Return the Triton server data type of the data type string specified
+/// in model config JSON.
+///
+/// \param data_type_str The string representation of the data type.
+/// \return the Triton server data type.
+TRITONSERVER_DataType ModelConfigDataTypeToTritonServerDataType(
+    const std::string& data_type_str);
 
 }}  // namespace triton::backend

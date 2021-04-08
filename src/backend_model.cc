@@ -104,6 +104,34 @@ BackendModel::BackendModel(TRITONBACKEND_Model* triton_model)
       }
     }
   }
+
+  THROW_IF_BACKEND_MODEL_ERROR(
+      BatchInput::ParseFromModelConfig(model_config_, &batch_inputs_));
+  THROW_IF_BACKEND_MODEL_ERROR(
+      BatchOutput::ParseFromModelConfig(model_config_, &batch_outputs_));
+  for (const auto& batch_output : batch_outputs_) {
+    for (const auto& name : batch_output.TargetNames()) {
+      batch_output_map_.emplace(name, &batch_output);
+    }
+  }
+  triton::common::TritonJson::Value config_inputs;
+  THROW_IF_BACKEND_MODEL_ERROR(
+      model_config_.MemberAsArray("input", &config_inputs));
+  for (size_t i = 0; i < config_inputs.ArraySize(); i++) {
+    triton::common::TritonJson::Value io;
+    THROW_IF_BACKEND_MODEL_ERROR(config_inputs.IndexAsObject(i, &io));
+    triton::common::TritonJson::Value allow_ragged_batch_json;
+    bool allow_ragged_batch = false;
+    if (io.Find("allow_ragged_batch", &allow_ragged_batch_json)) {
+      THROW_IF_BACKEND_MODEL_ERROR(
+          allow_ragged_batch_json.AsBool(&allow_ragged_batch));
+    }
+    if (allow_ragged_batch) {
+      std::string io_name;
+      THROW_IF_BACKEND_MODEL_ERROR(io.MemberAsString("name", &io_name));
+      ragged_inputs_.emplace(io_name);
+    }
+  }
 }
 
 TRITONSERVER_Error*
@@ -122,6 +150,13 @@ BackendModel::SupportsFirstDimBatching(bool* supports)
 
   *supports = supports_batching_;
   return nullptr;  // success
+}
+
+const BatchOutput*
+BackendModel::FindBatchOutput(const std::string& output_name) const
+{
+  const auto it = batch_output_map_.find(output_name);
+  return ((it == batch_output_map_.end()) ? nullptr : it->second);
 }
 
 }}  // namespace triton::backend

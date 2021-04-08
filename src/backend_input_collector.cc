@@ -227,7 +227,7 @@ BackendInputCollector::ProcessTensor(
     *dst_memory_type = backend_memory->MemoryType();
     *dst_memory_type_id = backend_memory->MemoryTypeId();
   } else {
-    if (allowed_input_types.size() != 0) {
+    if (allowed_input_types.size() != 1) {
       return TRITONSERVER_ErrorNew(
           TRITONSERVER_ERROR_INTERNAL,
           "'allowed_input_types' must only contain the memory type and id of "
@@ -530,6 +530,258 @@ BackendInputCollector::FlushPendingPinned(
   pending_pinned_inputs_.clear();
 
   return cuda_copy;
+}
+
+TRITONSERVER_Error*
+BackendInputCollector::BatchInputShape(
+    const BatchInput& batch_input, std::vector<int64_t>* shape)
+{
+  *shape = std::vector<int64_t>{0};
+  switch (batch_input.BatchInputKind()) {
+    case BatchInput::Kind::BATCH_ELEMENT_COUNT:
+    case BatchInput::Kind::BATCH_ACCUMULATED_ELEMENT_COUNT: {
+      (*shape)[0] = request_count_;
+      break;
+    }
+    case BatchInput::Kind::BATCH_ACCUMULATED_ELEMENT_COUNT_WITH_ZERO: {
+      (*shape)[0] = request_count_ + 1;
+      break;
+    }
+    case BatchInput::Kind::BATCH_MAX_ELEMENT_COUNT_AS_SHAPE: {
+      const auto& source_input = batch_input.SourceInputs()[0];
+      for (size_t req_idx = 0; req_idx < request_count_; req_idx++) {
+        TRITONBACKEND_Input* input;
+        RETURN_IF_ERROR(TRITONBACKEND_RequestInput(
+            requests_[req_idx], source_input.c_str(), &input));
+        const int64_t* shape_arr;
+        uint32_t dims_count;
+        RETURN_IF_ERROR(TRITONBACKEND_InputProperties(
+            input, nullptr, nullptr, &shape_arr, &dims_count, nullptr,
+            nullptr));
+        (*shape)[0] =
+            std::max((*shape)[0], GetElementCount(shape_arr, dims_count));
+      }
+      break;
+    }
+  }
+  return nullptr;  // success
+}
+
+TRITONSERVER_Error*
+BackendInputCollector::ProcessBatchInput(
+    const BatchInput& batch_input, char* buffer, const size_t buffer_byte_size,
+    const std::vector<std::pair<TRITONSERVER_MemoryType, int64_t>>&
+        allowed_input_types,
+    const char** dst_buffer, size_t* dst_buffer_byte_size,
+    TRITONSERVER_MemoryType* dst_memory_type, int64_t* dst_memory_type_id)
+{
+  if (buffer == nullptr) {
+    if (allowed_input_types.size() == 0) {
+      return TRITONSERVER_ErrorNew(
+          TRITONSERVER_ERROR_INTERNAL,
+          "'allowed_input_types' must contain at least one pair of memory type "
+          "and id");
+    }
+    // Calculate the byte size of the buffer
+    std::vector<int64_t> shape;
+    RETURN_IF_ERROR(BatchInputShape(batch_input, &shape));
+    *dst_buffer_byte_size = GetByteSize(batch_input.DataType(), shape);
+    BackendMemory* backend_memory = nullptr;
+    for (const auto& allowed_type : allowed_input_types) {
+      std::vector<BackendMemory::AllocationType> alloc_types;
+      const int64_t memory_type_id = allowed_type.second;
+      switch (allowed_type.first) {
+        case TRITONSERVER_MEMORY_GPU:
+          alloc_types = {BackendMemory::AllocationType::GPU_POOL,
+                         BackendMemory::AllocationType::GPU};
+          break;
+        case TRITONSERVER_MEMORY_CPU_PINNED:
+          alloc_types = {BackendMemory::AllocationType::CPU_PINNED_POOL,
+                         BackendMemory::AllocationType::CPU_PINNED};
+          break;
+        case TRITONSERVER_MEMORY_CPU:
+          alloc_types = {BackendMemory::AllocationType::CPU};
+          break;
+      }
+      auto err = BackendMemory::Create(
+          memory_manager_, alloc_types, memory_type_id, *dst_buffer_byte_size,
+          &backend_memory);
+      if (err != nullptr) {
+        LOG_MESSAGE(
+            TRITONSERVER_LOG_VERBOSE,
+            (std::string("unable to create backend memory for type: ") +
+             TRITONSERVER_MemoryTypeString(allowed_type.first) +
+             " id: " + std::to_string(memory_type_id) + ": " +
+             TRITONSERVER_ErrorMessage(err))
+                .c_str());
+        TRITONSERVER_ErrorDelete(err);
+      } else {
+        backend_memories_.emplace_back(backend_memory);
+        break;
+      }
+    }
+    if (backend_memory == nullptr) {
+      return TRITONSERVER_ErrorNew(
+          TRITONSERVER_ERROR_INTERNAL,
+          (std::string(
+               "failed to allocate contiguous buffer for batch input '") +
+           batch_input.TargetNames()[0] + "'")
+              .c_str());
+    }
+    buffer = backend_memory->MemoryPtr();
+    *dst_buffer = backend_memory->MemoryPtr();
+    *dst_buffer_byte_size = backend_memory->ByteSize();
+    *dst_memory_type = backend_memory->MemoryType();
+    *dst_memory_type_id = backend_memory->MemoryTypeId();
+  } else {
+    if (allowed_input_types.size() != 1) {
+      return TRITONSERVER_ErrorNew(
+          TRITONSERVER_ERROR_INTERNAL,
+          "'allowed_input_types' must only contain the memory type and id of "
+          "'buffer'");
+    }
+    *dst_buffer = buffer;
+    *dst_buffer_byte_size = buffer_byte_size;
+    *dst_memory_type = allowed_input_types[0].first;
+    *dst_memory_type_id = allowed_input_types[0].second;
+  }
+
+  char* input_buffer = buffer;
+  std::unique_ptr<BackendMemory> internal_buffer;
+  // Need a CPU buffer for modifying the value
+  if (*dst_memory_type == TRITONSERVER_MEMORY_GPU) {
+    BackendMemory* ib = nullptr;
+    RETURN_IF_ERROR(BackendMemory::Create(
+        memory_manager_,
+        {BackendMemory::AllocationType::CPU_PINNED_POOL,
+         BackendMemory::AllocationType::CPU},
+        0, *dst_buffer_byte_size, &ib));
+    internal_buffer.reset(ib);
+    input_buffer = internal_buffer->MemoryPtr();
+  }
+  const auto& data_type = batch_input.DataType();
+  switch (batch_input.BatchInputKind()) {
+    case BatchInput::Kind::BATCH_ELEMENT_COUNT: {
+      const auto& source_input = batch_input.SourceInputs()[0];
+      if (data_type == TRITONSERVER_TYPE_FP32) {
+        SetElementCount<float>(
+            source_input, input_buffer, *dst_buffer_byte_size);
+      } else {
+        SetElementCount<int32_t>(
+            source_input, input_buffer, *dst_buffer_byte_size);
+      }
+      break;
+    }
+    case BatchInput::Kind::BATCH_ACCUMULATED_ELEMENT_COUNT: {
+      const auto& source_input = batch_input.SourceInputs()[0];
+      if (data_type == TRITONSERVER_TYPE_FP32) {
+        SetAccumulatedElementCount<float>(
+            source_input, input_buffer, *dst_buffer_byte_size);
+      } else {
+        SetAccumulatedElementCount<int32_t>(
+            source_input, input_buffer, *dst_buffer_byte_size);
+      }
+      break;
+    }
+    case BatchInput::Kind::BATCH_ACCUMULATED_ELEMENT_COUNT_WITH_ZERO: {
+      const auto& source_input = batch_input.SourceInputs()[0];
+      if (data_type == TRITONSERVER_TYPE_FP32) {
+        *reinterpret_cast<float*>(input_buffer) = 0;
+        SetAccumulatedElementCount<float>(
+            source_input, input_buffer + sizeof(float),
+            *dst_buffer_byte_size - sizeof(float));
+      } else {
+        *reinterpret_cast<int32_t*>(input_buffer) = 0;
+        SetAccumulatedElementCount<int32_t>(
+            source_input, input_buffer + sizeof(int32_t),
+            *dst_buffer_byte_size - sizeof(int32_t));
+      }
+      break;
+    }
+    case BatchInput::Kind::BATCH_MAX_ELEMENT_COUNT_AS_SHAPE:
+      // The batch input is described by the shape,
+      // no data modification is needed
+      return nullptr;  // success
+  }
+  if (*dst_memory_type == TRITONSERVER_MEMORY_GPU) {
+    bool cuda_used;
+    RETURN_IF_ERROR(CopyBuffer(
+        "batch input buffer", internal_buffer->MemoryType(),
+        internal_buffer->MemoryTypeId(), *dst_memory_type, *dst_memory_type_id,
+        *dst_buffer_byte_size, input_buffer, buffer, stream_, &cuda_used));
+    // Need to keep the backend memory alive in the case of async copy
+    backend_memories_.emplace_back(std::move(internal_buffer));
+    need_sync_ |= cuda_used;
+  }
+  return nullptr;  // success
+}
+
+template <typename T>
+TRITONSERVER_Error*
+BackendInputCollector::SetElementCount(
+    const std::string& source_input, char* buffer,
+    const size_t buffer_byte_size)
+{
+  size_t buffer_offset = 0;
+  for (size_t req_idx = 0; req_idx < request_count_; req_idx++) {
+    if (buffer_offset + sizeof(T) > buffer_byte_size) {
+      return TRITONSERVER_ErrorNew(
+          TRITONSERVER_ERROR_INVALID_ARG,
+          "unexpected total byte size for batch input");
+    }
+
+    TRITONBACKEND_Input* input;
+    RETURN_IF_ERROR(TRITONBACKEND_RequestInput(
+        requests_[req_idx], source_input.c_str(), &input));
+    const int64_t* shape;
+    uint32_t dims_count;
+    RETURN_IF_ERROR(TRITONBACKEND_InputProperties(
+        input, nullptr, nullptr, &shape, &dims_count, nullptr, nullptr));
+    *(reinterpret_cast<T*>(buffer) + req_idx) =
+        GetElementCount(shape, dims_count);
+    buffer_offset += sizeof(T);
+  }
+  // Set the rest of the buffer to 0
+  for (; buffer_offset + sizeof(T) <= buffer_byte_size;
+       buffer_offset += sizeof(T)) {
+    *reinterpret_cast<T*>(buffer + buffer_offset) = 0;
+  }
+  return nullptr;  // success
+}
+
+template <typename T>
+TRITONSERVER_Error*
+BackendInputCollector::SetAccumulatedElementCount(
+    const std::string& source_input, char* buffer,
+    const size_t buffer_byte_size)
+{
+  size_t accumulated_element_count = 0;
+  size_t buffer_offset = 0;
+  for (size_t req_idx = 0; req_idx < request_count_; req_idx++) {
+    if (buffer_offset + sizeof(T) > buffer_byte_size) {
+      return TRITONSERVER_ErrorNew(
+          TRITONSERVER_ERROR_INVALID_ARG,
+          "unexpected total byte size for batch input");
+    }
+
+    TRITONBACKEND_Input* input;
+    RETURN_IF_ERROR(TRITONBACKEND_RequestInput(
+        requests_[req_idx], source_input.c_str(), &input));
+    const int64_t* shape;
+    uint32_t dims_count;
+    RETURN_IF_ERROR(TRITONBACKEND_InputProperties(
+        input, nullptr, nullptr, &shape, &dims_count, nullptr, nullptr));
+    accumulated_element_count += GetElementCount(shape, dims_count);
+    *(reinterpret_cast<T*>(buffer) + req_idx) = accumulated_element_count;
+    buffer_offset += sizeof(T);
+  }
+  // Set the rest of the buffer to 'accumulated_element_count'
+  // (no increase in element count)
+  for (; buffer_offset + sizeof(T) <= buffer_byte_size;
+       buffer_offset += sizeof(T)) {
+    *reinterpret_cast<T*>(buffer + buffer_offset) = accumulated_element_count;
+  }
+  return nullptr;  // success
 }
 
 }}  // namespace triton::backend

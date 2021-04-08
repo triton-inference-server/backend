@@ -25,6 +25,8 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
+#include <map>
+#include <set>
 #include <string>
 #include "triton/backend/backend_common.h"
 #include "triton/core/tritonbackend.h"
@@ -82,6 +84,17 @@ class BackendModel {
   bool EnablePinnedInput() const { return enable_pinned_input_; }
   bool EnablePinnedOutput() const { return enable_pinned_output_; }
 
+  const std::vector<BatchInput>& BatchInputs() const { return batch_inputs_; }
+  const std::vector<BatchOutput>& BatchOutputs() const
+  {
+    return batch_outputs_;
+  }
+  const BatchOutput* FindBatchOutput(const std::string& output_name) const;
+  bool IsInputRagged(const std::string& input_name) const
+  {
+    return (ragged_inputs_.find(input_name) != ragged_inputs_.end());
+  }
+
  protected:
   TRITONSERVER_Server* triton_server_;
   TRITONBACKEND_MemoryManager* triton_memory_manager_;
@@ -94,6 +107,10 @@ class BackendModel {
   int max_batch_size_;
   bool enable_pinned_input_;
   bool enable_pinned_output_;
+  std::vector<BatchInput> batch_inputs_;
+  std::vector<BatchOutput> batch_outputs_;
+  std::map<std::string, const BatchOutput*> batch_output_map_;
+  std::set<std::string> ragged_inputs_;
 
   // Does this model support batching in the first dimension.
   bool supports_batching_initialized_;
