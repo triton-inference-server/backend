@@ -98,7 +98,7 @@ if(${TRITON_ENABLE_GPU})
 
   set(CUDA_LIBRARIES PUBLIC ${CUDA_LIBRARIES})
   cuda_add_library(
-    kernel-library 
+    kernel-library-new 
     src/kernel.cu src/kernel.h
     OPTIONS -arch compute_53
     OPTIONS -code compute_53,sm_53,sm_60,sm_61,sm_62,sm_70,sm_72,sm_75
@@ -171,7 +171,7 @@ if(${TRITON_ENABLE_GPU})
     PUBLIC
       CUDA::cudart
     PRIVATE
-      kernel-library
+    kernel-library-new
   )
 endif() # TRITON_ENABLE_GPU
 
@@ -184,7 +184,7 @@ set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/TritonBackend)
 install(
   TARGETS
     triton-backend-utils
-    kernel-library
+    kernel-library-new
   EXPORT
     triton-backend-targets
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
