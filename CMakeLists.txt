@@ -1,4 +1,4 @@
-# Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
+# Copyright (c) 2020-2021, NVIDIA CORPORATION. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -65,6 +65,15 @@ FetchContent_MakeAvailable(repo-common repo-core)
 #
 if(${TRITON_ENABLE_GPU})
   find_package(CUDAToolkit REQUIRED)
+  find_package(CUDA REQUIRED)
+  message(STATUS "Using CUDA ${CUDA_VERSION}")
+  set(CUDA_NVCC_FLAGS -std=c++11)
+
+  if(CUDA_VERSION VERSION_GREATER "10.1" OR CUDA_VERSION VERSION_EQUAL "10.1")
+    add_definitions(-DTRITON_ENABLE_CUDA_GRAPH=1)
+  else()
+    message(WARNING "CUDA ${CUDA_VERSION} does not support CUDA graphs.")
+  endif()
 endif() # TRITON_ENABLE_GPU
 
 #
@@ -78,7 +87,24 @@ add_library(
   src/backend_model_instance.cc
   src/backend_model.cc
   src/backend_output_responder.cc
+  src/kernel.h
 )
+
+if(${TRITON_ENABLE_GPU})
+  set(HOST_COMPILER_FLAGS "")
+  if (WIN32)
+    set(HOST_COMPILER_FLAGS "/MD")
+  endif()
+
+  set(CUDA_LIBRARIES PUBLIC ${CUDA_LIBRARIES})
+  cuda_add_library(
+    kernel-library 
+    src/kernel.cu src/kernel.h
+    OPTIONS -arch compute_53
+    OPTIONS -code compute_53,sm_53,sm_60,sm_61,sm_62,sm_70,sm_72,sm_75
+    OPTIONS -Xcompiler ${HOST_COMPILER_FLAGS}
+  )
+endif() # TRITON_ENABLE_GPU
 
 add_library(
   TritonBackend::triton-backend-utils ALIAS triton-backend-utils
@@ -133,9 +159,10 @@ set_target_properties(
 target_link_libraries(
   triton-backend-utils
   PUBLIC
-    triton-core-backendapi    # from repo-core
-    triton-core-serverapi     # from repo-core
-    triton-common-json        # from repo-common
+    triton-core-backendapi         # from repo-core
+    triton-core-serverapi          # from repo-core
+    triton-common-async-work-queue # from repo-common
+    triton-common-json             # from repo-common
 )
 
 if(${TRITON_ENABLE_GPU})
@@ -143,6 +170,8 @@ if(${TRITON_ENABLE_GPU})
     triton-backend-utils
     PUBLIC
       CUDA::cudart
+    PRIVATE
+      kernel-library
   )
 endif() # TRITON_ENABLE_GPU
 
@@ -155,6 +184,7 @@ set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/TritonBackend)
 install(
   TARGETS
     triton-backend-utils
+    kernel-library
   EXPORT
     triton-backend-targets
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

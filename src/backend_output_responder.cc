@@ -58,10 +58,8 @@ BackendOutputResponder::ProcessTensor(
   // 'use_pinned_memory_type'.
   TRITONSERVER_MemoryType use_pinned_memory_type =
       TRITONSERVER_MEMORY_CPU_PINNED;
-  if (pinned_enabled_ && (memory_type != TRITONSERVER_MEMORY_CPU_PINNED)) {
-    use_pinned_memory_type = (memory_type == TRITONSERVER_MEMORY_CPU)
-                                 ? TRITONSERVER_MEMORY_GPU
-                                 : TRITONSERVER_MEMORY_CPU;
+  if (pinned_enabled_) {
+    use_pinned_memory_type = GetUsePinnedMemoryType(memory_type);
   }
 
   size_t tensor_offset = 0;
@@ -376,10 +374,8 @@ BackendOutputResponder::ProcessBatchOutput(
   // 'use_pinned_memory_type'.
   TRITONSERVER_MemoryType use_pinned_memory_type =
       TRITONSERVER_MEMORY_CPU_PINNED;
-  if (pinned_enabled_ && (memory_type != TRITONSERVER_MEMORY_CPU_PINNED)) {
-    use_pinned_memory_type = (memory_type == TRITONSERVER_MEMORY_CPU)
-                                 ? TRITONSERVER_MEMORY_GPU
-                                 : TRITONSERVER_MEMORY_CPU;
+  if (pinned_enabled_) {
+    use_pinned_memory_type = GetUsePinnedMemoryType(memory_type);
   }
 
   // Batch output may be processed differently based on the kind
