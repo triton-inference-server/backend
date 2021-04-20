@@ -56,15 +56,17 @@ class BackendInputCollector {
       TRITONBACKEND_Request** requests, const uint32_t request_count,
       std::vector<TRITONBACKEND_Response*>* responses,
       TRITONBACKEND_MemoryManager* memory_manager, const bool pinned_enabled,
-      const size_t kernel_buffer_threshold, cudaStream_t stream,
-      cudaEvent_t event = nullptr, cudaEvent_t buffer_ready_event = nullptr)
+      cudaStream_t stream, cudaEvent_t event = nullptr,
+      cudaEvent_t buffer_ready_event = nullptr,
+      const size_t kernel_buffer_threshold = 0)
       : need_sync_(false), requests_(requests), request_count_(request_count),
         responses_(responses), memory_manager_(memory_manager),
         pinned_enabled_(pinned_enabled),
-        kernel_buffer_threshold_(kernel_buffer_threshold),
         use_async_cpu_copy_(triton::common::AsyncWorkQueue::WorkerCount() > 1),
-        stream_(stream), event_(event), pending_pinned_byte_size_(0),
-        pending_pinned_offset_(0), pending_copy_kernel_buffer_byte_size_(0),
+        stream_(stream), event_(event), buffer_ready_event_(buffer_ready_event),
+        kernel_buffer_threshold_(kernel_buffer_threshold),
+        pending_pinned_byte_size_(0), pending_pinned_offset_(0),
+        pending_copy_kernel_buffer_byte_size_(0),
         pending_copy_kernel_buffer_offset_(0),
         pending_copy_kernel_input_buffer_counts_(0), async_task_count_(0)
   {
@@ -176,11 +178,11 @@ class BackendInputCollector {
   std::vector<TRITONBACKEND_Response*>* responses_;
   TRITONBACKEND_MemoryManager* memory_manager_;
   const bool pinned_enabled_;
-  const size_t kernel_buffer_threshold_;
   const bool use_async_cpu_copy_;
   cudaStream_t stream_;
   cudaEvent_t event_;
   cudaEvent_t buffer_ready_event_;
+  const size_t kernel_buffer_threshold_;
 
   using RequestsList =
       std::list<std::pair<TRITONBACKEND_Response**, TRITONBACKEND_Input*>>;
