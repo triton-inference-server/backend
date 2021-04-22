@@ -34,6 +34,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include "triton/common/error.h"
 #include "triton/core/tritonbackend.h"
 
 #define TRITONJSON_STATUSTYPE TRITONSERVER_Error*
@@ -245,6 +246,14 @@ constexpr char kOpenVINOExecutionAccelerator[] = "openvino";
 constexpr char kGPUIOExecutionAccelerator[] = "gpu_io";
 constexpr char kAutoMixedPrecisionExecutionAccelerator[] =
     "auto_mixed_precision";
+
+TRITONSERVER_MemoryType GetUsePinnedMemoryType(
+    TRITONSERVER_MemoryType ref_buffer_type);
+
+TRITONSERVER_Error* CommonErrorToTritonError(triton::common::Error error);
+
+TRITONSERVER_Error_Code StatusCodeToTritonCode(
+    triton::common::Error::Code error_code);
 
 /// Parse an array in a JSON object into the corresponding shape. The
 /// array must be composed of integers.

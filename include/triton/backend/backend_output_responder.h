@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020, NVIDIA CORPORATION. All rights reserved.
+// Copyright (c) 2019-2021, NVIDIA CORPORATION. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -29,6 +29,7 @@
 #include <string>
 #include <vector>
 #include "triton/backend/backend_common.h"
+#include "triton/common/async_work_queue.h"
 #include "triton/core/tritonbackend.h"
 
 #ifdef TRITON_ENABLE_GPU
@@ -57,6 +58,7 @@ class BackendOutputResponder {
       : need_sync_(false), requests_(requests), request_count_(request_count),
         responses_(responses), max_batch_size_(max_batch_size),
         memory_manager_(memory_manager), pinned_enabled_(pinned_enabled),
+        use_async_cpu_copy_(triton::common::AsyncWorkQueue::WorkerCount() > 1),
         stream_(stream), event_(event), pending_pinned_byte_size_(0)
   {
   }
@@ -117,6 +119,7 @@ class BackendOutputResponder {
   const int max_batch_size_;
   TRITONBACKEND_MemoryManager* memory_manager_;
   const bool pinned_enabled_;
+  const bool use_async_cpu_copy_;
   cudaStream_t stream_;
   cudaEvent_t event_;
 

@@ -56,6 +56,55 @@
 
 namespace triton { namespace backend {
 
+TRITONSERVER_MemoryType
+GetUsePinnedMemoryType(TRITONSERVER_MemoryType ref_buffer_type)
+{
+  // The following matrix is used for both input and output.
+  // src   \ dest | non-pinned    | pinned     | device
+  // non-pinned   | memcpy        | memcpy     | buffer needed
+  // pinned       | memcpy        | memcpy     | cudaMemcpy
+  // device       | buffer needed | cudaMemcpy | cudaMemcpy
+  if (ref_buffer_type == TRITONSERVER_MEMORY_CPU_PINNED) {
+    return TRITONSERVER_MEMORY_CPU_PINNED;
+  }
+
+  return (ref_buffer_type == TRITONSERVER_MEMORY_CPU) ? TRITONSERVER_MEMORY_GPU
+                                                      : TRITONSERVER_MEMORY_CPU;
+}
+
+TRITONSERVER_Error_Code
+StatusCodeToTritonCode(triton::common::Error::Code error_code)
+{
+  switch (error_code) {
+    case triton::common::Error::Code::UNKNOWN:
+      return TRITONSERVER_ERROR_UNKNOWN;
+    case triton::common::Error::Code::INTERNAL:
+      return TRITONSERVER_ERROR_INTERNAL;
+    case triton::common::Error::Code::NOT_FOUND:
+      return TRITONSERVER_ERROR_NOT_FOUND;
+    case triton::common::Error::Code::INVALID_ARG:
+      return TRITONSERVER_ERROR_INVALID_ARG;
+    case triton::common::Error::Code::UNAVAILABLE:
+      return TRITONSERVER_ERROR_UNAVAILABLE;
+    case triton::common::Error::Code::UNSUPPORTED:
+      return TRITONSERVER_ERROR_UNSUPPORTED;
+    case triton::common::Error::Code::ALREADY_EXISTS:
+      return TRITONSERVER_ERROR_ALREADY_EXISTS;
+
+    default:
+      break;
+  }
+
+  return TRITONSERVER_ERROR_UNKNOWN;
+}
+
+TRITONSERVER_Error*
+CommonErrorToTritonError(triton::common::Error error)
+{
+  return TRITONSERVER_ErrorNew(
+      StatusCodeToTritonCode(error.ErrorCode()), error.Message().c_str());
+}
+
 TRITONSERVER_Error*
 ParseShape(
     common::TritonJson::Value& io, const std::string& name,
@@ -541,18 +590,6 @@ SendErrorForResponses(
   TRITONSERVER_ErrorDelete(response_err);
 }
 
-#ifdef TRITON_ENABLE_GPU
-#define RETURN_IF_CUDA_ERR(X, MSG)                                        \
-  do {                                                                    \
-    cudaError_t err__ = (X);                                              \
-    if (err__ != cudaSuccess) {                                           \
-      return TRITONSERVER_ErrorNew(                                       \
-          TRITONSERVER_ERROR_INTERNAL,                                    \
-          std::string((MSG) + ": " + cudaGetErrorString(err__)).c_str()); \
-    }                                                                     \
-  } while (false)
-#endif  // TRITON_ENABLE_GPU
-
 TRITONSERVER_Error*
 CopyBuffer(
     const std::string& msg, const TRITONSERVER_MemoryType src_memory_type,
@@ -581,15 +618,15 @@ CopyBuffer(
 
     if ((src_memory_type_id != dst_memory_type_id) &&
         (copy_kind == cudaMemcpyDeviceToDevice)) {
-      RETURN_IF_CUDA_ERR(
+      RETURN_IF_CUDA_ERROR(
           cudaMemcpyPeerAsync(
               dst, dst_memory_type_id, src, src_memory_type_id, byte_size,
               cuda_stream),
-          msg + ": failed to perform CUDA copy");
+          TRITONSERVER_ERROR_INTERNAL, msg + ": failed to perform CUDA copy");
     } else {
-      RETURN_IF_CUDA_ERR(
+      RETURN_IF_CUDA_ERROR(
           cudaMemcpyAsync(dst, src, byte_size, copy_kind, cuda_stream),
-          msg + ": failed to perform CUDA copy");
+          TRITONSERVER_ERROR_INTERNAL, msg + ": failed to perform CUDA copy");
     }
 
     *cuda_used = true;

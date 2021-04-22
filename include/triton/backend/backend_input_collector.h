@@ -31,6 +31,7 @@
 #include <vector>
 #include "triton/backend/backend_common.h"
 #include "triton/backend/backend_memory.h"
+#include "triton/common/async_work_queue.h"
 #include "triton/core/tritonbackend.h"
 
 #ifdef TRITON_ENABLE_GPU
@@ -55,11 +56,19 @@ class BackendInputCollector {
       TRITONBACKEND_Request** requests, const uint32_t request_count,
       std::vector<TRITONBACKEND_Response*>* responses,
       TRITONBACKEND_MemoryManager* memory_manager, const bool pinned_enabled,
-      cudaStream_t stream, cudaEvent_t event = nullptr)
+      cudaStream_t stream, cudaEvent_t event = nullptr,
+      cudaEvent_t buffer_ready_event = nullptr,
+      const size_t kernel_buffer_threshold = 0)
       : need_sync_(false), requests_(requests), request_count_(request_count),
         responses_(responses), memory_manager_(memory_manager),
-        pinned_enabled_(pinned_enabled), stream_(stream), event_(event),
-        pending_pinned_byte_size_(0)
+        pinned_enabled_(pinned_enabled),
+        use_async_cpu_copy_(triton::common::AsyncWorkQueue::WorkerCount() > 1),
+        stream_(stream), event_(event), buffer_ready_event_(buffer_ready_event),
+        kernel_buffer_threshold_(kernel_buffer_threshold),
+        pending_pinned_byte_size_(0), pending_pinned_offset_(0),
+        pending_copy_kernel_buffer_byte_size_(0),
+        pending_copy_kernel_buffer_offset_(0),
+        pending_copy_kernel_input_buffer_counts_(0), async_task_count_(0)
   {
   }
 
@@ -138,12 +147,21 @@ class BackendInputCollector {
       char* tensor_buffer, const size_t tensor_buffer_byte_size,
       const TRITONSERVER_MemoryType tensor_memory_type,
       const int64_t tensor_memory_type_id);
+  bool FlushPendingCopyKernel(
+      char* tensor_buffer, const size_t tensor_buffer_byte_size,
+      const TRITONSERVER_MemoryType tensor_memory_type,
+      const int64_t tensor_memory_type_id);
+  TRITONSERVER_Error* LaunchCopyKernel(
+      char* tensor_buffer, const size_t tensor_buffer_byte_size,
+      const TRITONSERVER_MemoryType tensor_memory_type,
+      const int64_t tensor_memory_type_id);
   bool SetFixedSizeInputTensor(
       TRITONBACKEND_Input* request_input, const size_t tensor_buffer_offset,
       char* tensor_buffer, const size_t tensor_buffer_byte_size,
       const TRITONSERVER_MemoryType tensor_memory_type,
       const int64_t tensor_memory_type_id,
       const TRITONSERVER_MemoryType use_pinned_memory_type,
+      const bool use_kernel, const bool wait_buffer,
       TRITONBACKEND_Response** response);
   template <typename T>
   TRITONSERVER_Error* SetElementCount(
@@ -160,8 +178,11 @@ class BackendInputCollector {
   std::vector<TRITONBACKEND_Response*>* responses_;
   TRITONBACKEND_MemoryManager* memory_manager_;
   const bool pinned_enabled_;
+  const bool use_async_cpu_copy_;
   cudaStream_t stream_;
   cudaEvent_t event_;
+  cudaEvent_t buffer_ready_event_;
+  const size_t kernel_buffer_threshold_;
 
   using RequestsList =
       std::list<std::pair<TRITONBACKEND_Response**, TRITONBACKEND_Input*>>;
@@ -172,7 +193,16 @@ class BackendInputCollector {
 
   // managed memories that need to live over the lifetime of this
   // BackendInputCollector object.
-  std::list<std::unique_ptr<BackendMemory>> backend_memories_;
+  std::list<std::unique_ptr<BackendMemory>> in_use_memories_;
+
+  size_t pending_copy_kernel_buffer_byte_size_;
+  size_t pending_copy_kernel_buffer_offset_;
+  size_t pending_copy_kernel_input_buffer_counts_;
+  RequestsList pending_copy_kernel_inputs_;
+  std::vector<std::unique_ptr<std::vector<int8_t*>>> input_ptr_buffer_host_;
+  std::vector<std::unique_ptr<std::vector<size_t>>> byte_size_buffer_host_;
+  std::vector<std::unique_ptr<std::vector<size_t>>>
+      byte_size_offset_buffer_host_;
 
   // Pinned memory buffers and the corresponding request_inputs where
   // the final copy to the tensor is deferred until Finalize() after
@@ -183,7 +213,7 @@ class BackendInputCollector {
         char* tensor_buffer, const size_t tensor_buffer_offset,
         const TRITONSERVER_MemoryType tensor_memory_type,
         const int64_t tensor_memory_id, RequestsList&& requests)
-        : pinned_memory_(pinned_memory),
+        : finalized_(false), pinned_memory_(pinned_memory),
           pinned_memory_size_(pinned_memory_size),
           tensor_buffer_(tensor_buffer),
           tensor_buffer_offset_(tensor_buffer_offset),
@@ -192,6 +222,8 @@ class BackendInputCollector {
     {
     }
 
+    bool Finalize(cudaStream_t stream);
+    bool finalized_;
     // Holding reference to the pinned memory buffer, which is managed
     // by BackendInputCollector as 'pinned_memory'
     char* pinned_memory_;
@@ -204,6 +236,9 @@ class BackendInputCollector {
   };
 
   std::list<DeferredPinned> deferred_pinned_;
+  // FIXME use future to maintain an issue-order queue to drop task count
+  triton::common::SyncQueue<bool> completion_queue_;
+  size_t async_task_count_;
 };
 
 }}  // namespace triton::backend
