@@ -79,22 +79,23 @@ endif() # TRITON_ENABLE_GPU
 #
 # Backend library containing useful source and utilities
 #
-add_library(
-  triton-backend-utils
-  src/backend_common.cc
-  src/backend_input_collector.cc
-  src/backend_memory.cc
-  src/backend_model_instance.cc
-  src/backend_model.cc
-  src/backend_output_responder.cc
+set(SRC_FILES 
+  "src/backend_common.cc"
+  "src/backend_input_collector.cc"
+  "src/backend_memory.cc"
+  "src/backend_model_instance.cc"
+  "src/backend_model.cc"
+  "src/backend_output_responder.cc"
 )
 
 if(${TRITON_ENABLE_GPU})
-  add_library(
-    triton-backend-utils
-    src/kernel.h
-  )
+  set(SRC_FILES ${SRC_FILES} "src/kernel.h")
 endif() # TRITON_ENABLE_GPU
+
+add_library(
+  triton-backend-utils
+  ${SRC_FILES}
+)
 
 if(${TRITON_ENABLE_GPU})
   set(HOST_COMPILER_FLAGS "")
