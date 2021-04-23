@@ -88,6 +88,7 @@ add_library(
   src/backend_model.cc
   src/backend_output_responder.cc
 )
+
 if(${TRITON_ENABLE_GPU})
   add_library(
     triton-backend-utils
