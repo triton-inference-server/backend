@@ -87,8 +87,13 @@ add_library(
   src/backend_model_instance.cc
   src/backend_model.cc
   src/backend_output_responder.cc
-  src/kernel.h
 )
+if(${TRITON_ENABLE_GPU})
+  add_library(
+    triton-backend-utils
+    src/kernel.h
+  )
+endif() # TRITON_ENABLE_GPU
 
 if(${TRITON_ENABLE_GPU})
   set(HOST_COMPILER_FLAGS "")
@@ -98,7 +103,7 @@ if(${TRITON_ENABLE_GPU})
 
   set(CUDA_LIBRARIES PUBLIC ${CUDA_LIBRARIES})
   cuda_add_library(
-    kernel-library-new 
+    kernel-library-new
     src/kernel.cu src/kernel.h
     OPTIONS -arch compute_53
     OPTIONS -code compute_53,sm_53,sm_60,sm_61,sm_62,sm_70,sm_72,sm_75
@@ -184,12 +189,22 @@ set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/TritonBackend)
 install(
   TARGETS
     triton-backend-utils
-    kernel-library-new
   EXPORT
     triton-backend-targets
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
+
+if(${TRITON_ENABLE_GPU})
+  install(
+    TARGETS
+      kernel-library-new
+    EXPORT
+      triton-backend-targets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  )
+endif() # TRITON_ENABLE_GPU
 
 install(
   DIRECTORY include/
