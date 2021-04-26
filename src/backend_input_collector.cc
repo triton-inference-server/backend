@@ -27,8 +27,10 @@
 #include "triton/backend/backend_input_collector.h"
 
 #include <atomic>
-#include "kernel.h"
 #include "triton/backend/backend_common.h"
+#ifdef TRITON_ENABLE_GPU
+#include "kernel.h"
+#endif  // TRITON_ENABLE_GPU
 
 namespace triton { namespace backend {
 //
