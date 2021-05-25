@@ -151,7 +151,7 @@ target_compile_definitions(
 )
 endif() # TRITON_ENABLE_GPU
 
-# TRITON_ENABLE_GPU exposed in header so set PUBLIC
+# TRITON_ENABLE_MALI_GPU exposed in header so set PUBLIC
 if(${TRITON_ENABLE_MALI_GPU})
 target_compile_definitions(
   triton-backend-utils
