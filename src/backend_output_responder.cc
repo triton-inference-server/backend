@@ -30,6 +30,11 @@
 #include "triton/backend/backend_model.h"
 #include "triton/backend/backend_model_instance.h"
 
+#include <chrono>
+using std::chrono::duration;
+using std::chrono::duration_cast;
+using std::chrono::high_resolution_clock;
+using std::chrono::microseconds;
 namespace triton { namespace backend {
 
 //
@@ -64,6 +69,7 @@ BackendOutputResponder::ProcessTensor(
 
   size_t tensor_offset = 0;
 
+  auto t1 = high_resolution_clock::now();
   for (size_t idx = 0; idx < responses_->size(); idx++) {
     auto& request = requests_[idx];
     auto& response = (*responses_)[idx];
@@ -122,6 +128,13 @@ BackendOutputResponder::ProcessTensor(
     tensor_offset += tensor_byte_size;
   }
 
+  auto t2 = high_resolution_clock::now();
+  auto pre_sync_ns = duration_cast<microseconds>(t2 - t1);
+  TRITONSERVER_LogMessage(
+      TRITONSERVER_LOG_ERROR, __FILE__, __LINE__,
+      (std::string("pre_sync_ns times: ") + std::to_string(pre_sync_ns.count()))
+          .c_str());
+
   // Done with the tensor, flush any pending pinned copies.
   need_sync_ |= FlushPendingPinned(buffer, memory_type, memory_type_id);
 #ifdef TRITON_ENABLE_GPU
@@ -129,6 +142,12 @@ BackendOutputResponder::ProcessTensor(
     cudaEventRecord(event_, stream_);
   }
 #endif  // TRITON_ENABLE_GPU
+  auto t3 = high_resolution_clock::now();
+  auto post_sync_ns = duration_cast<microseconds>(t3 - t1);
+  TRITONSERVER_LogMessage(
+      TRITONSERVER_LOG_ERROR, __FILE__, __LINE__,
+      (std::string("post_sync_ns times: ") + std::to_string(post_sync_ns.count()))
+          .c_str());
 }
 
 bool
