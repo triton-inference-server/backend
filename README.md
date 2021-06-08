@@ -187,8 +187,8 @@ specified in the model's configuration using the 'backend' and
 'platform' settings. Depending on the backend one or the other of
 these properties is optional.
 
-* For TensorRT, 'backend' must be set to *tensorrt* or 'platform' must
-  be set to *tensorrt_plan*.
+* For TensorRT, 'platform' must be set to *tensorrt_plan*. Currently,
+  TensorRT backend does not support 'backend' field.
 
 * For PyTorch, 'backend' must be set to *pytorch* or 'platform' must
   be set to *pytorch_libtorch*.
