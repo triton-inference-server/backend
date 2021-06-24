@@ -178,7 +178,7 @@ if(${TRITON_ENABLE_GPU})
   target_link_libraries(
     triton-backend-utils
     PUBLIC
-      CUDA::cudart
+      CUDA::cudart_static
     PRIVATE
     kernel-library-new
   )
