@@ -311,10 +311,12 @@ int64_t GetByteSize(
 /// the buffer is not large enough to hold the input tensor
 /// contents. Returns the size of the input tensor data returned in
 /// 'buffer'.
+/// \param host_policy_name The host policy name to look up the input buffer.
+/// Default input buffer will be used if nullptr is provided.
 /// \return a TRITONSERVER_Error indicating success or failure.
 TRITONSERVER_Error* ReadInputTensor(
     TRITONBACKEND_Request* request, const std::string& input_name, char* buffer,
-    size_t* buffer_byte_size);
+    size_t* buffer_byte_size, const char* host_policy_name = nullptr);
 
 /// Validate that an input matches one of the allowed input names.
 /// \param io The model input.

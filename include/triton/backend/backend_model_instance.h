@@ -80,6 +80,8 @@ class BackendModelInstance {
   // disabled or if this instance is not executing on a GPU.
   cudaStream_t CudaStream() { return stream_; }
 
+  const std::string& HostPolicyName() const { return host_policy_name_; }
+
  protected:
   BackendModel* backend_model_;
   TRITONBACKEND_ModelInstance* triton_model_instance_;
@@ -90,6 +92,8 @@ class BackendModelInstance {
 
   std::string artifact_filename_;
   cudaStream_t stream_;
+
+  std::string host_policy_name_;
 };
 
 //
