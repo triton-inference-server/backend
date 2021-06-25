@@ -129,7 +129,7 @@ BackendModelInstance::BackendModelInstance(
 
   // Get the host policy setting as a json string from message,
   // and extract the host policy name for the instance.
-  TRITONSERVER_Message* message;
+  TRITONSERVER_Message* message = nullptr;
   THROW_IF_BACKEND_MODEL_ERROR(
       TRITONBACKEND_ModelInstanceHostPolicy(triton_model_instance_, &message));
   const char* buffer;
@@ -139,7 +139,6 @@ BackendModelInstance::BackendModelInstance(
 
   common::TritonJson::Value host_policy;
   TRITONSERVER_Error* err = host_policy.Parse(buffer, byte_size);
-  THROW_IF_BACKEND_MODEL_ERROR(TRITONSERVER_MessageDelete(message));
   THROW_IF_BACKEND_MODEL_ERROR(err);
   std::vector<std::string> host_policy_name;
   THROW_IF_BACKEND_MODEL_ERROR(host_policy.Members(&host_policy_name));
