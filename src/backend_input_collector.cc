@@ -541,7 +541,7 @@ BackendInputCollector::FlushPendingPinned(
         uint64_t byte_size;
         RESPOND_AND_SET_NULL_IF_ERROR(
             response, TRITONBACKEND_InputPropertiesForHostPolicy(
-                          request_input, host_policy_cstr, nullptr, nullptr,
+                          request_input, host_policy_cstr_, nullptr, nullptr,
                           nullptr, nullptr, &byte_size, nullptr));
 
         cuda_used |= SetFixedSizeInputTensor(
@@ -623,8 +623,8 @@ BackendInputCollector::FlushPendingPinned(
           RESPOND_AND_SET_NULL_IF_ERROR(
               (*end_it).first,
               TRITONBACKEND_InputPropertiesForHostPolicy(
-                  (*end_it).second, host_policy_str_, nullptr, nullptr, nullptr,
-                  nullptr, &byte_size, nullptr));
+                  (*end_it).second, host_policy_cstr_, nullptr, nullptr,
+                  nullptr, nullptr, &byte_size, nullptr));
 
           next_offset += byte_size;
           end_it++;
