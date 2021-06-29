@@ -51,14 +51,16 @@ using cudaEvent_t = void*;
 class BackendInputCollector {
  public:
   // The caller can optionally provide 'event' for internal synchronization
-  // instead of using 'stream'.
+  // instead of using 'stream'. If 'host_policy_name' is provided, it must be
+  // valid for the lifetime of the collector
   explicit BackendInputCollector(
       TRITONBACKEND_Request** requests, const uint32_t request_count,
       std::vector<TRITONBACKEND_Response*>* responses,
       TRITONBACKEND_MemoryManager* memory_manager, const bool pinned_enabled,
       cudaStream_t stream, cudaEvent_t event = nullptr,
       cudaEvent_t buffer_ready_event = nullptr,
-      const size_t kernel_buffer_threshold = 0)
+      const size_t kernel_buffer_threshold = 0,
+      const char* host_policy_name = nullptr)
       : need_sync_(false), requests_(requests), request_count_(request_count),
         responses_(responses), memory_manager_(memory_manager),
         pinned_enabled_(pinned_enabled),
@@ -68,7 +70,8 @@ class BackendInputCollector {
         pending_pinned_byte_size_(0), pending_pinned_offset_(0),
         pending_copy_kernel_buffer_byte_size_(0),
         pending_copy_kernel_buffer_offset_(0),
-        pending_copy_kernel_input_buffer_counts_(0), async_task_count_(0)
+        pending_copy_kernel_input_buffer_counts_(0), async_task_count_(0),
+        host_policy_cstr_(host_policy_name)
   {
   }
 
@@ -239,6 +242,8 @@ class BackendInputCollector {
   // FIXME use future to maintain an issue-order queue to drop task count
   triton::common::SyncQueue<bool> completion_queue_;
   size_t async_task_count_;
+
+  const char* host_policy_cstr_;
 };
 
 }}  // namespace triton::backend

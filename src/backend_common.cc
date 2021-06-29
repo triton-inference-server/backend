@@ -44,6 +44,7 @@
 #include <algorithm>
 #include <cerrno>
 #include <fstream>
+#include <functional>
 #include <memory>
 
 #ifdef _WIN32
@@ -193,7 +194,7 @@ GetByteSize(
 TRITONSERVER_Error*
 ReadInputTensor(
     TRITONBACKEND_Request* request, const std::string& input_name, char* buffer,
-    size_t* buffer_byte_size)
+    size_t* buffer_byte_size, const char* host_policy_name)
 {
   TRITONBACKEND_Input* input;
   RETURN_IF_ERROR(
@@ -201,9 +202,9 @@ ReadInputTensor(
 
   uint64_t input_byte_size;
   uint32_t input_buffer_count;
-  RETURN_IF_ERROR(TRITONBACKEND_InputProperties(
-      input, nullptr, nullptr, nullptr, nullptr, &input_byte_size,
-      &input_buffer_count));
+  RETURN_IF_ERROR(TRITONBACKEND_InputPropertiesForHostPolicy(
+      input, host_policy_name, nullptr, nullptr, nullptr, nullptr,
+      &input_byte_size, &input_buffer_count));
   RETURN_ERROR_IF_FALSE(
       input_byte_size <= *buffer_byte_size, TRITONSERVER_ERROR_INVALID_ARG,
       std::string(
@@ -217,9 +218,9 @@ ReadInputTensor(
     uint64_t input_buffer_byte_size = 0;
     TRITONSERVER_MemoryType input_memory_type = TRITONSERVER_MEMORY_CPU;
     int64_t input_memory_type_id = 0;
-    RETURN_IF_ERROR(TRITONBACKEND_InputBuffer(
-        input, b, &input_buffer, &input_buffer_byte_size, &input_memory_type,
-        &input_memory_type_id));
+    RETURN_IF_ERROR(TRITONBACKEND_InputBufferForHostPolicy(
+        input, host_policy_name, b, &input_buffer, &input_buffer_byte_size,
+        &input_memory_type, &input_memory_type_id));
     RETURN_ERROR_IF_FALSE(
         input_memory_type != TRITONSERVER_MEMORY_GPU,
         TRITONSERVER_ERROR_INTERNAL,

@@ -126,6 +126,28 @@ BackendModelInstance::BackendModelInstance(
     THROW_IF_BACKEND_INSTANCE_ERROR(
         CreateCudaStream(device_id_, 0 /* cuda_stream_priority */, &stream_));
   }
+
+  // Get the host policy setting as a json string from message,
+  // and extract the host policy name for the instance.
+  TRITONSERVER_Message* message = nullptr;
+  THROW_IF_BACKEND_MODEL_ERROR(
+      TRITONBACKEND_ModelInstanceHostPolicy(triton_model_instance_, &message));
+  const char* buffer;
+  size_t byte_size;
+  THROW_IF_BACKEND_MODEL_ERROR(
+      TRITONSERVER_MessageSerializeToJson(message, &buffer, &byte_size));
+
+  common::TritonJson::Value host_policy;
+  TRITONSERVER_Error* err = host_policy.Parse(buffer, byte_size);
+  THROW_IF_BACKEND_MODEL_ERROR(err);
+  std::vector<std::string> host_policy_name;
+  THROW_IF_BACKEND_MODEL_ERROR(host_policy.Members(&host_policy_name));
+  if (host_policy_name.size() != 1) {
+    throw BackendModelInstanceException(TRITONSERVER_ErrorNew(
+        TRITONSERVER_ERROR_INTERNAL,
+        (std::string("unexpected no host policy for ") + name_).c_str()));
+  }
+  host_policy_name_ = host_policy_name[0];
 }
 
 

@@ -56,9 +56,9 @@ BackendInputCollector::GetInputBufferIfContiguous(
     uint64_t byte_size;
     uint32_t buffer_count;
     RESPOND_AND_SET_NULL_IF_ERROR(
-        &response, TRITONBACKEND_InputProperties(
-                       input, nullptr, nullptr, nullptr, nullptr, &byte_size,
-                       &buffer_count));
+        &response, TRITONBACKEND_InputPropertiesForHostPolicy(
+                       input, host_policy_cstr_, nullptr, nullptr, nullptr,
+                       nullptr, &byte_size, &buffer_count));
     for (size_t idx = 0; idx < buffer_count; ++idx) {
       const void* src_buffer;
       size_t src_byte_size;
@@ -66,9 +66,10 @@ BackendInputCollector::GetInputBufferIfContiguous(
       int64_t src_memory_type_id;
 
       RESPOND_AND_SET_NULL_IF_ERROR(
-          &response, TRITONBACKEND_InputBuffer(
-                         input, idx, &src_buffer, &src_byte_size,
-                         &src_memory_type, &src_memory_type_id));
+          &response,
+          TRITONBACKEND_InputBufferForHostPolicy(
+              input, host_policy_cstr_, idx, &src_buffer, &src_byte_size,
+              &src_memory_type, &src_memory_type_id));
       if (*buffer != nullptr) {
         if ((expected_next_buffer == src_buffer) &&
             (*memory_type == src_memory_type) &&
@@ -135,9 +136,9 @@ BackendInputCollector::ProcessTensor(
         &response, TRITONBACKEND_RequestInput(request, input_name, &input));
     uint64_t byte_size;
     RESPOND_AND_SET_NULL_IF_ERROR(
-        &response,
-        TRITONBACKEND_InputProperties(
-            input, nullptr, nullptr, nullptr, nullptr, &byte_size, nullptr));
+        &response, TRITONBACKEND_InputPropertiesForHostPolicy(
+                       input, host_policy_cstr_, nullptr, nullptr, nullptr,
+                       nullptr, &byte_size, nullptr));
     if (response != nullptr) {
       need_sync_ |= SetFixedSizeInputTensor(
           input, buffer_offset, buffer, buffer_byte_size, memory_type,
@@ -338,9 +339,9 @@ BackendInputCollector::SetFixedSizeInputTensor(
   const char* name;
   uint32_t buffer_count;
   RESPOND_AND_SET_NULL_IF_ERROR(
-      response, TRITONBACKEND_InputProperties(
-                    request_input, &name, nullptr, nullptr, nullptr, nullptr,
-                    &buffer_count));
+      response, TRITONBACKEND_InputPropertiesForHostPolicy(
+                    request_input, host_policy_cstr_, &name, nullptr, nullptr,
+                    nullptr, nullptr, &buffer_count));
   if (*response == nullptr) {
     return cuda_copy;
   }
@@ -354,9 +355,9 @@ BackendInputCollector::SetFixedSizeInputTensor(
     int64_t src_memory_type_id;
 
     RESPOND_AND_SET_NULL_IF_ERROR(
-        response, TRITONBACKEND_InputBuffer(
-                      request_input, idx, &src_buffer, &src_byte_size,
-                      &src_memory_type, &src_memory_type_id));
+        response, TRITONBACKEND_InputBufferForHostPolicy(
+                      request_input, host_policy_cstr_, idx, &src_buffer,
+                      &src_byte_size, &src_memory_type, &src_memory_type_id));
     total_byte_size += src_byte_size;
   }
 
@@ -386,9 +387,9 @@ BackendInputCollector::SetFixedSizeInputTensor(
     int64_t src_memory_type_id;
 
     RESPOND_AND_SET_NULL_IF_ERROR(
-        response, TRITONBACKEND_InputBuffer(
-                      request_input, idx, &src_buffer, &src_byte_size,
-                      &src_memory_type, &src_memory_type_id));
+        response, TRITONBACKEND_InputBufferForHostPolicy(
+                      request_input, host_policy_cstr_, idx, &src_buffer,
+                      &src_byte_size, &src_memory_type, &src_memory_type_id));
     if (*response == nullptr) {
       return cuda_copy;
     }
@@ -516,9 +517,9 @@ BackendInputCollector::FlushPendingPinned(
 
       uint64_t byte_size;
       RESPOND_AND_SET_NULL_IF_ERROR(
-          response, TRITONBACKEND_InputProperties(
-                        request_input, nullptr, nullptr, nullptr, nullptr,
-                        &byte_size, nullptr));
+          response, TRITONBACKEND_InputPropertiesForHostPolicy(
+                        request_input, host_policy_cstr_, nullptr, nullptr,
+                        nullptr, nullptr, &byte_size, nullptr));
 
       cuda_copy |= SetFixedSizeInputTensor(
           request_input, pending_pinned_offset_ + offset, tensor_buffer,
@@ -539,9 +540,9 @@ BackendInputCollector::FlushPendingPinned(
 
         uint64_t byte_size;
         RESPOND_AND_SET_NULL_IF_ERROR(
-            response, TRITONBACKEND_InputProperties(
-                          request_input, nullptr, nullptr, nullptr, nullptr,
-                          &byte_size, nullptr));
+            response, TRITONBACKEND_InputPropertiesForHostPolicy(
+                          request_input, host_policy_cstr_, nullptr, nullptr,
+                          nullptr, nullptr, &byte_size, nullptr));
 
         cuda_used |= SetFixedSizeInputTensor(
             request_input, offset, pinned_memory, pending_pinned_byte_size_,
@@ -620,9 +621,10 @@ BackendInputCollector::FlushPendingPinned(
         for (size_t idx = 0; idx < stride; idx++) {
           uint64_t byte_size;
           RESPOND_AND_SET_NULL_IF_ERROR(
-              (*end_it).first, TRITONBACKEND_InputProperties(
-                                   (*end_it).second, nullptr, nullptr, nullptr,
-                                   nullptr, &byte_size, nullptr));
+              (*end_it).first,
+              TRITONBACKEND_InputPropertiesForHostPolicy(
+                  (*end_it).second, host_policy_cstr_, nullptr, nullptr,
+                  nullptr, nullptr, &byte_size, nullptr));
 
           next_offset += byte_size;
           end_it++;
@@ -646,9 +648,10 @@ BackendInputCollector::FlushPendingPinned(
                         false, false, response);
                     uint64_t byte_size;
                     RESPOND_AND_SET_NULL_IF_ERROR(
-                        response, TRITONBACKEND_InputProperties(
-                                      request_input, nullptr, nullptr, nullptr,
-                                      nullptr, &byte_size, nullptr));
+                        response,
+                        TRITONBACKEND_InputPropertiesForHostPolicy(
+                            request_input, host_policy_cstr_, nullptr, nullptr,
+                            nullptr, nullptr, &byte_size, nullptr));
 
                     offset += byte_size;
                   }
@@ -721,9 +724,9 @@ BackendInputCollector::BatchInputShape(
             requests_[req_idx], source_input.c_str(), &input));
         const int64_t* shape_arr;
         uint32_t dims_count;
-        RETURN_IF_ERROR(TRITONBACKEND_InputProperties(
-            input, nullptr, nullptr, &shape_arr, &dims_count, nullptr,
-            nullptr));
+        RETURN_IF_ERROR(TRITONBACKEND_InputPropertiesForHostPolicy(
+            input, host_policy_cstr_, nullptr, nullptr, &shape_arr, &dims_count,
+            nullptr, nullptr));
         (*shape)[0] =
             std::max((*shape)[0], GetElementCount(shape_arr, dims_count));
       }
@@ -907,8 +910,9 @@ BackendInputCollector::SetElementCount(
         requests_[req_idx], source_input.c_str(), &input));
     const int64_t* shape;
     uint32_t dims_count;
-    RETURN_IF_ERROR(TRITONBACKEND_InputProperties(
-        input, nullptr, nullptr, &shape, &dims_count, nullptr, nullptr));
+    RETURN_IF_ERROR(TRITONBACKEND_InputPropertiesForHostPolicy(
+        input, host_policy_cstr_, nullptr, nullptr, &shape, &dims_count,
+        nullptr, nullptr));
     *(reinterpret_cast<T*>(buffer) + req_idx) =
         GetElementCount(shape, dims_count);
     buffer_offset += sizeof(T);
@@ -941,8 +945,9 @@ BackendInputCollector::SetAccumulatedElementCount(
         requests_[req_idx], source_input.c_str(), &input));
     const int64_t* shape;
     uint32_t dims_count;
-    RETURN_IF_ERROR(TRITONBACKEND_InputProperties(
-        input, nullptr, nullptr, &shape, &dims_count, nullptr, nullptr));
+    RETURN_IF_ERROR(TRITONBACKEND_InputPropertiesForHostPolicy(
+        input, host_policy_cstr_, nullptr, nullptr, &shape, &dims_count,
+        nullptr, nullptr));
     accumulated_element_count += GetElementCount(shape, dims_count);
     *(reinterpret_cast<T*>(buffer) + req_idx) = accumulated_element_count;
     buffer_offset += sizeof(T);
@@ -990,9 +995,9 @@ BackendInputCollector::FlushPendingCopyKernel(
 
       uint64_t byte_size;
       RESPOND_AND_SET_NULL_IF_ERROR(
-          response, TRITONBACKEND_InputProperties(
-                        request_input, nullptr, nullptr, nullptr, nullptr,
-                        &byte_size, nullptr));
+          response, TRITONBACKEND_InputPropertiesForHostPolicy(
+                        request_input, host_policy_cstr_, nullptr, nullptr,
+                        nullptr, nullptr, &byte_size, nullptr));
 
       cuda_copy |= SetFixedSizeInputTensor(
           request_input, pending_copy_kernel_buffer_offset_ + offset,
@@ -1042,17 +1047,17 @@ BackendInputCollector::LaunchCopyKernel(
     auto input = response_input.second;
     uint32_t buffer_count;
     RESPOND_AND_SET_NULL_IF_ERROR(
-        response_input.first,
-        TRITONBACKEND_InputProperties(
-            input, nullptr, nullptr, nullptr, nullptr, nullptr, &buffer_count));
+        response_input.first, TRITONBACKEND_InputPropertiesForHostPolicy(
+                                  input, host_policy_cstr_, nullptr, nullptr,
+                                  nullptr, nullptr, nullptr, &buffer_count));
     for (size_t buffer_idx = 0; buffer_idx < buffer_count; ++buffer_idx) {
       input_ptr_buffer_host.emplace_back();
       RESPOND_AND_SET_NULL_IF_ERROR(
           response_input.first,
-          TRITONBACKEND_InputBuffer(
-              input, buffer_idx, (const void**)(&input_ptr_buffer_host.back()),
-              &buffer_byte_size, &kernel_buffer_memory_type,
-              &kernel_buffer_memory_id));
+          TRITONBACKEND_InputBufferForHostPolicy(
+              input, host_policy_cstr_, buffer_idx,
+              (const void**)(&input_ptr_buffer_host.back()), &buffer_byte_size,
+              &kernel_buffer_memory_type, &kernel_buffer_memory_id));
 
       byte_size_offset_buffer_host.emplace_back(byte_size_offset);
       byte_size_buffer_host.emplace_back(buffer_byte_size);
