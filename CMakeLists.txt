@@ -32,6 +32,7 @@ project(tritonbackend LANGUAGES C CXX)
 # Options
 #
 option(TRITON_ENABLE_GPU "Enable GPU support in backend utilities" ON)
+option(TRITON_ENABLE_MALI_GPU "Enable Arm MALI GPU support in backend utilities" OFF)
 option(TRITON_ENABLE_STATS "Include statistics collections in backend utilities" ON)
 
 set(TRITON_COMMON_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/common repo")
@@ -149,6 +150,14 @@ target_compile_definitions(
   PUBLIC TRITON_ENABLE_GPU=1
 )
 endif() # TRITON_ENABLE_GPU
+
+# TRITON_ENABLE_MALI_GPU exposed in header so set PUBLIC
+if(${TRITON_ENABLE_MALI_GPU})
+target_compile_definitions(
+  triton-backend-utils
+  PUBLIC TRITON_ENABLE_MALI_GPU=1
+)
+endif() # TRITON_ENABLE_MALI_GPU
 
 # TRITON_ENABLE_STATS exposed in header so set PUBLIC
 if(${TRITON_ENABLE_STATS})
