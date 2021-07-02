@@ -139,6 +139,28 @@ class BackendInputCollector {
   bool Finalize();
 
  private:
+  class InputIterator {
+   public:
+    InputIterator(TRITONBACKEND_Request** requests, const uint32_t request_count,
+      std::vector<TRITONBACKEND_Response*>* responses, const char* input_name,
+      const char* host_policy_name);
+
+    // Return false if iterator reaches the end of inputs
+    bool GetNextContiguousInput(MemoryDesc* input,
+      size_t* start_response_idx, size_t* end_response_idx);
+   private:
+    TRITONBACKEND_Request** requests_;
+    const uint32_t request_count_;
+    std::vector<TRITONBACKEND_Response*>* responses_;
+    const char* input_name_;
+    const char* host_policy_;
+
+    TRITONBACKEND_Input* curr_input_;
+    size_t curr_request_idx_;
+    size_t curr_buffer_idx_;
+    uint32_t curr_buffer_cnt_;
+  };
+
   // Return whether the entire input is in a contiguous buffer. If returns true,
   // the properties of the contiguous input buffer will also be returned.
   // Otherwise, only 'buffer_byte_size' will be set and return the total byte
@@ -158,14 +180,14 @@ class BackendInputCollector {
       char* tensor_buffer, const size_t tensor_buffer_byte_size,
       const TRITONSERVER_MemoryType tensor_memory_type,
       const int64_t tensor_memory_type_id);
-  bool SetFixedSizeInputTensor(
-      TRITONBACKEND_Input* request_input, const size_t tensor_buffer_offset,
+  bool SetInputTensor(const char* input_name, const MemoryDesc& input,
       char* tensor_buffer, const size_t tensor_buffer_byte_size,
       const TRITONSERVER_MemoryType tensor_memory_type,
       const int64_t tensor_memory_type_id,
+      const size_t tensor_buffer_offset,
       const TRITONSERVER_MemoryType use_pinned_memory_type,
       const bool use_kernel, const bool wait_buffer,
-      TRITONBACKEND_Response** response);
+      size_t start_response_idx, size_t end_response_idx);
   template <typename T>
   TRITONSERVER_Error* SetElementCount(
       const std::string& source_input, char* buffer,
@@ -188,7 +210,7 @@ class BackendInputCollector {
   const size_t kernel_buffer_threshold_;
 
   using RequestsList =
-      std::list<std::pair<TRITONBACKEND_Response**, TRITONBACKEND_Input*>>;
+      std::list<std::tuple<const MemoryDesc, size_t, size_t>>;
 
   size_t pending_pinned_byte_size_;
   size_t pending_pinned_offset_;
@@ -215,13 +237,15 @@ class BackendInputCollector {
         char* pinned_memory, const size_t pinned_memory_size,
         char* tensor_buffer, const size_t tensor_buffer_offset,
         const TRITONSERVER_MemoryType tensor_memory_type,
-        const int64_t tensor_memory_id, RequestsList&& requests)
+        const int64_t tensor_memory_id, RequestsList&& requests,
+        std::vector<TRITONBACKEND_Response*>* responses)
         : finalized_(false), pinned_memory_(pinned_memory),
           pinned_memory_size_(pinned_memory_size),
           tensor_buffer_(tensor_buffer),
           tensor_buffer_offset_(tensor_buffer_offset),
           tensor_memory_type_(tensor_memory_type),
-          tensor_memory_id_(tensor_memory_id), requests_(std::move(requests))
+          tensor_memory_id_(tensor_memory_id), requests_(std::move(requests)),
+          responses_(responses)
     {
     }
 
@@ -236,6 +260,7 @@ class BackendInputCollector {
     const TRITONSERVER_MemoryType tensor_memory_type_;
     const int64_t tensor_memory_id_;
     RequestsList requests_;
+    std::vector<TRITONBACKEND_Response*>* responses_;
   };
 
   std::list<DeferredPinned> deferred_pinned_;
