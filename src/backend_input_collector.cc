@@ -95,6 +95,8 @@ BackendInputCollector::InputIterator::GetNextContiguousInput(
             &response, TRITONBACKEND_InputPropertiesForHostPolicy(
                           curr_input_, host_policy_, nullptr, nullptr, nullptr,
                           nullptr, nullptr, &curr_buffer_cnt_));
+      // reset buffer idx
+      curr_buffer_idx_ = 0;
     }
   } while (curr_request_idx_ < request_count_);
   reach_end_ = true;
