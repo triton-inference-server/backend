@@ -145,7 +145,7 @@ class BackendInputCollector {
       std::vector<TRITONBACKEND_Response*>* responses, const char* input_name,
       const char* host_policy_name);
 
-    // Return false if iterator reaches the end of inputs
+    // Return false if iterator reaches the end of inputs, 'input' is not set.
     bool GetNextContiguousInput(MemoryDesc* input,
       size_t* start_response_idx, size_t* end_response_idx);
    private:
@@ -159,6 +159,7 @@ class BackendInputCollector {
     size_t curr_request_idx_;
     size_t curr_buffer_idx_;
     uint32_t curr_buffer_cnt_;
+    bool reach_end_;
   };
 
   // Return whether the entire input is in a contiguous buffer. If returns true,

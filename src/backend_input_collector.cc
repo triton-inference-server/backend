@@ -42,7 +42,7 @@ BackendInputCollector::InputIterator::InputIterator(TRITONBACKEND_Request** requ
       std::vector<TRITONBACKEND_Response*>* responses, const char* input_name,
       const char* host_policy_name) : requests_(requests), request_count_(request_count),
         responses_(responses), input_name_(input_name), host_policy_(host_policy_name),
-        curr_request_idx_(0), curr_buffer_idx_(0)
+        curr_request_idx_(0), curr_buffer_idx_(0), reach_end_(false)
 {
   auto& response = (*responses_)[curr_request_idx_];
   RESPOND_AND_SET_NULL_IF_ERROR(
@@ -58,6 +58,10 @@ BackendInputCollector::InputIterator::GetNextContiguousInput(
       MemoryDesc* input,
       size_t* start_response_idx, size_t* end_response_idx)
 {
+  if (reach_end_) {
+    return false;
+  }
+
   // Get the first buffer
   TRITONBACKEND_InputBufferForHostPolicy(
     curr_input_, host_policy_, curr_buffer_idx_, reinterpret_cast<const void**>(&input->buffer_),
@@ -93,7 +97,8 @@ BackendInputCollector::InputIterator::GetNextContiguousInput(
                           nullptr, nullptr, &curr_buffer_cnt_));
     }
   } while (curr_request_idx_ < request_count_);
-  return false;
+  reach_end_ = true;
+  return true;
 }
 
 //
