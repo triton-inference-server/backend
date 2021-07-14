@@ -141,13 +141,16 @@ class BackendInputCollector {
  private:
   class InputIterator {
    public:
-    InputIterator(TRITONBACKEND_Request** requests, const uint32_t request_count,
-      std::vector<TRITONBACKEND_Response*>* responses, const char* input_name,
-      const char* host_policy_name);
+    InputIterator(
+        TRITONBACKEND_Request** requests, const uint32_t request_count,
+        std::vector<TRITONBACKEND_Response*>* responses, const char* input_name,
+        const char* host_policy_name);
 
     // Return false if iterator reaches the end of inputs, 'input' is not set.
-    bool GetNextContiguousInput(MemoryDesc* input,
-      size_t* start_response_idx, size_t* end_response_idx);
+    bool GetNextContiguousInput(
+        MemoryDesc* input, size_t* start_response_idx,
+        size_t* end_response_idx);
+
    private:
     TRITONBACKEND_Request** requests_;
     const uint32_t request_count_;
@@ -181,14 +184,14 @@ class BackendInputCollector {
       char* tensor_buffer, const size_t tensor_buffer_byte_size,
       const TRITONSERVER_MemoryType tensor_memory_type,
       const int64_t tensor_memory_type_id);
-  bool SetInputTensor(const char* input_name, const MemoryDesc& input,
-      char* tensor_buffer, const size_t tensor_buffer_byte_size,
+  bool SetInputTensor(
+      const char* input_name, const MemoryDesc& input, char* tensor_buffer,
+      const size_t tensor_buffer_byte_size,
       const TRITONSERVER_MemoryType tensor_memory_type,
-      const int64_t tensor_memory_type_id,
-      const size_t tensor_buffer_offset,
+      const int64_t tensor_memory_type_id, const size_t tensor_buffer_offset,
       const TRITONSERVER_MemoryType use_pinned_memory_type,
-      const bool use_kernel, const bool wait_buffer,
-      size_t start_response_idx, size_t end_response_idx);
+      const bool use_kernel, const bool wait_buffer, size_t start_response_idx,
+      size_t end_response_idx);
   template <typename T>
   TRITONSERVER_Error* SetElementCount(
       const std::string& source_input, char* buffer,
@@ -210,8 +213,7 @@ class BackendInputCollector {
   cudaEvent_t buffer_ready_event_;
   const size_t kernel_buffer_threshold_;
 
-  using RequestsList =
-      std::list<std::tuple<const MemoryDesc, size_t, size_t>>;
+  using RequestsList = std::list<std::tuple<const MemoryDesc, size_t, size_t>>;
 
   size_t pending_pinned_byte_size_;
   size_t pending_pinned_offset_;
