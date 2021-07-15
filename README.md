@@ -196,9 +196,8 @@ these properties is optional.
 * For ONNX, 'backend' must be set to *onnxruntime* or 'platform' must
   be set to *onnxruntime_onnx*.
 
-* For TensorFlow, 'platform must be set to *tensorflow_graphdef* or
-  *tensorflow_savedmodel*. Optionally 'backend' can be set to
-  *tensorflow*.
+* For TensorFlow, 'backend' must be to set *tensorflow* and 'platform'
+  must be set to *tensorflow_graphdef* or *tensorflow_savedmodel*.
 
 * For all other backends, 'backend' must be set to the name of the
   backend and 'platform' is optional.
