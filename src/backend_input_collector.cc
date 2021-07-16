@@ -637,7 +637,7 @@ BackendInputCollector::FlushPendingPinned(
         auto end_it = pending_it;
         auto next_offset = offset;
         for (size_t idx = 0; idx < stride; idx++) {
-          next_offset += *end_it.memory_desc_.byte_size_;
+          next_offset += end_it->memory_desc_.byte_size_;
           end_it++;
           if (end_it == deferred_pinned_.back().requests_.end()) {
             break;
