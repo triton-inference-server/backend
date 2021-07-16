@@ -141,6 +141,9 @@ class BackendInputCollector {
  private:
   struct ContiguousBuffer {
     ContiguousBuffer() : start_request_idx_(0), end_request_idx_(0) {}
+    ContiguousBuffer(const ContiguousBuffer& other) :
+      memory_desc_(other.memory_desc_),
+     start_request_idx_(other.start_request_idx_), end_request_idx_(other.end_request_idx_) {}
     MemoryDesc memory_desc_;
     size_t start_request_idx_;
     size_t end_request_idx_;
