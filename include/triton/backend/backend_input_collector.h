@@ -219,7 +219,7 @@ class BackendInputCollector {
 
   size_t pending_pinned_byte_size_;
   size_t pending_pinned_offset_;
-  std::list<ContiguousBuffer> pending_pinned_inputs_;
+  std::list<ContiguousBuffer> pending_pinned_input_buffers_;
 
   // managed memories that need to live over the lifetime of this
   // BackendInputCollector object.
@@ -228,7 +228,7 @@ class BackendInputCollector {
   size_t pending_copy_kernel_buffer_byte_size_;
   size_t pending_copy_kernel_buffer_offset_;
   size_t pending_copy_kernel_input_buffer_counts_;
-  std::list<ContiguousBuffer> pending_copy_kernel_inputs_;
+  std::list<ContiguousBuffer> pending_copy_kernel_input_buffers_;
   std::vector<std::unique_ptr<std::vector<int8_t*>>> input_ptr_buffer_host_;
   std::vector<std::unique_ptr<std::vector<size_t>>> byte_size_buffer_host_;
   std::vector<std::unique_ptr<std::vector<size_t>>>
@@ -242,14 +242,14 @@ class BackendInputCollector {
         char* pinned_memory, const size_t pinned_memory_size,
         char* tensor_buffer, const size_t tensor_buffer_offset,
         const TRITONSERVER_MemoryType tensor_memory_type,
-        const int64_t tensor_memory_id, std::list<ContiguousBuffer>&& requests,
+        const int64_t tensor_memory_id, std::list<ContiguousBuffer>&& request_buffers,
         std::vector<TRITONBACKEND_Response*>* responses)
         : finalized_(false), pinned_memory_(pinned_memory),
           pinned_memory_size_(pinned_memory_size),
           tensor_buffer_(tensor_buffer),
           tensor_buffer_offset_(tensor_buffer_offset),
           tensor_memory_type_(tensor_memory_type),
-          tensor_memory_id_(tensor_memory_id), requests_(std::move(requests)),
+          tensor_memory_id_(tensor_memory_id), requests_(std::move(request_buffers)),
           responses_(responses)
     {
     }

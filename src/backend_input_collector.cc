@@ -441,7 +441,7 @@ BackendInputCollector::SetInputTensor(
     }
 
     pending_pinned_byte_size_ += input.memory_desc_.byte_size_;
-    pending_pinned_inputs_.push_back(input);
+    pending_pinned_input_buffers_.push_back(input);
     return cuda_copy;
   }
   // [FIXME] support other direction if prove to be faster, all kernel
@@ -473,7 +473,7 @@ BackendInputCollector::SetInputTensor(
 
       pending_copy_kernel_buffer_byte_size_ += input.memory_desc_.byte_size_;
       ++pending_copy_kernel_input_buffer_counts_;
-      pending_copy_kernel_inputs_.push_back(input);
+      pending_copy_kernel_input_buffers_.push_back(input);
       return cuda_copy;
     }
   }
@@ -543,7 +543,7 @@ BackendInputCollector::FlushPendingPinned(
   // a direct copy.
   if (pinned_memory == nullptr) {
     size_t offset = 0;
-    for (auto& pr : pending_pinned_inputs_) {
+    for (auto& pr : pending_pinned_input_buffers_) {
       cuda_copy |= SetInputTensor(
           "pinned fallback", pr, tensor_buffer, tensor_buffer_byte_size,
           tensor_memory_type, tensor_memory_type_id,
@@ -558,7 +558,7 @@ BackendInputCollector::FlushPendingPinned(
     bool cuda_used = false;
     size_t offset = 0;
     if (!use_async_cpu_copy_) {
-      for (auto& pr : pending_pinned_inputs_) {
+      for (auto& pr : pending_pinned_input_buffers_) {
         cuda_used |= SetInputTensor(
             "pinned H2H", pr, pinned_memory, pending_pinned_byte_size_,
             TRITONSERVER_MEMORY_CPU_PINNED, 0 /* memory_type_id */, offset,
@@ -594,7 +594,7 @@ BackendInputCollector::FlushPendingPinned(
         // If something goes wrong with the copy all the pending
         // responses fail...
         if (err != nullptr) {
-          for (auto& pr : pending_pinned_inputs_) {
+          for (auto& pr : pending_pinned_input_buffers_) {
             for (size_t idx = pr.start_request_idx_; idx <= pr.end_request_idx_;
                  ++idx) {
               if ((*responses_)[idx] != nullptr) {
@@ -613,14 +613,14 @@ BackendInputCollector::FlushPendingPinned(
         deferred_pinned_.emplace_back(
             pinned_memory, pending_pinned_byte_size_, tensor_buffer,
             pending_pinned_offset_, tensor_memory_type, tensor_memory_type_id,
-            std::move(pending_pinned_inputs_), responses_);
+            std::move(pending_pinned_input_buffers_), responses_);
       }
     } else {
       async_task_count_++;
       deferred_pinned_.emplace_back(
           pinned_memory, pending_pinned_byte_size_, tensor_buffer,
           pending_pinned_offset_, tensor_memory_type, tensor_memory_type_id,
-          std::move(pending_pinned_inputs_), responses_);
+          std::move(pending_pinned_input_buffers_), responses_);
       auto& deferred_pinned = deferred_pinned_.back();
       // Mark finalized to avoid duplicated call to DeferredPinned::Finalized()
       // in BackendInputCollector::Finalize()
@@ -696,7 +696,7 @@ BackendInputCollector::FlushPendingPinned(
   // Pending pinned copies are handled...
   pending_pinned_byte_size_ = 0;
   pending_pinned_offset_ = 0;
-  pending_pinned_inputs_.clear();
+  pending_pinned_input_buffers_.clear();
 
   // Need to hold on to the allocated pinned buffer as there are still
   // copies in flight. Will delete it in finalize.
@@ -973,7 +973,7 @@ BackendInputCollector::FlushPendingCopyKernel(
     const TRITONSERVER_MemoryType tensor_memory_type,
     const int64_t tensor_memory_type_id)
 {
-  if (pending_copy_kernel_inputs_.size() == 0) {
+  if (pending_copy_kernel_input_buffers_.size() == 0) {
     return false;
   }
 
@@ -996,7 +996,7 @@ BackendInputCollector::FlushPendingCopyKernel(
   if ((pending_copy_kernel_input_buffer_counts_ < kernel_buffer_threshold_) ||
       (error != nullptr)) {
     size_t offset = 0;
-    for (auto& pr : pending_copy_kernel_inputs_) {
+    for (auto& pr : pending_copy_kernel_input_buffers_) {
       cuda_copy |= SetInputTensor(
           "gather kernel fallback", pr, tensor_buffer, tensor_buffer_byte_size,
           tensor_memory_type, tensor_memory_type_id,
@@ -1010,7 +1010,7 @@ BackendInputCollector::FlushPendingCopyKernel(
   pending_copy_kernel_buffer_byte_size_ = 0;
   pending_copy_kernel_buffer_offset_ = 0;
   pending_copy_kernel_input_buffer_counts_ = 0;
-  pending_copy_kernel_inputs_.clear();
+  pending_copy_kernel_input_buffers_.clear();
 
   return cuda_copy;
 }
@@ -1036,7 +1036,7 @@ BackendInputCollector::LaunchCopyKernel(
       pending_copy_kernel_input_buffer_counts_);
 
   size_t byte_size_offset = 0;
-  for (const auto& response_input : pending_copy_kernel_inputs_) {
+  for (const auto& response_input : pending_copy_kernel_input_buffers_) {
     const auto& input = response_input.memory_desc_;
     input_ptr_buffer_host.emplace_back(
         const_cast<int8_t*>(reinterpret_cast<const int8_t*>(input.buffer_)));
