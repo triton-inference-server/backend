@@ -39,11 +39,6 @@ struct MemoryDesc {
         memory_type_id_(0)
   {
   }
-  MemoryDesc(const MemoryDesc& other)
-      : buffer_(other.buffer_), byte_size_(other.byte_size_), memory_type_(other.memory_type_),
-        memory_type_id_(other.memory_type_id_)
-  {
-  }
   MemoryDesc(
       const char* buffer, size_t byte_size, TRITONSERVER_MemoryType memory_type,
       int64_t memory_type_id)
