@@ -190,7 +190,7 @@ class BackendInputCollector {
       const TRITONSERVER_MemoryType tensor_memory_type,
       const int64_t tensor_memory_type_id);
   bool SetInputTensor(
-      const char* input_name, ContiguousBuffer& input, char* tensor_buffer,
+      const char* input_name, const ContiguousBuffer& input, char* tensor_buffer,
       const size_t tensor_buffer_byte_size,
       const TRITONSERVER_MemoryType tensor_memory_type,
       const int64_t tensor_memory_type_id, const size_t tensor_buffer_offset,
