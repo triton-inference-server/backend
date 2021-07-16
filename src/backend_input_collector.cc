@@ -545,10 +545,10 @@ BackendInputCollector::FlushPendingPinned(
     size_t offset = 0;
     for (auto& pr : pending_pinned_inputs_) {
       cuda_copy |= SetInputTensor(
-          "pinned fallback", pr.memory_desc_, tensor_buffer,
-          tensor_buffer_byte_size, tensor_memory_type, tensor_memory_type_id,
+          "pinned fallback", pr, tensor_buffer, tensor_buffer_byte_size,
+          tensor_memory_type, tensor_memory_type_id,
           pending_pinned_offset_ + offset, TRITONSERVER_MEMORY_CPU_PINNED,
-          false, true, pr.start_request_idx_, pr.end_request_idx_);
+          false, true);
       offset += pr.memory_desc_.byte_size_;
     }
   }
@@ -560,10 +560,9 @@ BackendInputCollector::FlushPendingPinned(
     if (!use_async_cpu_copy_) {
       for (auto& pr : pending_pinned_inputs_) {
         cuda_used |= SetInputTensor(
-            "pinned H2H", pr.memory_desc_, pinned_memory,
-            pending_pinned_byte_size_, TRITONSERVER_MEMORY_CPU_PINNED,
-            0 /* memory_type_id */, offset, TRITONSERVER_MEMORY_CPU_PINNED,
-            false, true, pr.start_request_idx_, pr.end_request_idx_);
+            "pinned H2H", pr, pinned_memory, pending_pinned_byte_size_,
+            TRITONSERVER_MEMORY_CPU_PINNED, 0 /* memory_type_id */, offset,
+            TRITONSERVER_MEMORY_CPU_PINNED, false, true);
         offset += pr.memory_desc_.byte_size_;
       }
 
@@ -655,9 +654,7 @@ BackendInputCollector::FlushPendingPinned(
                         "pinned async H2H", *pending_it, pinned_memory,
                         pending_pinned_byte_size, pinned_memory_type,
                         pinned_memory_type_id, offset,
-                        TRITONSERVER_MEMORY_CPU_PINNED, false, false,
-                        pending_it->start_request_idx_,
-                        pending_it->end_request_idx_);
+                        TRITONSERVER_MEMORY_CPU_PINNED, false, false);
                     offset += pending_it->memory_desc_.byte_size_;
                   }
                   // The last segmented task will start the next phase of
@@ -1001,11 +998,10 @@ BackendInputCollector::FlushPendingCopyKernel(
     size_t offset = 0;
     for (auto& pr : pending_copy_kernel_inputs_) {
       cuda_copy |= SetInputTensor(
-          "gather kernel fallback", pr.memory_desc_, tensor_buffer,
-          tensor_buffer_byte_size, tensor_memory_type, tensor_memory_type_id,
+          "gather kernel fallback", pr, tensor_buffer, tensor_buffer_byte_size,
+          tensor_memory_type, tensor_memory_type_id,
           pending_copy_kernel_buffer_offset_ + offset,
-          TRITONSERVER_MEMORY_CPU_PINNED, false, true, pr.start_request_idx_,
-          pr.end_request_idx_);
+          TRITONSERVER_MEMORY_CPU_PINNED, false, true);
       offset += pr.memory_desc_.byte_size_;
     }
   }
