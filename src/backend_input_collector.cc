@@ -638,7 +638,7 @@ BackendInputCollector::FlushPendingPinned(
         auto end_it = pending_it;
         auto next_offset = offset;
         for (size_t idx = 0; idx < stride; idx++) {
-          next_offset += std::get<0>(*end_it).byte_size_;
+          next_offset += *end_it.memory_desc_.byte_size_;
           end_it++;
           if (end_it == deferred_pinned_.back().requests_.end()) {
             break;
@@ -652,12 +652,13 @@ BackendInputCollector::FlushPendingPinned(
                  end_it, incomplete_count, &deferred_pinned]() mutable {
                   for (; pending_it != end_it; pending_it++) {
                     SetInputTensor(
-                        "pinned async H2H", std::get<0>(*pending_it),
-                        pinned_memory, pending_pinned_byte_size,
-                        pinned_memory_type, pinned_memory_type_id, offset,
+                        "pinned async H2H", *pending_it, pinned_memory,
+                        pending_pinned_byte_size, pinned_memory_type,
+                        pinned_memory_type_id, offset,
                         TRITONSERVER_MEMORY_CPU_PINNED, false, false,
-                        std::get<1>(*pending_it), std::get<2>(*pending_it));
-                    offset += std::get<0>(*pending_it).byte_size_;
+                        pending_it->start_request_idx_,
+                        pending_it->end_request_idx_);
+                    offset += pending_it->memory_desc_.byte_size_;
                   }
                   // The last segmented task will start the next phase of
                   // the internal pinned buffer copy
@@ -674,8 +675,8 @@ BackendInputCollector::FlushPendingPinned(
                 }));
         if (err != nullptr) {
           for (; pending_it != end_it; pending_it++) {
-            for (size_t idx = std::get<1>(*pending_it);
-                 idx <= std::get<2>(*pending_it); ++idx) {
+            for (size_t idx = pending_it->start_request_idx_;
+                 idx <= pending_it->end_request_idx_; ++idx) {
               if ((*responses_)[idx] != nullptr) {
                 LOG_IF_ERROR(
                     TRITONBACKEND_ResponseSend(
