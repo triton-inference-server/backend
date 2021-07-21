@@ -1,4 +1,4 @@
-// Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
+// Copyright 2020-2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -389,7 +389,8 @@ TRITONSERVER_Error* GetTypedSequenceControlProperties(
 /// \param request_count The number of 'requests'.
 /// \param response_err The error to send to each request.
 /// \param release_request If true the requests will be released after
-/// sending the error responses.
+/// sending the error responses and the request pointers are set to
+/// nullptr.
 void RequestsRespondWithError(
     TRITONBACKEND_Request** requests, const uint32_t request_count,
     TRITONSERVER_Error* response_err, const bool release_request = true);

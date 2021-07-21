@@ -1,4 +1,4 @@
-// Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
+// Copyright 2020-2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -566,6 +566,7 @@ RequestsRespondWithError(
           TRITONBACKEND_RequestRelease(
               requests[i], TRITONSERVER_REQUEST_RELEASE_ALL),
           "fail to release request");
+      requests[i] = nullptr;
     }
   }
 
