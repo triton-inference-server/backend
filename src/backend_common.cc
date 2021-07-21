@@ -566,6 +566,7 @@ RequestsRespondWithError(
           TRITONBACKEND_RequestRelease(
               requests[i], TRITONSERVER_REQUEST_RELEASE_ALL),
           "fail to release request");
+      requests[i] = nullptr;
     }
   }
 
