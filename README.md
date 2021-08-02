@@ -69,7 +69,7 @@ noted, some reside in the main
 
 **TensorRT**: The TensorRT backend is used to execute TensorRT
 models. The
-[server](https://github.com/triton-inference-server/server/tree/master/src/backends/tensorrt)
+[server](https://github.com/triton-inference-server/server/tree/main/src/backends/tensorrt)
 repo contains the source for the backend.
 
 **ONNX Runtime**: The ONNX Runtime backend is used to execute ONNX
@@ -128,7 +128,7 @@ documentation on [Triton backends](#backends).
 Yes. See [Backend Shared Library](#backend-shared-library) for general
 information about how the shared library implementing a backend is
 managed by Triton, and [Triton with Unsupported and Custom
-Backends](https://github.com/triton-inference-server/server/blob/master/docs/compose.md#triton-with-unsupported-and-custom-backends)
+Backends](https://github.com/triton-inference-server/server/blob/main/docs/compose.md#triton-with-unsupported-and-custom-backends)
 for documentation on how to add your backend to the released Triton
 Docker image. For a standard install the globally available backends
 are in /opt/tritonserver/backends.
@@ -230,7 +230,7 @@ to override the default.
 Typically you will install your backend into the global backend
 directory. For example, if using Triton Docker images you can follow
 the instructions in [Triton with Unsupported and Custom
-Backends](https://github.com/triton-inference-server/server/blob/master/docs/compose.md#triton-with-unsupported-and-custom-backends). Continuing the example of a backend names "mybackend", you would install into the Triton image as:
+Backends](https://github.com/triton-inference-server/server/blob/main/docs/compose.md#triton-with-unsupported-and-custom-backends). Continuing the example of a backend names "mybackend", you would install into the Triton image as:
 
 ```
 /opt/
@@ -244,7 +244,7 @@ Backends](https://github.com/triton-inference-server/server/blob/master/docs/com
 ### Triton Backend API
 
 A Triton backend must implement the C interface defined in
-[tritonbackend.h](https://github.com/triton-inference-server/core/tree/master/include/triton/core/tritonbackend.h). The
+[tritonbackend.h](https://github.com/triton-inference-server/core/tree/main/include/triton/core/tritonbackend.h). The
 following abstractions are used by the API.
 
 #### TRITONBACKEND_Backend
@@ -324,9 +324,10 @@ functions, as is shown in the [example backends](#example-backends).
 A TRITONBACKEND_Request object represents an inference request made
 to the model. The backend takes ownership of the request object(s) in
 TRITONBACKEND_ModelInstanceExecute and must release each request by
-calling TRITONBACKEND_RequestRelease. See [Inference Requests and
-Responses](#inference-requests-and-responses) for more information
-about request lifecycle.
+calling TRITONBACKEND_RequestRelease. However, the ownership of request
+object is returned back to Triton in case TRITONBACKEND_ModelInstanceExecute
+returns an error. See [Inference Requests and Responses](#inference-requests-and-responses)
+for more information about request lifecycle.
 
 The Triton Backend API allows the backend to get information about the
 request as well as the input and request output tensors of the
@@ -437,7 +438,13 @@ execute those requests. The backend should not allow the scheduler
 thread to return from TRITONBACKEND_ModelInstanceExecute until that
 instance is ready to handle another set of requests. Typically this
 means that the TRITONBACKEND_ModelInstanceExecute function will
-create responses and release the requests before returning.
+create responses and release the requests before returning. However,
+in case TRITONBACKEND_ModelInstanceExecute returns an error, the ownership
+of requests is transferred back to Triton which will then be responsible
+for releasing them. Backend must not retain refrences to the requests
+or access them in any way. For more detailed description of request/response
+lifetimes, study the documentation of TRITONBACKEND_ModelInstanceExecute in
+[tritonbackend.h](https://github.com/triton-inference-server/core/blob/main/include/triton/core/tritonbackend.h).
 
 Most backends will create a single response for each request. For that
 kind of backend executing a single inference requests requires the
