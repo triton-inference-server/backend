@@ -1,4 +1,4 @@
-// Copyright 20219-2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2019-2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -60,7 +60,7 @@ class BackendInputCollector {
       cudaStream_t stream, cudaEvent_t event = nullptr,
       cudaEvent_t buffer_ready_event = nullptr,
       const size_t kernel_buffer_threshold = 0,
-      const char* host_policy_name = nullptr, bool copy_on_stream = false)
+      const char* host_policy_name = nullptr, const bool copy_on_stream = false)
       : need_sync_(false), requests_(requests), request_count_(request_count),
         responses_(responses), memory_manager_(memory_manager),
         pinned_enabled_(pinned_enabled),
