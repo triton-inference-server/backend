@@ -237,6 +237,17 @@ class BatchOutput {
   std::vector<std::string> source_inputs_;
 };
 
+struct CopyParams {
+  CopyParams(void* dst, const void* src, const size_t byte_size)
+      : dst_(dst), src_(src), byte_size_(byte_size)
+  {
+  }
+
+  void* dst_;
+  const void* src_;
+  const size_t byte_size_;
+};
+
 /// The value for a dimension in a shape that indicates that that
 /// dimension can take on any size.
 constexpr int WILDCARD_DIM = -1;
@@ -422,13 +433,16 @@ void SendErrorForResponses(
 /// \param cuda_used returns whether a CUDA memory copy is initiated. If true,
 /// the caller should synchronize on the given 'cuda_stream' to ensure data copy
 /// is completed.
+/// \param copy_on_stream whether the memory copies should be performed in cuda
+/// host functions on the 'cuda_stream'.
 /// \return a TRITONSERVER_Error indicating success or failure.
 TRITONSERVER_Error* CopyBuffer(
     const std::string& msg, const TRITONSERVER_MemoryType src_memory_type,
     const int64_t src_memory_type_id,
     const TRITONSERVER_MemoryType dst_memory_type,
     const int64_t dst_memory_type_id, const size_t byte_size, const void* src,
-    void* dst, cudaStream_t cuda_stream, bool* cuda_used);
+    void* dst, cudaStream_t cuda_stream, bool* cuda_used,
+    const bool copy_on_stream = false);
 
 /// Does a file or directory exist?
 /// \param path The path to check for existance.
