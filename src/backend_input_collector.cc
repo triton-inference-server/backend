@@ -739,6 +739,9 @@ BackendInputCollector::BatchInputShape(
       }
       break;
     }
+    default:
+      return TRITONSERVER_ErrorNew(
+          TRITONSERVER_ERROR_INTERNAL, "unsupported BatchInputKind received");
   }
   return nullptr;  // success
 }
