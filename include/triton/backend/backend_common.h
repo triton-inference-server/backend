@@ -1,4 +1,4 @@
-// Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
+// Copyright 2020-2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -432,6 +432,8 @@ void SendErrorForResponses(
 /// \param cuda_used returns whether a CUDA memory copy is initiated. If true,
 /// the caller should synchronize on the given 'cuda_stream' to ensure data copy
 /// is completed.
+/// \param copy_on_stream whether the memory copies should be performed in cuda
+/// host functions on the 'cuda_stream'.
 /// \return a TRITONSERVER_Error indicating success or failure.
 TRITONSERVER_Error* CopyBuffer(
     const std::string& msg, const TRITONSERVER_MemoryType src_memory_type,
