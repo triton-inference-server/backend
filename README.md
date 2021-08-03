@@ -442,7 +442,7 @@ create responses and release the requests before returning. However,
 in case TRITONBACKEND_ModelInstanceExecute returns an error, the ownership
 of requests is transferred back to Triton which will then be responsible
 for releasing them. Therefore, in the case where TRITONBACKEND_ModelInstanceExecute
-returns an error, the backend must not retain refrences to the requests
+returns an error, the backend must not retain references to the requests
 or access them in any way. For more detailed description of request/response
 lifetimes, study the documentation of TRITONBACKEND_ModelInstanceExecute in
 [tritonbackend.h](https://github.com/triton-inference-server/core/blob/main/include/triton/core/tritonbackend.h).
