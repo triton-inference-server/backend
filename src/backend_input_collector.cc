@@ -373,8 +373,7 @@ BackendInputCollector::DeferredPinned::Finalize(cudaStream_t stream)
   auto err = CopyBuffer(
       "pinned buffer", TRITONSERVER_MEMORY_CPU_PINNED, 0, tensor_memory_type_,
       tensor_memory_id_, pinned_memory_size_, pinned_memory_,
-      tensor_buffer_ + tensor_buffer_offset_, stream, &cuda_used,
-      false /*copy_on_stream*/);
+      tensor_buffer_ + tensor_buffer_offset_, stream, &cuda_used);
 
   // If something goes wrong with the copy all the pending
   // responses fail...

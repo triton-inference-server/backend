@@ -439,7 +439,7 @@ TRITONSERVER_Error* CopyBuffer(
     const TRITONSERVER_MemoryType dst_memory_type,
     const int64_t dst_memory_type_id, const size_t byte_size, const void* src,
     void* dst, cudaStream_t cuda_stream, bool* cuda_used,
-    const bool copy_on_stream);
+    const bool copy_on_stream = false);
 
 /// Does a file or directory exist?
 /// \param path The path to check for existance.
