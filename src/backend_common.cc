@@ -302,7 +302,7 @@ GetBooleanSequenceControlProperties(
     const std::string& control_kind, const bool required,
     std::string* tensor_name, std::string* tensor_datatype,
     float* fp32_false_value, float* fp32_true_value, int32_t* int32_false_value,
-    int32_t* int32_true_value)
+    int32_t* int32_true_value, bool* bool_false_value, bool* bool_true_value)
 {
   // Make sure same tensor is not configured for multiple controls
   std::set<std::string> seen_tensors;
@@ -355,30 +355,34 @@ GetBooleanSequenceControlProperties(
             *tensor_name = input_name;
             seen_control = true;
 
-            common::TritonJson::Value int32_false_true, fp32_false_true;
+            common::TritonJson::Value int32_false_true, fp32_false_true,
+                bool_false_true;
             bool found_int32 =
                 (c.Find("int32_false_true", &int32_false_true) &&
                  (int32_false_true.ArraySize() > 0));
             bool found_fp32 =
                 (c.Find("fp32_false_true", &fp32_false_true) &&
                  (fp32_false_true.ArraySize() > 0));
-            if (found_fp32 && found_int32) {
+            bool found_bool =
+                (c.Find("bool_false_true", &bool_false_true) &&
+                 (bool_false_true.ArraySize() > 0));
+            if (found_fp32 && found_int32 && found_bool) {
               return TRITONSERVER_ErrorNew(
                   TRITONSERVER_ERROR_INVALID_ARG,
                   (std::string(
-                       "sequence batching specifies both 'int32_false_true' "
-                       "and "
-                       "'fp32_false_true' for " +
+                       "sequence batching specifies more than one from "
+                       "'int32_false_true', 'fp32_false_true' and "
+                       "'bool_false_true' for " +
                        control_kind + " for " + model_name))
                       .c_str());
             }
-            if (!(found_int32 || found_fp32)) {
+            if (!(found_int32 ^ found_fp32 ^ found_bool)) {
               return TRITONSERVER_ErrorNew(
                   TRITONSERVER_ERROR_INVALID_ARG,
                   (std::string(
                        "sequence batching must specify either "
-                       "'int32_false_true' or "
-                       "'fp32_false_true' for " +
+                       "'int32_false_true', 'fp32_false_true' or "
+                       "'bool_false_true' for " +
                        control_kind + " for " + model_name))
                       .c_str());
             }
@@ -406,7 +410,7 @@ GetBooleanSequenceControlProperties(
                 RETURN_IF_ERROR(int32_false_true.IndexAsInt(1, &value));
                 *int32_true_value = value;
               }
-            } else {
+            } else if (found_fp32) {
               if (fp32_false_true.ArraySize() != 2) {
                 return TRITONSERVER_ErrorNew(
                     TRITONSERVER_ERROR_INVALID_ARG,
@@ -417,7 +421,6 @@ GetBooleanSequenceControlProperties(
                          control_kind + " for " + model_name))
                         .c_str());
               }
-
               if (tensor_datatype != nullptr) {
                 *tensor_datatype = "TYPE_FP32";
               }
@@ -430,6 +433,30 @@ GetBooleanSequenceControlProperties(
                 double value = 0.0;
                 RETURN_IF_ERROR(fp32_false_true.IndexAsDouble(1, &value));
                 *fp32_true_value = value;
+              }
+            } else {
+              if (bool_false_true.ArraySize() != 2) {
+                return TRITONSERVER_ErrorNew(
+                    TRITONSERVER_ERROR_INVALID_ARG,
+                    (std::string(
+                         "sequence batching control 'bool_false_true' must "
+                         "have exactly "
+                         "2 entries for " +
+                         control_kind + " for " + model_name))
+                        .c_str());
+              }
+              if (tensor_datatype != nullptr) {
+                *tensor_datatype = "TYPE_BOOL";
+              }
+              if (bool_false_value != nullptr) {
+                bool value;
+                RETURN_IF_ERROR(bool_false_true.IndexAsBool(0, &value));
+                *bool_false_value = value;
+              }
+              if (bool_true_value != nullptr) {
+                bool value;
+                RETURN_IF_ERROR(bool_false_true.IndexAsBool(1, &value));
+                *bool_true_value = value;
               }
             }
           }
@@ -514,20 +541,24 @@ GetTypedSequenceControlProperties(
 
             seen_control = true;
 
-            common::TritonJson::Value int32_false_true, fp32_false_true;
+            common::TritonJson::Value int32_false_true, fp32_false_true,
+                bool_false_true;
             bool found_int32 =
                 (c.Find("int32_false_true", &int32_false_true) &&
                  (int32_false_true.ArraySize() > 0));
             bool found_fp32 =
                 (c.Find("fp32_false_true", &fp32_false_true) &&
                  (fp32_false_true.ArraySize() > 0));
-            if (found_int32 || found_fp32) {
+            bool found_bool =
+                (c.Find("bool_false_true", &bool_false_true) &&
+                 (bool_false_true.ArraySize() > 0));
+            if (found_fp32 && found_int32 && found_bool) {
               return TRITONSERVER_ErrorNew(
                   TRITONSERVER_ERROR_INVALID_ARG,
                   (std::string(
-                       "sequence batching must not specify either "
-                       "'int32_false_true' "
-                       "nor 'fp32_false_true' for " +
+                       "sequence batching specifies more than one from "
+                       "'int32_false_true', 'fp32_false_true' and "
+                       "'bool_false_true' for " +
                        control_kind + " for " + model_name))
                       .c_str());
             }
