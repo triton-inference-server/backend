@@ -613,9 +613,9 @@ CopyBuffer(
 {
   *cuda_used = false;
 
-  // For CUDA memcpy, all host to host copy will be blocked in respect to the
-  // host, so use memcpy() directly. In this case, need to be careful on whether
-  // the src buffer is valid.
+  // For CUDA memcpy, if copy_on_stream is false, all host to host copy will be
+  // blocked in respect to the host, so use memcpy() directly. In this case,
+  // need to be careful on whether the src buffer is valid.
   if ((src_memory_type != TRITONSERVER_MEMORY_GPU) &&
       (dst_memory_type != TRITONSERVER_MEMORY_GPU)) {
 #ifdef TRITON_ENABLE_GPU

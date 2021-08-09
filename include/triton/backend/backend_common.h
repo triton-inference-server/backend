@@ -399,7 +399,7 @@ TRITONSERVER_Error* GetTypedSequenceControlProperties(
 /// \param requests The requests.
 /// \param request_count The number of 'requests'.
 /// \param response_err The error to send to each request.
-/// \param release_request If true the requests will be released after
+/// \param release_request If true, the requests will be released after
 /// sending the error responses and the request pointers are set to
 /// nullptr.
 void RequestsRespondWithError(
