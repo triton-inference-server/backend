@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-// Copyright 2020-2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
-=======
 // Copyright 2019-2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
->>>>>>> 45c8468... Add the support for copy on stream in backend utilities (#32)
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
