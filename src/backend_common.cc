@@ -366,7 +366,20 @@ GetBooleanSequenceControlProperties(
             bool found_bool =
                 (c.Find("bool_false_true", &bool_false_true) &&
                  (bool_false_true.ArraySize() > 0));
-            if (found_fp32 && found_int32 && found_bool) {
+
+            // Make sure only one of int, float, or bool type is specified.
+            if (!(found_int32 || found_fp32 || found_bool)) {
+              return TRITONSERVER_ErrorNew(
+                  TRITONSERVER_ERROR_INVALID_ARG,
+                  (std::string(
+                       "sequence batching must specify either "
+                       "'int32_false_true', 'fp32_false_true' or "
+                       "'bool_false_true' for " +
+                       control_kind + " for " + model_name))
+                      .c_str());
+            } else if (
+                (found_fp32 && found_int32) || (found_fp32 && found_bool) ||
+                (found_int32 && found_bool)) {
               return TRITONSERVER_ErrorNew(
                   TRITONSERVER_ERROR_INVALID_ARG,
                   (std::string(
@@ -376,16 +389,7 @@ GetBooleanSequenceControlProperties(
                        control_kind + " for " + model_name))
                       .c_str());
             }
-            if (!(found_int32 ^ found_fp32 ^ found_bool)) {
-              return TRITONSERVER_ErrorNew(
-                  TRITONSERVER_ERROR_INVALID_ARG,
-                  (std::string(
-                       "sequence batching must specify either "
-                       "'int32_false_true', 'fp32_false_true' or "
-                       "'bool_false_true' for " +
-                       control_kind + " for " + model_name))
-                      .c_str());
-            }
+
             if (found_int32) {
               if (int32_false_true.ArraySize() != 2) {
                 return TRITONSERVER_ErrorNew(
@@ -552,12 +556,12 @@ GetTypedSequenceControlProperties(
             bool found_bool =
                 (c.Find("bool_false_true", &bool_false_true) &&
                  (bool_false_true.ArraySize() > 0));
-            if (found_fp32 && found_int32 && found_bool) {
+            if (found_fp32 || found_int32 || found_bool) {
               return TRITONSERVER_ErrorNew(
                   TRITONSERVER_ERROR_INVALID_ARG,
                   (std::string(
-                       "sequence batching specifies more than one from "
-                       "'int32_false_true', 'fp32_false_true' and "
+                       "sequence batching must not specify neither "
+                       "'int32_false_true' nor 'fp32_false_true' nor "
                        "'bool_false_true' for " +
                        control_kind + " for " + model_name))
                       .c_str());
