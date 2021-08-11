@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020, NVIDIA CORPORATION. All rights reserved.
+// Copyright 2019-2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -164,7 +164,8 @@ BackendOutputResponder::Finalize()
               response_output.name_, pinned_memory_type, pinned_memory_id,
               response_output.memory_type_, response_output.memory_type_id_,
               response_output.buffer_byte_size_, pinned_buffer + offset,
-              const_cast<void*>(response_output.buffer_), stream_, &cuda_used));
+              const_cast<void*>(response_output.buffer_), stream_, &cuda_used,
+              copy_on_stream_));
       need_sync_ |= cuda_used;
 
       offset += response_output.buffer_byte_size_;
@@ -226,7 +227,8 @@ BackendOutputResponder::SetFixedSizeOutputBuffer(
     err = CopyBuffer(
         output_name, tensor_memory_type, tensor_memory_type_id,
         actual_memory_type, actual_memory_type_id, tensor_byte_size,
-        tensor_buffer + tensor_offset, buffer, stream_, &cuda_used);
+        tensor_buffer + tensor_offset, buffer, stream_, &cuda_used,
+        copy_on_stream_);
     cuda_copy |= cuda_used;
 
     if (err != nullptr) {
@@ -278,7 +280,8 @@ BackendOutputResponder::FlushPendingPinned(
               response_output.memory_type_, response_output.memory_type_id_,
               response_output.buffer_byte_size_,
               tensor_buffer + pending_pinned_offset_ + offset,
-              const_cast<void*>(response_output.buffer_), stream_, &cuda_used));
+              const_cast<void*>(response_output.buffer_), stream_, &cuda_used,
+              copy_on_stream_));
       cuda_copy |= cuda_used;
 
       offset += response_output.buffer_byte_size_;
@@ -286,13 +289,13 @@ BackendOutputResponder::FlushPendingPinned(
   }
   // We have a pinned buffer so do a single copy of a block of tensor
   // data to the pinned buffer.
-  else {
+  else {  // pinned_memory_type == TRITONSERVER_MEMORY_CPU_PINNED
     bool cuda_used = false;
     auto err = CopyBuffer(
         "pinned buffer", tensor_memory_type, tensor_memory_type_id,
         TRITONSERVER_MEMORY_CPU_PINNED, 0 /* memory_type_id */,
         pending_pinned_byte_size_, tensor_buffer + pending_pinned_offset_,
-        pinned_memory, stream_, &cuda_used);
+        pinned_memory, stream_, &cuda_used, copy_on_stream_);
     cuda_copy |= cuda_used;
 
     // If something goes wrong with the copy all the pending
@@ -335,8 +338,8 @@ BackendOutputResponder::FlushPendingPinned(
                 0 /* memory_type_id */, response_output.memory_type_,
                 response_output.memory_type_id_,
                 response_output.buffer_byte_size_, pinned_memory + offset,
-                const_cast<void*>(response_output.buffer_), stream_,
-                &cuda_used));
+                const_cast<void*>(response_output.buffer_), stream_, &cuda_used,
+                copy_on_stream_));
         cuda_copy |= cuda_used;
 
         offset += response_output.buffer_byte_size_;

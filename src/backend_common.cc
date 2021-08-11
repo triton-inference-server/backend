@@ -1,4 +1,4 @@
-// Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
+// Copyright 2020-2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -56,6 +56,16 @@
 #endif
 
 namespace triton { namespace backend {
+
+#ifdef TRITON_ENABLE_GPU
+void CUDART_CB
+MemcpyHost(void* args)
+{
+  auto* copy_params = reinterpret_cast<CopyParams*>(args);
+  memcpy(copy_params->dst_, copy_params->src_, copy_params->byte_size_);
+  delete copy_params;
+}
+#endif  // TRITON_ENABLE_GPU
 
 TRITONSERVER_MemoryType
 GetUsePinnedMemoryType(TRITONSERVER_MemoryType ref_buffer_type)
@@ -566,6 +576,7 @@ RequestsRespondWithError(
           TRITONBACKEND_RequestRelease(
               requests[i], TRITONSERVER_REQUEST_RELEASE_ALL),
           "fail to release request");
+      requests[i] = nullptr;
     }
   }
 
@@ -597,16 +608,28 @@ CopyBuffer(
     const int64_t src_memory_type_id,
     const TRITONSERVER_MemoryType dst_memory_type,
     const int64_t dst_memory_type_id, const size_t byte_size, const void* src,
-    void* dst, cudaStream_t cuda_stream, bool* cuda_used)
+    void* dst, cudaStream_t cuda_stream, bool* cuda_used,
+    const bool copy_on_stream)
 {
   *cuda_used = false;
 
-  // For CUDA memcpy, all host to host copy will be blocked in respect to the
-  // host, so use memcpy() directly. In this case, need to be careful on whether
-  // the src buffer is valid.
+  // For CUDA memcpy, if copy_on_stream is false, all host to host copy will be
+  // blocked in respect to the host, so use memcpy() directly. In this case,
+  // need to be careful on whether the src buffer is valid.
   if ((src_memory_type != TRITONSERVER_MEMORY_GPU) &&
       (dst_memory_type != TRITONSERVER_MEMORY_GPU)) {
+#ifdef TRITON_ENABLE_GPU
+    if (copy_on_stream) {
+      auto params = new CopyParams(dst, src, byte_size);
+      cudaLaunchHostFunc(
+          cuda_stream, MemcpyHost, reinterpret_cast<void*>(params));
+      *cuda_used = true;
+    } else {
+      memcpy(dst, src, byte_size);
+    }
+#else
     memcpy(dst, src, byte_size);
+#endif  // TRITON_ENABLE_GPU
   } else {
 #ifdef TRITON_ENABLE_GPU
     // [TODO] use cudaMemcpyDefault if UVM is supported for the device
