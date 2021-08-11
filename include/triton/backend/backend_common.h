@@ -362,9 +362,9 @@ TRITONSERVER_Error* CheckAllowedModelOutput(
 /// \param fp32_true_value Returns the float value for true if
 /// the tensor type is FP32.
 /// \param int32_false_value Returns the int value for false if
-/// the tensor type is int32.
+/// the tensor type is INT32.
 /// \param int32_true_value Returns the int value for true if
-/// the tensor type is int32.
+/// the tensor type is INT32.
 /// \param bool_false_value Returns the bool value for false if
 /// the tensor type is BOOL.
 /// \param bool_true_value Returns the bool value for true if

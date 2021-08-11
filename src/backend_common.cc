@@ -560,8 +560,8 @@ GetTypedSequenceControlProperties(
               return TRITONSERVER_ErrorNew(
                   TRITONSERVER_ERROR_INVALID_ARG,
                   (std::string(
-                       "sequence batching must not specify neither "
-                       "'int32_false_true' nor 'fp32_false_true' nor "
+                       "sequence batching must not specify either "
+                       "'int32_false_true', 'fp32_false_true' or "
                        "'bool_false_true' for " +
                        control_kind + " for " + model_name))
                       .c_str());
