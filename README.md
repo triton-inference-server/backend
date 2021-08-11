@@ -69,7 +69,7 @@ noted, some reside in the main
 
 **TensorRT**: The TensorRT backend is used to execute TensorRT
 models. The
-[server](https://github.com/triton-inference-server/server/tree/main/src/backends/tensorrt)
+[server](https://github.com/triton-inference-server/tensorrt_backend)
 repo contains the source for the backend.
 
 **ONNX Runtime**: The ONNX Runtime backend is used to execute ONNX
@@ -187,8 +187,8 @@ specified in the model's configuration using the 'backend' and
 'platform' settings. Depending on the backend one or the other of
 these properties is optional.
 
-* For TensorRT, 'platform' must be set to *tensorrt_plan*. Currently,
-  TensorRT backend does not support 'backend' field.
+* For TensorRT, 'backend' must be set to *tensorrt* or 'platform' must
+  be set to *tensorrt_plan*.
 
 * For PyTorch, 'backend' must be set to *pytorch* or 'platform' must
   be set to *pytorch_libtorch*.
