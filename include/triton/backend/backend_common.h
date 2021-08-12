@@ -362,16 +362,20 @@ TRITONSERVER_Error* CheckAllowedModelOutput(
 /// \param fp32_true_value Returns the float value for true if
 /// the tensor type is FP32.
 /// \param int32_false_value Returns the int value for false if
-/// the tensor type is FP32.
+/// the tensor type is INT32.
 /// \param int32_true_value Returns the int value for true if
-/// the tensor type is FP32.
+/// the tensor type is INT32.
+/// \param bool_false_value Returns the bool value for false if
+/// the tensor type is BOOL.
+/// \param bool_true_value Returns the bool value for true if
+/// the tensor type is BOOL.
 /// \return a TRITONSERVER_Error indicating success or failure.
 TRITONSERVER_Error* GetBooleanSequenceControlProperties(
     common::TritonJson::Value& batcher, const std::string& model_name,
     const std::string& control_kind, const bool required,
     std::string* tensor_name, std::string* tensor_datatype,
     float* fp32_false_value, float* fp32_true_value, int32_t* int32_false_value,
-    int32_t* int32_true_value);
+    int32_t* int32_true_value, bool* bool_false_value, bool* bool_true_value);
 
 /// Get the tensor name and datatype for a non-boolean sequence
 /// batcher control kind. If 'required' is true then must find a
