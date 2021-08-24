@@ -405,12 +405,12 @@ GetBooleanSequenceControlProperties(
                 *tensor_datatype = "TYPE_INT32";
               }
               if (int32_false_value != nullptr) {
-                int64_t value;
+                int64_t value = 0;
                 RETURN_IF_ERROR(int32_false_true.IndexAsInt(0, &value));
                 *int32_false_value = value;
               }
               if (int32_true_value != nullptr) {
-                int64_t value;
+                int64_t value = 0;
                 RETURN_IF_ERROR(int32_false_true.IndexAsInt(1, &value));
                 *int32_true_value = value;
               }
@@ -453,12 +453,12 @@ GetBooleanSequenceControlProperties(
                 *tensor_datatype = "TYPE_BOOL";
               }
               if (bool_false_value != nullptr) {
-                bool value;
+                bool value = false;
                 RETURN_IF_ERROR(bool_false_true.IndexAsBool(0, &value));
                 *bool_false_value = value;
               }
               if (bool_true_value != nullptr) {
-                bool value;
+                bool value = false;
                 RETURN_IF_ERROR(bool_false_true.IndexAsBool(1, &value));
                 *bool_true_value = value;
               }
