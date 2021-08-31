@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021, NVIDIA CORPORATION. All rights reserved.
+// Copyright 2019-2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -492,7 +492,7 @@ BackendInputCollector::SetInputTensor(
       input.memory_desc_.memory_type_id_, tensor_memory_type,
       tensor_memory_type_id, input.memory_desc_.byte_size_,
       input.memory_desc_.buffer_, tensor_buffer + tensor_buffer_offset, stream_,
-      &cuda_used);
+      &cuda_used, copy_on_stream_);
   if (err != nullptr) {
     for (size_t i = input.start_request_idx_; i <= input.end_request_idx_;
          ++i) {
@@ -588,7 +588,8 @@ BackendInputCollector::FlushPendingPinned(
             "pinned input buffer H2D", TRITONSERVER_MEMORY_CPU_PINNED,
             0 /* memory_type_id */, tensor_memory_type, tensor_memory_type_id,
             pending_pinned_byte_size_, pinned_memory,
-            tensor_buffer + pending_pinned_offset_, stream_, &cuda_used);
+            tensor_buffer + pending_pinned_offset_, stream_, &cuda_used,
+            copy_on_stream_);
         cuda_copy |= cuda_used;
 
         // If something goes wrong with the copy all the pending
@@ -738,6 +739,9 @@ BackendInputCollector::BatchInputShape(
       }
       break;
     }
+    default:
+      return TRITONSERVER_ErrorNew(
+          TRITONSERVER_ERROR_INTERNAL, "unsupported BatchInputKind received");
   }
   return nullptr;  // success
 }
@@ -889,7 +893,8 @@ BackendInputCollector::ProcessBatchInput(
     RETURN_IF_ERROR(CopyBuffer(
         "batch input buffer", internal_buffer->MemoryType(),
         internal_buffer->MemoryTypeId(), *dst_memory_type, *dst_memory_type_id,
-        *dst_buffer_byte_size, input_buffer, buffer, stream_, &cuda_used));
+        *dst_buffer_byte_size, input_buffer, buffer, stream_, &cuda_used,
+        copy_on_stream_));
     // Need to keep the backend memory alive in the case of async copy
     in_use_memories_.emplace_back(std::move(internal_buffer));
     need_sync_ |= cuda_used;
@@ -1005,6 +1010,7 @@ BackendInputCollector::FlushPendingCopyKernel(
       offset += pr.memory_desc_.byte_size_;
     }
   }
+  TRITONSERVER_ErrorDelete(error);
 
   // Pending kernel copies are handled...
   pending_copy_kernel_buffer_byte_size_ = 0;

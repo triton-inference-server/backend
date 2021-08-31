@@ -1,4 +1,4 @@
-// Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
+// Copyright 2020-2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -56,6 +56,16 @@
 #endif
 
 namespace triton { namespace backend {
+
+#ifdef TRITON_ENABLE_GPU
+void CUDART_CB
+MemcpyHost(void* args)
+{
+  auto* copy_params = reinterpret_cast<CopyParams*>(args);
+  memcpy(copy_params->dst_, copy_params->src_, copy_params->byte_size_);
+  delete copy_params;
+}
+#endif  // TRITON_ENABLE_GPU
 
 TRITONSERVER_MemoryType
 GetUsePinnedMemoryType(TRITONSERVER_MemoryType ref_buffer_type)
@@ -292,7 +302,7 @@ GetBooleanSequenceControlProperties(
     const std::string& control_kind, const bool required,
     std::string* tensor_name, std::string* tensor_datatype,
     float* fp32_false_value, float* fp32_true_value, int32_t* int32_false_value,
-    int32_t* int32_true_value)
+    int32_t* int32_true_value, bool* bool_false_value, bool* bool_true_value)
 {
   // Make sure same tensor is not configured for multiple controls
   std::set<std::string> seen_tensors;
@@ -345,33 +355,41 @@ GetBooleanSequenceControlProperties(
             *tensor_name = input_name;
             seen_control = true;
 
-            common::TritonJson::Value int32_false_true, fp32_false_true;
+            common::TritonJson::Value int32_false_true, fp32_false_true,
+                bool_false_true;
             bool found_int32 =
                 (c.Find("int32_false_true", &int32_false_true) &&
                  (int32_false_true.ArraySize() > 0));
             bool found_fp32 =
                 (c.Find("fp32_false_true", &fp32_false_true) &&
                  (fp32_false_true.ArraySize() > 0));
-            if (found_fp32 && found_int32) {
-              return TRITONSERVER_ErrorNew(
-                  TRITONSERVER_ERROR_INVALID_ARG,
-                  (std::string(
-                       "sequence batching specifies both 'int32_false_true' "
-                       "and "
-                       "'fp32_false_true' for " +
-                       control_kind + " for " + model_name))
-                      .c_str());
-            }
-            if (!(found_int32 || found_fp32)) {
+            bool found_bool =
+                (c.Find("bool_false_true", &bool_false_true) &&
+                 (bool_false_true.ArraySize() > 0));
+
+            // Make sure only one of int, float, or bool type is specified.
+            if (!(found_int32 || found_fp32 || found_bool)) {
               return TRITONSERVER_ErrorNew(
                   TRITONSERVER_ERROR_INVALID_ARG,
                   (std::string(
                        "sequence batching must specify either "
-                       "'int32_false_true' or "
-                       "'fp32_false_true' for " +
+                       "'int32_false_true', 'fp32_false_true' or "
+                       "'bool_false_true' for " +
+                       control_kind + " for " + model_name))
+                      .c_str());
+            } else if (
+                (found_fp32 && found_int32) || (found_fp32 && found_bool) ||
+                (found_int32 && found_bool)) {
+              return TRITONSERVER_ErrorNew(
+                  TRITONSERVER_ERROR_INVALID_ARG,
+                  (std::string(
+                       "sequence batching specifies more than one from "
+                       "'int32_false_true', 'fp32_false_true' and "
+                       "'bool_false_true' for " +
                        control_kind + " for " + model_name))
                       .c_str());
             }
+
             if (found_int32) {
               if (int32_false_true.ArraySize() != 2) {
                 return TRITONSERVER_ErrorNew(
@@ -396,7 +414,7 @@ GetBooleanSequenceControlProperties(
                 RETURN_IF_ERROR(int32_false_true.IndexAsInt(1, &value));
                 *int32_true_value = value;
               }
-            } else {
+            } else if (found_fp32) {
               if (fp32_false_true.ArraySize() != 2) {
                 return TRITONSERVER_ErrorNew(
                     TRITONSERVER_ERROR_INVALID_ARG,
@@ -407,7 +425,6 @@ GetBooleanSequenceControlProperties(
                          control_kind + " for " + model_name))
                         .c_str());
               }
-
               if (tensor_datatype != nullptr) {
                 *tensor_datatype = "TYPE_FP32";
               }
@@ -420,6 +437,30 @@ GetBooleanSequenceControlProperties(
                 double value = 0.0;
                 RETURN_IF_ERROR(fp32_false_true.IndexAsDouble(1, &value));
                 *fp32_true_value = value;
+              }
+            } else {
+              if (bool_false_true.ArraySize() != 2) {
+                return TRITONSERVER_ErrorNew(
+                    TRITONSERVER_ERROR_INVALID_ARG,
+                    (std::string(
+                         "sequence batching control 'bool_false_true' must "
+                         "have exactly "
+                         "2 entries for " +
+                         control_kind + " for " + model_name))
+                        .c_str());
+              }
+              if (tensor_datatype != nullptr) {
+                *tensor_datatype = "TYPE_BOOL";
+              }
+              if (bool_false_value != nullptr) {
+                bool value;
+                RETURN_IF_ERROR(bool_false_true.IndexAsBool(0, &value));
+                *bool_false_value = value;
+              }
+              if (bool_true_value != nullptr) {
+                bool value;
+                RETURN_IF_ERROR(bool_false_true.IndexAsBool(1, &value));
+                *bool_true_value = value;
               }
             }
           }
@@ -504,20 +545,24 @@ GetTypedSequenceControlProperties(
 
             seen_control = true;
 
-            common::TritonJson::Value int32_false_true, fp32_false_true;
+            common::TritonJson::Value int32_false_true, fp32_false_true,
+                bool_false_true;
             bool found_int32 =
                 (c.Find("int32_false_true", &int32_false_true) &&
                  (int32_false_true.ArraySize() > 0));
             bool found_fp32 =
                 (c.Find("fp32_false_true", &fp32_false_true) &&
                  (fp32_false_true.ArraySize() > 0));
-            if (found_int32 || found_fp32) {
+            bool found_bool =
+                (c.Find("bool_false_true", &bool_false_true) &&
+                 (bool_false_true.ArraySize() > 0));
+            if (found_fp32 || found_int32 || found_bool) {
               return TRITONSERVER_ErrorNew(
                   TRITONSERVER_ERROR_INVALID_ARG,
                   (std::string(
                        "sequence batching must not specify either "
-                       "'int32_false_true' "
-                       "nor 'fp32_false_true' for " +
+                       "'int32_false_true', 'fp32_false_true' or "
+                       "'bool_false_true' for " +
                        control_kind + " for " + model_name))
                       .c_str());
             }
@@ -566,6 +611,7 @@ RequestsRespondWithError(
           TRITONBACKEND_RequestRelease(
               requests[i], TRITONSERVER_REQUEST_RELEASE_ALL),
           "fail to release request");
+      requests[i] = nullptr;
     }
   }
 
@@ -597,16 +643,28 @@ CopyBuffer(
     const int64_t src_memory_type_id,
     const TRITONSERVER_MemoryType dst_memory_type,
     const int64_t dst_memory_type_id, const size_t byte_size, const void* src,
-    void* dst, cudaStream_t cuda_stream, bool* cuda_used)
+    void* dst, cudaStream_t cuda_stream, bool* cuda_used,
+    const bool copy_on_stream)
 {
   *cuda_used = false;
 
-  // For CUDA memcpy, all host to host copy will be blocked in respect to the
-  // host, so use memcpy() directly. In this case, need to be careful on whether
-  // the src buffer is valid.
+  // For CUDA memcpy, if copy_on_stream is false, all host to host copy will be
+  // blocked in respect to the host, so use memcpy() directly. In this case,
+  // need to be careful on whether the src buffer is valid.
   if ((src_memory_type != TRITONSERVER_MEMORY_GPU) &&
       (dst_memory_type != TRITONSERVER_MEMORY_GPU)) {
+#ifdef TRITON_ENABLE_GPU
+    if (copy_on_stream) {
+      auto params = new CopyParams(dst, src, byte_size);
+      cudaLaunchHostFunc(
+          cuda_stream, MemcpyHost, reinterpret_cast<void*>(params));
+      *cuda_used = true;
+    } else {
+      memcpy(dst, src, byte_size);
+    }
+#else
     memcpy(dst, src, byte_size);
+#endif  // TRITON_ENABLE_GPU
   } else {
 #ifdef TRITON_ENABLE_GPU
     // [TODO] use cudaMemcpyDefault if UVM is supported for the device

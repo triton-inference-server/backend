@@ -1,4 +1,4 @@
-// Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
+// Copyright 2020-2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -237,6 +237,17 @@ class BatchOutput {
   std::vector<std::string> source_inputs_;
 };
 
+struct CopyParams {
+  CopyParams(void* dst, const void* src, const size_t byte_size)
+      : dst_(dst), src_(src), byte_size_(byte_size)
+  {
+  }
+
+  void* dst_;
+  const void* src_;
+  const size_t byte_size_;
+};
+
 /// The value for a dimension in a shape that indicates that that
 /// dimension can take on any size.
 constexpr int WILDCARD_DIM = -1;
@@ -351,16 +362,20 @@ TRITONSERVER_Error* CheckAllowedModelOutput(
 /// \param fp32_true_value Returns the float value for true if
 /// the tensor type is FP32.
 /// \param int32_false_value Returns the int value for false if
-/// the tensor type is FP32.
+/// the tensor type is INT32.
 /// \param int32_true_value Returns the int value for true if
-/// the tensor type is FP32.
+/// the tensor type is INT32.
+/// \param bool_false_value Returns the bool value for false if
+/// the tensor type is BOOL.
+/// \param bool_true_value Returns the bool value for true if
+/// the tensor type is BOOL.
 /// \return a TRITONSERVER_Error indicating success or failure.
 TRITONSERVER_Error* GetBooleanSequenceControlProperties(
     common::TritonJson::Value& batcher, const std::string& model_name,
     const std::string& control_kind, const bool required,
     std::string* tensor_name, std::string* tensor_datatype,
     float* fp32_false_value, float* fp32_true_value, int32_t* int32_false_value,
-    int32_t* int32_true_value);
+    int32_t* int32_true_value, bool* bool_false_value, bool* bool_true_value);
 
 /// Get the tensor name and datatype for a non-boolean sequence
 /// batcher control kind. If 'required' is true then must find a
@@ -388,8 +403,9 @@ TRITONSERVER_Error* GetTypedSequenceControlProperties(
 /// \param requests The requests.
 /// \param request_count The number of 'requests'.
 /// \param response_err The error to send to each request.
-/// \param release_request If true the requests will be released after
-/// sending the error responses.
+/// \param release_request If true, the requests will be released after
+/// sending the error responses and the request pointers are set to
+/// nullptr.
 void RequestsRespondWithError(
     TRITONBACKEND_Request** requests, const uint32_t request_count,
     TRITONSERVER_Error* response_err, const bool release_request = true);
@@ -421,13 +437,16 @@ void SendErrorForResponses(
 /// \param cuda_used returns whether a CUDA memory copy is initiated. If true,
 /// the caller should synchronize on the given 'cuda_stream' to ensure data copy
 /// is completed.
+/// \param copy_on_stream whether the memory copies should be performed in cuda
+/// host functions on the 'cuda_stream'.
 /// \return a TRITONSERVER_Error indicating success or failure.
 TRITONSERVER_Error* CopyBuffer(
     const std::string& msg, const TRITONSERVER_MemoryType src_memory_type,
     const int64_t src_memory_type_id,
     const TRITONSERVER_MemoryType dst_memory_type,
     const int64_t dst_memory_type_id, const size_t byte_size, const void* src,
-    void* dst, cudaStream_t cuda_stream, bool* cuda_used);
+    void* dst, cudaStream_t cuda_stream, bool* cuda_used,
+    const bool copy_on_stream = false);
 
 /// Does a file or directory exist?
 /// \param path The path to check for existance.
