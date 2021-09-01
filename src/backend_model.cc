@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020, NVIDIA CORPORATION. All rights reserved.
+// Copyright 2019-2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -94,11 +94,11 @@ BackendModel::BackendModel(TRITONBACKEND_Model* triton_model)
     common::TritonJson::Value optimization;
     if (model_config_.Find("optimization", &optimization)) {
       common::TritonJson::Value pinned_memory;
-      if (model_config_.Find("input_pinned_memory", &pinned_memory)) {
+      if (optimization.Find("input_pinned_memory", &pinned_memory)) {
         THROW_IF_BACKEND_MODEL_ERROR(
             pinned_memory.MemberAsBool("enable", &enable_pinned_input_));
       }
-      if (model_config_.Find("output_pinned_memory", &pinned_memory)) {
+      if (optimization.Find("output_pinned_memory", &pinned_memory)) {
         THROW_IF_BACKEND_MODEL_ERROR(
             pinned_memory.MemberAsBool("enable", &enable_pinned_output_));
       }
