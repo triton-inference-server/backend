@@ -913,6 +913,23 @@ ParseLongLongValue(const std::string& value, int64_t* parsed_value)
 }
 
 TRITONSERVER_Error*
+ParseUnsignedLongLongValue(const std::string& value, uint64_t* parsed_value)
+{
+  try {
+    *parsed_value = std::stoull(value);
+  }
+  catch (const std::invalid_argument& ia) {
+    return TRITONSERVER_ErrorNew(
+        TRITONSERVER_ERROR_INVALID_ARG,
+        (std::string("failed to convert '") + value +
+         "' to unsigned long long integral number")
+            .c_str());
+  }
+
+  return nullptr;  // success
+}
+
+TRITONSERVER_Error*
 ParseBoolValue(const std::string& value, bool* parsed_value)
 {
   std::string lvalue = value;
@@ -1158,6 +1175,69 @@ BatchOutput::ParseFromModelConfig(
   }
 
   return nullptr;  // success
+}
+
+TRITONSERVER_Error*
+TryParseParameter(
+    triton::common::TritonJson::Value& params, const std::string& mkey,
+    std::string* value, const std::string& default_value)
+{
+  triton::common::TritonJson::Value json_value;
+  if (params.Find(mkey.c_str(), &json_value)) {
+    RETURN_IF_ERROR(json_value.MemberAsString("string_value", value));
+  } else {
+    *value = default_value;
+  }
+
+  return nullptr;  // success
+}
+
+TRITONSERVER_Error*
+TryParseParameter(
+    triton::common::TritonJson::Value& params, const std::string& mkey,
+    int* value, const int& default_value)
+{
+  triton::common::TritonJson::Value json_value;
+  if (params.Find(mkey.c_str(), &json_value)) {
+    std::string string_value;
+    RETURN_IF_ERROR(json_value.MemberAsString("string_value", &string_value));
+    return ParseIntValue(string_value, value);
+  } else {
+    *value = default_value;
+    return nullptr;  // success
+  }
+}
+
+TRITONSERVER_Error*
+TryParseParameter(
+    triton::common::TritonJson::Value& params, const std::string& mkey,
+    bool* value, const bool& default_value)
+{
+  triton::common::TritonJson::Value json_value;
+  if (params.Find(mkey.c_str(), &json_value)) {
+    std::string string_value;
+    RETURN_IF_ERROR(json_value.MemberAsString("string_value", &string_value));
+    return ParseBoolValue(string_value, value);
+  } else {
+    *value = default_value;
+    return nullptr;  // success
+  }
+}
+
+TRITONSERVER_Error*
+TryParseParameter(
+    triton::common::TritonJson::Value& params, const std::string& mkey,
+    size_t* value, const size_t& default_value)
+{
+  triton::common::TritonJson::Value json_value;
+  if (params.Find(mkey.c_str(), &json_value)) {
+    std::string string_value;
+    RETURN_IF_ERROR(json_value.MemberAsString("string_value", &string_value));
+    return ParseUnsignedLongLongValue(string_value, value);
+  } else {
+    *value = default_value;
+    return nullptr;  // success
+  }
 }
 
 }}  // namespace triton::backend

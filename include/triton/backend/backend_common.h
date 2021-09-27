@@ -505,6 +505,14 @@ TRITONSERVER_Error* CreateCudaStream(
 TRITONSERVER_Error* ParseLongLongValue(
     const std::string& value, int64_t* parsed_value);
 
+/// Parse the string as unsigned long long integer.
+///
+/// \param value The string.
+/// \param parse_value The unsigned long long integral value of the string.
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error* ParseUnsignedLongLongValue(
+    const std::string& value, uint64_t* parsed_value);
+
 /// Parse the string as boolean.
 ///
 /// \param value The string.
@@ -545,5 +553,49 @@ TRITONSERVER_Error* GetParameterValue(
 /// \return the Triton server data type.
 TRITONSERVER_DataType ModelConfigDataTypeToTritonServerDataType(
     const std::string& data_type_str);
+
+/// Try to parse the requested parameter.
+///
+/// \param params The param in model config
+/// \param mkey Key in the model config.
+/// \param value The parsed string value.
+/// \param default_value Default value to use when key is not found.
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error* TryParseParameter(
+    triton::common::TritonJson::Value& params, const std::string& key,
+    std::string* value, const std::string& default_value);
+
+/// Try to parse the requested parameter.
+///
+/// \param params The param in model config
+/// \param mkey Key in the model config.
+/// \param value The parsed int value.
+/// \param default_value Default value to use when key is not found.
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error* TryParseParameter(
+    triton::common::TritonJson::Value& params, const std::string& key,
+    int* value, const int& default_value);
+
+/// Try to parse the requested parameter.
+///
+/// \param params The param in model config
+/// \param mkey Key in the model config.
+/// \param value The parsed bool value.
+/// \param default_value Default value to use when key is not found.
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error* TryParseParameter(
+    triton::common::TritonJson::Value& params, const std::string& key,
+    bool* value, const bool& default_value);
+
+/// Try to parse the requested parameter.
+///
+/// \param params The param in model config
+/// \param mkey Key in the model config.
+/// \param value The parsed uint64 value.
+/// \param default_value Default value to use when key is not found.
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error* TryParseParameter(
+    triton::common::TritonJson::Value& params, const std::string& key,
+    size_t* value, const size_t& default_value);
 
 }}  // namespace triton::backend
