@@ -109,6 +109,14 @@ pipeline within Triton.  The
 [dali_backend](https://github.com/triton-inference-server/dali_backend)
 repo contains the documentation and source for the backend.
 
+**FIL**: The FIL ([Forest Inference
+Library](https://github.com/rapidsai/cuml/tree/branch-21.10/python/cuml/fil))
+backend is used to execute a variety of forest-based ML models, including
+XGBoost models, LightGBM models, Scikit-Learn random forest models, and cuML
+random forest models. The
+[fil_backend](https://github.com/triton-inference-server/fil_backend) repo
+contains the documentation and source for the backend.
+
 The Triton project also maintains a number of simple, example backends
 that are useful for testing and for understanding how backends
 work. The example backends are described in [Example
