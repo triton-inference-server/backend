@@ -1227,7 +1227,7 @@ TryParseParameter(
 TRITONSERVER_Error*
 TryParseParameter(
     triton::common::TritonJson::Value& params, const std::string& mkey,
-    size_t* value, const size_t& default_value)
+    uint64_t* value, const uint64_t& default_value)
 {
   triton::common::TritonJson::Value json_value;
   if (params.Find(mkey.c_str(), &json_value)) {

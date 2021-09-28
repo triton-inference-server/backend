@@ -596,6 +596,6 @@ TRITONSERVER_Error* TryParseParameter(
 /// \return a TRITONSERVER_Error indicating success or failure.
 TRITONSERVER_Error* TryParseParameter(
     triton::common::TritonJson::Value& params, const std::string& key,
-    size_t* value, const size_t& default_value);
+    uint64_t* value, const uint64_t& default_value);
 
 }}  // namespace triton::backend
