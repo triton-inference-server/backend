@@ -1178,7 +1178,7 @@ BatchOutput::ParseFromModelConfig(
 }
 
 TRITONSERVER_Error*
-TryParseParameter(
+TryParseModelStringParameter(
     triton::common::TritonJson::Value& params, const std::string& mkey,
     std::string* value, const std::string& default_value)
 {
@@ -1193,7 +1193,7 @@ TryParseParameter(
 }
 
 TRITONSERVER_Error*
-TryParseParameter(
+TryParseModelStringParameter(
     triton::common::TritonJson::Value& params, const std::string& mkey,
     int* value, const int& default_value)
 {
@@ -1209,7 +1209,7 @@ TryParseParameter(
 }
 
 TRITONSERVER_Error*
-TryParseParameter(
+TryParseModelStringParameter(
     triton::common::TritonJson::Value& params, const std::string& mkey,
     bool* value, const bool& default_value)
 {
@@ -1225,7 +1225,7 @@ TryParseParameter(
 }
 
 TRITONSERVER_Error*
-TryParseParameter(
+TryParseModelStringParameter(
     triton::common::TritonJson::Value& params, const std::string& mkey,
     uint64_t* value, const uint64_t& default_value)
 {

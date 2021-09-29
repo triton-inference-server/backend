@@ -561,8 +561,8 @@ TRITONSERVER_DataType ModelConfigDataTypeToTritonServerDataType(
 /// \param value The parsed string value.
 /// \param default_value Default value to use when key is not found.
 /// \return a TRITONSERVER_Error indicating success or failure.
-TRITONSERVER_Error* TryParseParameter(
-    triton::common::TritonJson::Value& params, const std::string& key,
+TRITONSERVER_Error* TryParseModelStringParameter(
+    triton::common::TritonJson::Value& params, const std::string& mkey,
     std::string* value, const std::string& default_value);
 
 /// Try to parse the requested parameter.
@@ -572,8 +572,8 @@ TRITONSERVER_Error* TryParseParameter(
 /// \param value The parsed int value.
 /// \param default_value Default value to use when key is not found.
 /// \return a TRITONSERVER_Error indicating success or failure.
-TRITONSERVER_Error* TryParseParameter(
-    triton::common::TritonJson::Value& params, const std::string& key,
+TRITONSERVER_Error* TryParseModelStringParameter(
+    triton::common::TritonJson::Value& params, const std::string& mkey,
     int* value, const int& default_value);
 
 /// Try to parse the requested parameter.
@@ -583,8 +583,8 @@ TRITONSERVER_Error* TryParseParameter(
 /// \param value The parsed bool value.
 /// \param default_value Default value to use when key is not found.
 /// \return a TRITONSERVER_Error indicating success or failure.
-TRITONSERVER_Error* TryParseParameter(
-    triton::common::TritonJson::Value& params, const std::string& key,
+TRITONSERVER_Error* TryParseModelStringParameter(
+    triton::common::TritonJson::Value& params, const std::string& mkey,
     bool* value, const bool& default_value);
 
 /// Try to parse the requested parameter.
@@ -594,8 +594,8 @@ TRITONSERVER_Error* TryParseParameter(
 /// \param value The parsed uint64 value.
 /// \param default_value Default value to use when key is not found.
 /// \return a TRITONSERVER_Error indicating success or failure.
-TRITONSERVER_Error* TryParseParameter(
-    triton::common::TritonJson::Value& params, const std::string& key,
+TRITONSERVER_Error* TryParseModelStringParameter(
+    triton::common::TritonJson::Value& params, const std::string& mkey,
     uint64_t* value, const uint64_t& default_value);
 
 }}  // namespace triton::backend
