@@ -508,3 +508,10 @@ Triton Backend API.
 [*repeat*](https://github.com/triton-inference-server/repeat_backend)
 backend shows a more advanced example of how a backend can produce
 multiple responses per request.
+
+* The
+[*stateful*](https://github.com/triton-inference-server/stateful_backend)
+backend manages model state tensors on the server-side for the 
+[sequence batcher](https://github.com/triton-inference-server/server/blob/main/docs/model_configuration.md#sequence-batcher)
+to avoid transferring state tensors between client and server.
+
