@@ -32,26 +32,6 @@
 
 namespace triton { namespace backend {
 
-// Colletion of common properties that describes a buffer in Triton
-struct MemoryDesc {
-  MemoryDesc()
-      : buffer_(nullptr), byte_size_(0), memory_type_(TRITONSERVER_MEMORY_CPU),
-        memory_type_id_(0)
-  {
-  }
-  MemoryDesc(
-      const char* buffer, size_t byte_size, TRITONSERVER_MemoryType memory_type,
-      int64_t memory_type_id)
-      : buffer_(buffer), byte_size_(byte_size), memory_type_(memory_type),
-        memory_type_id_(memory_type_id)
-  {
-  }
-  const char* buffer_;
-  size_t byte_size_;
-  TRITONSERVER_MemoryType memory_type_;
-  int64_t memory_type_id_;
-};
-
 //
 // BackendMemory
 //
