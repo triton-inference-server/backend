@@ -68,13 +68,7 @@ BackendOutputResponder::ProcessTensor(
     auto& request = requests_[idx];
     auto& response = (*responses_)[idx];
 
-    // If then pending copies are from tensor buffer that is not
-    // contiguous with 'response's part of that buffer, then need to
-    // go ahead and perform the pending copies so that can start a
-    // new contiguous region if necessary.
-    if ((pending_pinned_byte_size_ > 0) &&
-        (tensor_offset !=
-         (pending_pinned_byte_size_ + pending_pinned_offset_))) {
+    if (pending_pinned_byte_size_ > 0) {
       need_sync_ |= FlushPendingPinned(buffer, memory_type, memory_type_id);
     }
 
