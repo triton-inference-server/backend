@@ -60,7 +60,8 @@ class BackendInputCollector {
       cudaStream_t stream, cudaEvent_t event = nullptr,
       cudaEvent_t buffer_ready_event = nullptr,
       const size_t kernel_buffer_threshold = 0,
-      const char* host_policy_name = nullptr, const bool copy_on_stream = false)
+      const char* host_policy_name = nullptr, const bool copy_on_stream = false,
+      const bool coalesce_request_input = false)
       : need_sync_(false), requests_(requests), request_count_(request_count),
         responses_(responses), memory_manager_(memory_manager),
         pinned_enabled_(pinned_enabled),
@@ -71,7 +72,8 @@ class BackendInputCollector {
         pending_copy_kernel_buffer_byte_size_(0),
         pending_copy_kernel_buffer_offset_(0),
         pending_copy_kernel_input_buffer_counts_(0), async_task_count_(0),
-        host_policy_cstr_(host_policy_name), copy_on_stream_(copy_on_stream)
+        host_policy_cstr_(host_policy_name), copy_on_stream_(copy_on_stream),
+        coalesce_request_input_(coalesce_request_input)
   {
   }
 
@@ -151,7 +153,7 @@ class BackendInputCollector {
     InputIterator(
         TRITONBACKEND_Request** requests, const uint32_t request_count,
         std::vector<TRITONBACKEND_Response*>* responses, const char* input_name,
-        const char* host_policy_name);
+        const char* host_policy_name, const bool coalesce_request_input);
 
     // Return false if iterator reaches the end of inputs, 'input' is not set.
     bool GetNextContiguousInput(ContiguousBuffer* input);
@@ -162,6 +164,7 @@ class BackendInputCollector {
     std::vector<TRITONBACKEND_Response*>* responses_;
     const char* input_name_;
     const char* host_policy_;
+    const bool coalesce_request_input_;
 
     TRITONBACKEND_Input* curr_input_;
     size_t curr_request_idx_;
@@ -276,6 +279,7 @@ class BackendInputCollector {
 
   const char* host_policy_cstr_;
   const bool copy_on_stream_;
+  const bool coalesce_request_input_;
 };
 
 }}  // namespace triton::backend

@@ -41,9 +41,10 @@ namespace triton { namespace backend {
 BackendInputCollector::InputIterator::InputIterator(
     TRITONBACKEND_Request** requests, const uint32_t request_count,
     std::vector<TRITONBACKEND_Response*>* responses, const char* input_name,
-    const char* host_policy_name)
+    const char* host_policy_name, const bool coalesce_request_input)
     : requests_(requests), request_count_(request_count), responses_(responses),
       input_name_(input_name), host_policy_(host_policy_name),
+      coalesce_request_input_(coalesce_request_input),
       curr_request_idx_(0), curr_buffer_idx_(0), reach_end_(false)
 {
   auto& response = (*responses_)[curr_request_idx_];
@@ -72,6 +73,29 @@ BackendInputCollector::InputIterator::GetNextContiguousInput(
       &input->memory_desc_.memory_type_id_);
   ++curr_buffer_idx_;
   input->start_request_idx_ = curr_request_idx_;
+  input->end_request_idx_ = curr_request_idx_;
+  if (!coalesce_request_input_) {
+    if (curr_buffer_idx_ == curr_buffer_cnt_) {
+      ++curr_request_idx_;
+      if (curr_request_idx_ < request_count_) {
+        auto& response = (*responses_)[curr_request_idx_];
+        RESPOND_AND_SET_NULL_IF_ERROR(
+            &response,
+            TRITONBACKEND_RequestInput(
+                requests_[curr_request_idx_], input_name_, &curr_input_));
+        RESPOND_AND_SET_NULL_IF_ERROR(
+            &response, TRITONBACKEND_InputPropertiesForHostPolicy(
+                          curr_input_, host_policy_, nullptr, nullptr, nullptr,
+                          nullptr, nullptr, &curr_buffer_cnt_));
+        // reset buffer idx
+        curr_buffer_idx_ = 0;
+      } else {
+        reach_end_ = true;
+      }
+    }
+    return true;
+  }
+
   do {
     for (; curr_buffer_idx_ < curr_buffer_cnt_; ++curr_buffer_idx_) {
       const void* next_buffer;
@@ -148,6 +172,11 @@ BackendInputCollector::GetInputBufferIfContiguous(
               input, host_policy_cstr_, idx, &src_buffer, &src_byte_size,
               &src_memory_type, &src_memory_type_id));
       if (*buffer != nullptr) {
+        // If have seen the second buffer while coalescing input is not
+        // requested, treat the inputs are not contiguous
+        if (!coalesce_request_input_) {
+          return false;
+        }
         if ((expected_next_buffer == src_buffer) &&
             (*memory_type == src_memory_type) &&
             (*memory_type_id == src_memory_type_id)) {
@@ -188,7 +217,8 @@ BackendInputCollector::ProcessTensor(
   size_t buffer_offset = 0;
 
   InputIterator ii(
-      requests_, request_count_, responses_, input_name, host_policy_cstr_);
+      requests_, request_count_, responses_, input_name, host_policy_cstr_,
+      coalesce_request_input_);
   ContiguousBuffer input;
   while (ii.GetNextContiguousInput(&input)) {
     // If there are pending copies from tensor buffer that is not
