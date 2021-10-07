@@ -75,7 +75,7 @@ BackendInputCollector::InputIterator::GetNextContiguousInput(
   input->start_request_idx_ = curr_request_idx_;
   input->end_request_idx_ = curr_request_idx_;
   if (!coalesce_request_input_) {
-    if (curr_buffer_idx_ == curr_buffer_cnt_) {
+    if (curr_buffer_idx_ >= curr_buffer_cnt_) {
       ++curr_request_idx_;
       if (curr_request_idx_ < request_count_) {
         auto& response = (*responses_)[curr_request_idx_];
