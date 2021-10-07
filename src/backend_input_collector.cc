@@ -61,7 +61,7 @@ bool
 BackendInputCollector::InputIterator::GetNextContiguousInput(
     ContiguousBuffer* input)
 {
-  if (reach_end_) {
+  if (reach_end_ || (curr_buffer_idx_ >= curr_buffer_cnt_)) {
     return false;
   }
 
