@@ -44,8 +44,8 @@ BackendInputCollector::InputIterator::InputIterator(
     const char* host_policy_name, const bool coalesce_request_input)
     : requests_(requests), request_count_(request_count), responses_(responses),
       input_name_(input_name), host_policy_(host_policy_name),
-      coalesce_request_input_(coalesce_request_input),
-      curr_request_idx_(0), curr_buffer_idx_(0), reach_end_(false)
+      coalesce_request_input_(coalesce_request_input), curr_request_idx_(0),
+      curr_buffer_idx_(0), reach_end_(false)
 {
   auto& response = (*responses_)[curr_request_idx_];
   RESPOND_AND_SET_NULL_IF_ERROR(
@@ -85,8 +85,8 @@ BackendInputCollector::InputIterator::GetNextContiguousInput(
                 requests_[curr_request_idx_], input_name_, &curr_input_));
         RESPOND_AND_SET_NULL_IF_ERROR(
             &response, TRITONBACKEND_InputPropertiesForHostPolicy(
-                          curr_input_, host_policy_, nullptr, nullptr, nullptr,
-                          nullptr, nullptr, &curr_buffer_cnt_));
+                           curr_input_, host_policy_, nullptr, nullptr, nullptr,
+                           nullptr, nullptr, &curr_buffer_cnt_));
         // reset buffer idx
         curr_buffer_idx_ = 0;
       } else {
@@ -174,10 +174,7 @@ BackendInputCollector::GetInputBufferIfContiguous(
       if (*buffer != nullptr) {
         // If have seen the second buffer while coalescing input is not
         // requested, treat the inputs are not contiguous
-        if (!coalesce_request_input_) {
-          return false;
-        }
-        if ((expected_next_buffer == src_buffer) &&
+        if (coalesce_request_input_ && (expected_next_buffer == src_buffer) &&
             (*memory_type == src_memory_type) &&
             (*memory_type_id == src_memory_type_id)) {
           expected_next_buffer += src_byte_size;
