@@ -95,7 +95,7 @@ class BackendMemory {
       BackendMemory** mem);
 
   // Creates a BackendMemory object from a pre-allocated buffer. The buffer
-  // is not owned by the object created with this function. Hence, for a
+  // is not owned by the object created with this function. Hence, for
   // proper operation, the lifetime of the buffer should atleast extend till
   // the corresponding BackendMemory.
   static TRITONSERVER_Error* Create(
