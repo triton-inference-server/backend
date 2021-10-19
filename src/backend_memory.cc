@@ -96,7 +96,7 @@ BackendMemory::Create(
 
   *mem = new BackendMemory(
       manager, alloc_type, memory_type_id, reinterpret_cast<char*>(ptr),
-      byte_size, true /* owns_buffer */);
+      byte_size);
 
   return nullptr;  // success
 }

@@ -96,7 +96,7 @@ class BackendMemory {
 
   // Creates a BackendMemory object from a pre-allocated buffer. The buffer
   // is not owned by the object created with this function. Hence, for a
-  // proper operation the lifetime of the buffer should atleast extend till
+  // proper operation, the lifetime of the buffer should atleast extend till
   // the corresponding BackendMemory.
   static TRITONSERVER_Error* Create(
       TRITONBACKEND_MemoryManager* manager, const AllocationType alloc_type,
@@ -121,7 +121,7 @@ class BackendMemory {
   BackendMemory(
       TRITONBACKEND_MemoryManager* manager, const AllocationType alloctype,
       const int64_t memtype_id, char* buffer, const size_t byte_size,
-      const bool owns_buffer)
+      const bool owns_buffer = true)
       : manager_(manager), alloctype_(alloctype), memtype_id_(memtype_id),
         buffer_(buffer), byte_size_(byte_size), owns_buffer_(owns_buffer)
   {
