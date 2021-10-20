@@ -145,35 +145,50 @@ BackendMemory::Create(
   return nullptr;  // success
 }
 
+TRITONSERVER_Error*
+BackendMemory::Create(
+    TRITONBACKEND_MemoryManager* manager, const AllocationType alloc_type,
+    const int64_t memory_type_id, void* buffer, const size_t byte_size,
+    BackendMemory** mem)
+{
+  *mem = new BackendMemory(
+      manager, alloc_type, memory_type_id, reinterpret_cast<char*>(buffer),
+      byte_size, false /* owns_buffer */);
+
+  return nullptr;  // success
+}
+
 BackendMemory::~BackendMemory()
 {
-  switch (alloctype_) {
-    case AllocationType::CPU_PINNED:
+  if (owns_buffer_) {
+    switch (alloctype_) {
+      case AllocationType::CPU_PINNED:
 #ifdef TRITON_ENABLE_GPU
-      if (buffer_ != nullptr) {
-        LOG_IF_CUDA_ERROR(
-            cudaFreeHost(buffer_), "failed to free pinned memory");
-      }
+        if (buffer_ != nullptr) {
+          LOG_IF_CUDA_ERROR(
+              cudaFreeHost(buffer_), "failed to free pinned memory");
+        }
 #endif  // TRITON_ENABLE_GPU
-      break;
+        break;
 
-    case AllocationType::GPU:
+      case AllocationType::GPU:
 #ifdef TRITON_ENABLE_GPU
-      if (buffer_ != nullptr) {
-        LOG_IF_CUDA_ERROR(cudaFree(buffer_), "failed to free CUDA memory");
-      }
+        if (buffer_ != nullptr) {
+          LOG_IF_CUDA_ERROR(cudaFree(buffer_), "failed to free CUDA memory");
+        }
 #endif  // TRITON_ENABLE_GPU
-      break;
+        break;
 
-    case AllocationType::CPU:
-    case AllocationType::CPU_PINNED_POOL:
-    case AllocationType::GPU_POOL:
-      LOG_IF_ERROR(
-          TRITONBACKEND_MemoryManagerFree(
-              manager_, buffer_, AllocTypeToMemoryType(alloctype_),
-              memtype_id_),
-          "failed to free memory buffer");
-      break;
+      case AllocationType::CPU:
+      case AllocationType::CPU_PINNED_POOL:
+      case AllocationType::GPU_POOL:
+        LOG_IF_ERROR(
+            TRITONBACKEND_MemoryManagerFree(
+                manager_, buffer_, AllocTypeToMemoryType(alloctype_),
+                memtype_id_),
+            "failed to free memory buffer");
+        break;
+    }
   }
 }
 
