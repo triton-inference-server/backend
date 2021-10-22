@@ -100,20 +100,6 @@ class BackendOutputResponder {
       const char* tensor_buffer,
       const TRITONSERVER_MemoryType tensor_memory_type,
       const int64_t tensor_memory_type_id);
-  bool SetFixedSizeOutputBuffer(
-      TRITONBACKEND_Response** response, TRITONBACKEND_Output* response_output,
-      const std::string& output_name, const size_t tensor_byte_size,
-      const size_t tensor_offset, const char* tensor_buffer,
-      const TRITONSERVER_MemoryType tensor_memory_type,
-      const int64_t tensor_memory_type_id,
-      const TRITONSERVER_MemoryType use_pinned_memory_type);
-  bool SetFixedSizeStateBuffer(
-      TRITONBACKEND_Response** response, TRITONBACKEND_State* state_output,
-      const std::string& output_state_name, const size_t tensor_byte_size,
-      const size_t tensor_offset, const char* tensor_buffer,
-      const TRITONSERVER_MemoryType tensor_memory_type,
-      const int64_t tensor_memory_type_id,
-      const TRITONSERVER_MemoryType use_pinned_memory_type);
   bool SetFixedSizeBuffer(
       TRITONBACKEND_Response** response, void* response_state_or_output,
       const std::string& output_name, const size_t tensor_byte_size,

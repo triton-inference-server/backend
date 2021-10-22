@@ -107,10 +107,10 @@ BackendOutputResponder::ProcessTensor(
                                response, &response_output, name, datatype,
                                batchn_shape.data(), batchn_shape.size()));
             if (response != nullptr) {
-              need_sync_ |= SetFixedSizeOutputBuffer(
+              need_sync_ |= SetFixedSizeBuffer(
                   &response, response_output, output_name, tensor_byte_size,
                   tensor_offset, buffer, memory_type, memory_type_id,
-                  use_pinned_memory_type);
+                  use_pinned_memory_type, false /* state */);
             }
 
             break;
@@ -185,10 +185,10 @@ BackendOutputResponder::ProcessStateTensor(
                          datatype, batchn_shape.data(), batchn_shape.size()));
       if (response != nullptr) {
         states.push_back(output_state);
-        need_sync_ |= SetFixedSizeStateBuffer(
+        need_sync_ |= SetFixedSizeBuffer(
             &response, output_state, output_state_name, tensor_byte_size,
             tensor_offset, buffer, memory_type, memory_type_id,
-            use_pinned_memory_type);
+            use_pinned_memory_type, true /* state */);
       }
     }
 
@@ -258,20 +258,6 @@ BackendOutputResponder::Finalize()
   return need_sync_;
 }
 
-bool
-BackendOutputResponder::SetFixedSizeOutputBuffer(
-    TRITONBACKEND_Response** response, TRITONBACKEND_Output* response_output,
-    const std::string& output_name, const size_t tensor_byte_size,
-    const size_t tensor_offset, const char* tensor_buffer,
-    const TRITONSERVER_MemoryType tensor_memory_type,
-    const int64_t tensor_memory_type_id,
-    const TRITONSERVER_MemoryType use_pinned_memory_type)
-{
-  return SetFixedSizeBuffer(
-      response, response_output, output_name, tensor_byte_size, tensor_offset,
-      tensor_buffer, tensor_memory_type, tensor_memory_type_id,
-      use_pinned_memory_type, false /* state */);
-}
 
 bool
 BackendOutputResponder::SetFixedSizeBuffer(
@@ -342,21 +328,6 @@ BackendOutputResponder::SetFixedSizeBuffer(
   }
 
   return cuda_copy;
-}
-
-bool
-BackendOutputResponder::SetFixedSizeStateBuffer(
-    TRITONBACKEND_Response** response, TRITONBACKEND_State* response_state,
-    const std::string& state_output_name, const size_t tensor_byte_size,
-    const size_t tensor_offset, const char* tensor_buffer,
-    const TRITONSERVER_MemoryType tensor_memory_type,
-    const int64_t tensor_memory_type_id,
-    const TRITONSERVER_MemoryType use_pinned_memory_type)
-{
-  return SetFixedSizeBuffer(
-      response, response_state, state_output_name, tensor_byte_size,
-      tensor_offset, tensor_buffer, tensor_memory_type, tensor_memory_type_id,
-      use_pinned_memory_type, true /* state */);
 }
 
 bool
@@ -563,10 +534,10 @@ BackendOutputResponder::ProcessBatchOutput(
                                    output_batchn_shape.data(),
                                    output_batchn_shape.size()));
                 if (response != nullptr) {
-                  need_sync_ |= SetFixedSizeOutputBuffer(
+                  need_sync_ |= SetFixedSizeBuffer(
                       &response, response_output, output_name, tensor_byte_size,
                       tensor_offset, buffer, memory_type, memory_type_id,
-                      use_pinned_memory_type);
+                      use_pinned_memory_type, false /* state */);
                 }
 
                 break;
