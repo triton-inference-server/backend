@@ -73,6 +73,15 @@ class BackendOutputResponder {
       std::vector<int64_t>& batchn_shape, const char* buffer,
       const TRITONSERVER_MemoryType memory_type, const int64_t memory_type_id);
 
+  // Process all responses for a named state tensor. Returns a vector of
+  // TRITONBACKEND_State objects that the backend can use to update the state.
+  // If TRITONBACKEND_StateUpdate is not called on the vector elements, the
+  // state will not be updated.
+  std::vector<TRITONBACKEND_State*> ProcessStateTensor(
+      const std::string& name, const TRITONSERVER_DataType datatype,
+      std::vector<int64_t>& batchn_shape, const char* buffer,
+      const TRITONSERVER_MemoryType memory_type, const int64_t memory_type_id);
+
   // Process all responses for a batch output and derive its value from
   // 'buffer'.
   void ProcessBatchOutput(
@@ -91,13 +100,13 @@ class BackendOutputResponder {
       const char* tensor_buffer,
       const TRITONSERVER_MemoryType tensor_memory_type,
       const int64_t tensor_memory_type_id);
-  bool SetFixedSizeOutputBuffer(
-      TRITONBACKEND_Response** response, TRITONBACKEND_Output* response_output,
+  bool SetFixedSizeBuffer(
+      TRITONBACKEND_Response** response, void* response_state_or_output,
       const std::string& output_name, const size_t tensor_byte_size,
       const size_t tensor_offset, const char* tensor_buffer,
       const TRITONSERVER_MemoryType tensor_memory_type,
       const int64_t tensor_memory_type_id,
-      const TRITONSERVER_MemoryType use_pinned_memory_type);
+      const TRITONSERVER_MemoryType use_pinned_memory_type, bool state);
 
   struct OutputData {
     OutputData(
