@@ -1021,7 +1021,7 @@ BackendInputCollector::FlushPendingCopyKernel(
     LOG_MESSAGE(
         TRITONSERVER_LOG_VERBOSE,
         (std::string("gather kernel launched with status: ") +
-         TRITONSERVER_ErrorMessage(error))
+         ((error == nullptr) ? "Success" : TRITONSERVER_ErrorMessage(error)))
             .c_str());
   }
   // If kernel can't be launched then just perform a direct copy.
