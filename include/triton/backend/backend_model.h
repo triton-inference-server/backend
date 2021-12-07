@@ -75,10 +75,8 @@ class BackendModel {
   // batch size.
   void SetMaxBatchSize(const int b) { max_batch_size_ = b; }
 
-  // Does this model support batching in the first dimension. If
-  // called before the model is completely loaded this function will
-  // return an error.
-  TRITONSERVER_Error* SupportsFirstDimBatching(bool* supports);
+  // Does this model support batching in the first dimension?
+  bool SupportsFirstDimBatching();
 
   // Use indirect pinned memory buffer when copying an input or output
   // tensor to/from the model.
