@@ -42,7 +42,8 @@ namespace triton { namespace backend {
 //
 class BackendModel {
  public:
-  BackendModel(TRITONBACKEND_Model* triton_model);
+  BackendModel(
+      TRITONBACKEND_Model* triton_model, const bool allow_optional = false);
   virtual ~BackendModel() = default;
 
   // Get the handle to the TRITONBACKEND server hosting this model.
@@ -94,6 +95,10 @@ class BackendModel {
   {
     return (ragged_inputs_.find(input_name) != ragged_inputs_.end());
   }
+  bool IsInputOptional(const std::string& input_name) const
+  {
+    return (optional_inputs_.find(input_name) != optional_inputs_.end());
+  }
 
  protected:
   TRITONSERVER_Server* triton_server_;
@@ -111,6 +116,7 @@ class BackendModel {
   std::vector<BatchOutput> batch_outputs_;
   std::map<std::string, const BatchOutput*> batch_output_map_;
   std::set<std::string> ragged_inputs_;
+  std::set<std::string> optional_inputs_;
 
   // Does this model support batching in the first dimension.
   bool supports_batching_initialized_;
