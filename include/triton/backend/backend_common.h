@@ -598,4 +598,15 @@ TRITONSERVER_Error* TryParseModelStringParameter(
     triton::common::TritonJson::Value& params, const std::string& mkey,
     uint64_t* value, const uint64_t& default_value);
 
+/// Get a string representation of a tensor buffer.
+///
+/// \param str Returns the string.
+/// \param buffer The base pointer to the tensor buffer.
+/// \param buffer_byte_size The size of the buffer in bytes.
+/// \param datatype The type of the tensor
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error* BufferAsTypedString(
+    std::string& str, const char* buffer, size_t buffer_byte_size,
+    TRITONSERVER_DataType datatype);
+
 }}  // namespace triton::backend

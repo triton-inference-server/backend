@@ -1240,4 +1240,75 @@ TryParseModelStringParameter(
   }
 }
 
+namespace {
+
+template <typename T>
+TRITONSERVER_Error*
+BufferAsTypedString(
+    std::string& str, const char* buffer, const size_t element_cnt)
+{
+  const T* vals = reinterpret_cast<const T*>(buffer);
+
+  str += "[ ";
+  for (size_t i = 0; i < element_cnt; ++i) {
+    const T& v = vals[i];
+    if (i != 0) {
+      str += ", ";
+    }
+    str += std::to_string(v);
+  }
+
+  str += " ]";
+
+  return nullptr;  // success
+}
+
+}  // namespace
+
+
+TRITONSERVER_Error*
+BufferAsTypedString(
+    std::string& str, const char* buffer, size_t buffer_byte_size,
+    TRITONSERVER_DataType datatype)
+{
+  const size_t element_cnt =
+      buffer_byte_size / TRITONSERVER_DataTypeByteSize(datatype);
+
+  switch (datatype) {
+    case TRITONSERVER_TYPE_UINT8:
+      return BufferAsTypedString<uint8_t>(str, buffer, element_cnt);
+    case TRITONSERVER_TYPE_UINT16:
+      return BufferAsTypedString<uint16_t>(str, buffer, element_cnt);
+    case TRITONSERVER_TYPE_UINT32:
+      return BufferAsTypedString<uint32_t>(str, buffer, element_cnt);
+    case TRITONSERVER_TYPE_UINT64:
+      return BufferAsTypedString<uint64_t>(str, buffer, element_cnt);
+
+    case TRITONSERVER_TYPE_INT8:
+      return BufferAsTypedString<int8_t>(str, buffer, element_cnt);
+    case TRITONSERVER_TYPE_INT16:
+      return BufferAsTypedString<int16_t>(str, buffer, element_cnt);
+    case TRITONSERVER_TYPE_INT32:
+      return BufferAsTypedString<int32_t>(str, buffer, element_cnt);
+    case TRITONSERVER_TYPE_INT64:
+      return BufferAsTypedString<int64_t>(str, buffer, element_cnt);
+
+    case TRITONSERVER_TYPE_FP32:
+      return BufferAsTypedString<float>(str, buffer, element_cnt);
+    case TRITONSERVER_TYPE_FP64:
+      return BufferAsTypedString<double>(str, buffer, element_cnt);
+
+    default:
+      return TRITONSERVER_ErrorNew(
+          TRITONSERVER_ERROR_INVALID_ARG,
+          std::string(
+              std::string("class result not available for output due to "
+                          "unsupported type '") +
+              std::string(TRITONSERVER_DataTypeString(datatype)) + "'")
+              .c_str());
+  }
+
+  return nullptr;  // success
+}
+
 }}  // namespace triton::backend

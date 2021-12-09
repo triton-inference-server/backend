@@ -92,6 +92,7 @@ class BackendOutputResponder {
   ~BackendOutputResponder();
 
   // Process all responses for a named output tensor.
+  // 'batchn_shape' may be modified by the call.
   void ProcessTensor(
       const std::string& name, const TRITONSERVER_DataType datatype,
       std::vector<int64_t>& batchn_shape, const char* buffer,
@@ -101,6 +102,7 @@ class BackendOutputResponder {
   // TRITONBACKEND_State objects that the backend can use to update the state.
   // If TRITONBACKEND_StateUpdate is not called on the vector elements, the
   // state will not be updated.
+  // 'batchn_shape' may be modified by the call.
   std::vector<TRITONBACKEND_State*> ProcessStateTensor(
       const std::string& name, const TRITONSERVER_DataType datatype,
       std::vector<int64_t>& batchn_shape, const char* buffer,
