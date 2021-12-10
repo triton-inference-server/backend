@@ -33,7 +33,8 @@ namespace triton { namespace backend {
 //
 // BackendModel
 //
-BackendModel::BackendModel(TRITONBACKEND_Model* triton_model)
+BackendModel::BackendModel(
+    TRITONBACKEND_Model* triton_model, const bool allow_optional)
     : triton_model_(triton_model), supports_batching_initialized_(false),
       supports_batching_(false)
 {
@@ -120,16 +121,31 @@ BackendModel::BackendModel(TRITONBACKEND_Model* triton_model)
   for (size_t i = 0; i < config_inputs.ArraySize(); i++) {
     triton::common::TritonJson::Value io;
     THROW_IF_BACKEND_MODEL_ERROR(config_inputs.IndexAsObject(i, &io));
-    triton::common::TritonJson::Value allow_ragged_batch_json;
+    std::string io_name;
+    THROW_IF_BACKEND_MODEL_ERROR(io.MemberAsString("name", &io_name));
+    triton::common::TritonJson::Value input_property_json;
     bool allow_ragged_batch = false;
-    if (io.Find("allow_ragged_batch", &allow_ragged_batch_json)) {
+    if (io.Find("allow_ragged_batch", &input_property_json)) {
       THROW_IF_BACKEND_MODEL_ERROR(
-          allow_ragged_batch_json.AsBool(&allow_ragged_batch));
+          input_property_json.AsBool(&allow_ragged_batch));
     }
     if (allow_ragged_batch) {
-      std::string io_name;
-      THROW_IF_BACKEND_MODEL_ERROR(io.MemberAsString("name", &io_name));
       ragged_inputs_.emplace(io_name);
+    }
+    bool optional = false;
+    if (io.Find("optional", &input_property_json)) {
+      THROW_IF_BACKEND_MODEL_ERROR(input_property_json.AsBool(&optional));
+    }
+    if (optional) {
+      if (allow_optional) {
+        optional_inputs_.emplace(io_name);
+      } else {
+        THROW_IF_BACKEND_MODEL_ERROR(TRITONSERVER_ErrorNew(
+            TRITONSERVER_ERROR_INVALID_ARG,
+            (std::string("'optional' is set to true for input '") + io_name +
+             "' while the backend model doesn't support optional input")
+                .c_str()));
+      }
     }
   }
 }
