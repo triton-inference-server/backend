@@ -116,9 +116,6 @@ class BackendModel {
   std::set<std::string> ragged_inputs_;
   std::set<std::string> optional_inputs_;
 
-  // Does this model support batching in the first dimension.
-  bool supports_batching_initialized_;
-  bool supports_batching_;
 };
 
 //

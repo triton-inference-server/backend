@@ -35,8 +35,7 @@ namespace triton { namespace backend {
 //
 BackendModel::BackendModel(
     TRITONBACKEND_Model* triton_model, const bool allow_optional)
-    : triton_model_(triton_model), supports_batching_initialized_(false),
-      supports_batching_(false)
+    : triton_model_(triton_model)
 {
   TRITONSERVER_Message* config_message;
   THROW_IF_BACKEND_MODEL_ERROR(TRITONBACKEND_ModelConfig(
