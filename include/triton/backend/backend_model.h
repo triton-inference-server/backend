@@ -115,7 +115,6 @@ class BackendModel {
   std::map<std::string, const BatchOutput*> batch_output_map_;
   std::set<std::string> ragged_inputs_;
   std::set<std::string> optional_inputs_;
-
 };
 
 //
