@@ -153,7 +153,7 @@ BackendModel::BackendModel(
 bool
 BackendModel::SupportsFirstDimBatching()
 {
-  return (max_batch_size_ != 0);
+  return (max_batch_size_ > 0);
 }
 
 const BatchOutput*
