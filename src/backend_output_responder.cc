@@ -79,7 +79,7 @@ BackendOutputResponder::ProcessTensor(
     }
 
     // Override shape to be correct for this response.
-    if (max_batch_size_ != 0) {
+    if (first_dim_batching_) {
       TRITONBACKEND_Input* input;
       TRITONBACKEND_RequestInputByIndex(request, 0, &input);
       const int64_t* shape;
@@ -166,7 +166,7 @@ BackendOutputResponder::ProcessStateTensor(
     }
 
     // Override shape to be correct for this response.
-    if (max_batch_size_ != 0) {
+    if (first_dim_batching_) {
       TRITONBACKEND_Input* input;
       TRITONBACKEND_RequestInputByIndex(request, 0, &input);
       const int64_t* shape;
