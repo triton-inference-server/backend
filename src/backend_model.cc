@@ -149,10 +149,11 @@ BackendModel::BackendModel(
   }
 }
 
-bool
-BackendModel::SupportsFirstDimBatching()
+TRITONSERVER_Error*
+BackendModel::SupportsFirstDimBatching(bool* supports)
 {
-  return (max_batch_size_ > 0);
+  supports = max_batch_size_ > 0;
+  return nullptr;
 }
 
 const BatchOutput*
