@@ -52,13 +52,37 @@ class BackendOutputResponder {
   // instead of using 'stream'.
   explicit BackendOutputResponder(
       TRITONBACKEND_Request** requests, const uint32_t request_count,
+      std::vector<TRITONBACKEND_Response*>* responses,
+      TRITONBACKEND_MemoryManager* memory_manager,
+      const bool first_dim_batching, const bool pinned_enabled,
+      cudaStream_t stream, cudaEvent_t event = nullptr,
+      bool copy_on_stream = false)
+      : need_sync_(false), requests_(requests), request_count_(request_count),
+        responses_(responses), memory_manager_(memory_manager),
+        first_dim_batching_(first_dim_batching),
+        pinned_enabled_(pinned_enabled),
+        use_async_cpu_copy_(triton::common::AsyncWorkQueue::WorkerCount() > 1),
+        stream_(stream), event_(event), pending_pinned_byte_size_(0),
+        copy_on_stream_(copy_on_stream)
+  {
+  }
+
+  // Legacy constructor for backwards compatibility. The above
+  // constructor should be used for all new cases. The responder needs
+  // to know if the model is batching along the first dimension. With
+  // this constructor we derive that information from the
+  // max_batch_size value instead of having it provided directly as in
+  // the above constructor.
+  explicit BackendOutputResponder(
+      TRITONBACKEND_Request** requests, const uint32_t request_count,
       std::vector<TRITONBACKEND_Response*>* responses, const int max_batch_size,
       TRITONBACKEND_MemoryManager* memory_manager, const bool pinned_enabled,
       cudaStream_t stream, cudaEvent_t event = nullptr,
       bool copy_on_stream = false)
       : need_sync_(false), requests_(requests), request_count_(request_count),
-        responses_(responses), max_batch_size_(max_batch_size),
-        memory_manager_(memory_manager), pinned_enabled_(pinned_enabled),
+        responses_(responses), memory_manager_(memory_manager),
+        first_dim_batching_(max_batch_size >= 1),
+        pinned_enabled_(pinned_enabled),
         use_async_cpu_copy_(triton::common::AsyncWorkQueue::WorkerCount() > 1),
         stream_(stream), event_(event), pending_pinned_byte_size_(0),
         copy_on_stream_(copy_on_stream)
@@ -127,8 +151,8 @@ class BackendOutputResponder {
   TRITONBACKEND_Request** requests_;
   const uint32_t request_count_;
   std::vector<TRITONBACKEND_Response*>* responses_;
-  const int max_batch_size_;
   TRITONBACKEND_MemoryManager* memory_manager_;
+  const bool first_dim_batching_;
   const bool pinned_enabled_;
   const bool use_async_cpu_copy_;
   cudaStream_t stream_;
