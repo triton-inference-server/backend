@@ -1,0 +1,19 @@
+backend: "recommended"
+max_batch_size: 8
+dynamic_batching {
+  max_queue_delay_microseconds: 5000000
+}
+input [
+  {
+    name: "INPUT"
+    data_type: TYPE_FP32
+    dims: [ 4, 4 ]
+  }
+]
+output [
+  {
+    name: "OUTPUT"
+    data_type: TYPE_FP32
+    dims: [ 4, 4 ]
+  }
+]
