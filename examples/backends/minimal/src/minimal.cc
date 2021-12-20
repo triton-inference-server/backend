@@ -45,7 +45,7 @@ namespace triton { namespace backend { namespace minimal {
               TRITONBACKEND_ResponseSend(                                      \
                   response, TRITONSERVER_RESPONSE_COMPLETE_FINAL,              \
                   raarie_err__),                                               \
-              "failed to send ONNXRuntime backend response");                  \
+              "failed to send response");                                      \
           (RESPONSES)[r] = nullptr;                                            \
         }                                                                      \
         LOG_IF_ERROR(                                                          \
@@ -62,10 +62,10 @@ namespace triton { namespace backend { namespace minimal {
 
 //
 // Minimal backend that demonstrates the TRITONBACKEND API. This
-// backend works for any model that 1 input called "IN0" with INT32
-// datatype and shape [ 4 ] and 1 output called "OUT0" with INT32
-// datatype and shape [ 4 ]. The backend supports both batching and
-// non-batching models.
+// backend works for any model that has 1 input called "IN0" with
+// INT32 datatype and shape [ 4 ] and 1 output called "OUT0" with
+// INT32 datatype and shape [ 4 ]. The backend supports both batching
+// and non-batching models.
 //
 // For each batch of requests, the backend returns the input tensor
 // value in the output tensor.
@@ -441,7 +441,7 @@ TRITONBACKEND_ModelInstanceExecute(
       LOG_IF_ERROR(
           TRITONBACKEND_ResponseSend(
               response, TRITONSERVER_RESPONSE_COMPLETE_FINAL, nullptr),
-          "failed to send onnxruntime backend response");
+          "failed to send response");
     }
   }
 

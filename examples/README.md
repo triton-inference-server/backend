@@ -78,10 +78,16 @@ the concepts associated with Triton backend abstractions
 [TRITONBACKEND_Model](../README.md#tritonbackend-model), and
 [TRITONBACKEND_ModelInstance](../README.md#tritonbackend-modelinstance).
 
+The *minimal* backend does not do any interesting operation, it simply
+copies a single input tensor to a single output tensor, but it does
+demonstrate the basic organization required for a Triton backend.
+
 The *minimal* backend is complete but for clarity leaves out some
-important aspects of writing a full-featured backend. When creating
-your own backend use the [Recommended Triton
-Backend](#recommended-triton-backend) as a starting point.
+important aspects of writing a full-featured backend that are
+described in [Recommended Triton
+Backend](#recommended-triton-backend). When creating your own backend
+use the [Recommended Triton Backend](#recommended-triton-backend) as a
+starting point.
 
 #### Building the Backend
 
