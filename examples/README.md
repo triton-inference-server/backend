@@ -391,13 +391,67 @@ $ curl localhost:8000/v2/models/batching/stats
 
 ### Enhancements
 
-Description of following enhancements is under construction.
+This section describes several optional features that you can add to
+enhance the capabilities of your backend.
 
-* Automatically generate model configuration.
+#### Automatically Model Configuration Generation
 
-* Demonstrates how to return key-value parameters in a response as a
-  way to include arbitrary, non-tensor information in a response.
+[Automatic model configuration
+generation](https://github.com/triton-inference-server/server/blob/main/docs/model_configuration.md#auto-generated-model-configuration)
+is enabled by the backend implementing the appropriate logic (for
+example, in a function called AutoCompleteConfig) during
+TRITONBACKEND_ModelInitialize. For the *recommended* backend you would
+add a call to AutoCompleteConfig in the ModelState constructor just
+before the call to ValidateModelConfig. The AutoCompleteConfig
+function can update the model configuration with input tensor, output
+tensor, and max-batch-size configuration; and then update the
+configuration using TRITONBACKEND_ModelSetConfig. Examples can be
+found in [ONNXRuntime
+backend](https://github.com/triton-inference-server/onnxruntime_backend),
+[TensorFlow
+backend](https://github.com/triton-inference-server/tensorflow_backend)
+and other backends.
 
-* Access model artifacts from the model repository.
+#### Add Key-Value Parameters to a Response
 
-* Support GPUs.
+A backend can add a key-value pair to a response any time after the
+response is created and before it is sent. The parameter key must be a
+string and the parameter value can be a string, integer or
+boolean. The following example shows the TRITONBACKEND API used to set
+response parameters. Error checking code is not shown to improve
+clarity.
+
+```
+TRITONBACKEND_ResponseSetStringParameter(response, "param0", "an example string parameter");
+TRITONBACKEND_ResponseSetIntParameter(responses[r], "param1", 42);
+TRITONBACKEND_ResponseSetBoolParameter(responses[r], "param2", false);
+```
+
+#### Access Model Artifacts in the Model Repository
+
+A backend can access any of the files in a model's area of the model
+registry. These files are typically needed during
+TRITONBACKEND_ModelInitialize but can be accessed at other times as
+well. The TRITONBACKEND_ModelRepository API gives the location of the
+model's repository. For example, the following code can be run during
+TRITONBACKEND_ModelInitialize to write the location to the log.
+
+```
+// Can get location of the model artifacts. Normally we would need
+// to check the artifact type to make sure it was something we can
+// handle... but we are just going to log the location so we don't
+// need the check. We would use the location if we wanted to load
+// something from the model's repo.
+TRITONBACKEND_ArtifactType artifact_type;
+const char* clocation;
+RETURN_IF_ERROR(
+    TRITONBACKEND_ModelRepository(model, &artifact_type, &clocation));
+LOG_MESSAGE(
+    TRITONSERVER_LOG_INFO,
+    (std::string("Repository location: ") + clocation).c_str());
+```
+
+The framework backends (for example, TensorRT, ONNXRuntime,
+TensorFlow, PyTorch) read the actual model file from the model
+repository using this API. See those backends for examples of how it
+can be used.
