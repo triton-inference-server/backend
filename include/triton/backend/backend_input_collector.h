@@ -79,15 +79,12 @@ class BackendInputCollector {
 
   ~BackendInputCollector() = default;
 
-  // Process all requests for a named input tensor.
-  void ProcessTensor(
-      const char* input_name, char* buffer, const size_t buffer_byte_size,
-      const TRITONSERVER_MemoryType memory_type, const int64_t memory_type_id);
-
-  // Process all requests for a named input tensor and returns the contiguous
-  // buffer of the input tensor. This overload of the function can avoid data
-  // copy if the input buffer is already contiguous and the caller doesn't
-  // provide a designated buffer.
+  // Process all requests for a named input tensor and return the
+  // concatenated values of those requests in a single contiguous
+  // buffer. This overload of the function can avoid data copy if the
+  // tensor values are already contiguous and the caller doesn't
+  // provide a destination 'buffer'.
+  //
   // 'buffer' is used to determine whether the input should be placed at the
   //   'buffer' provided by the caller. If 'buffer' == nullptr, the returned
   //   buffer will be managed by the BackendInputCollector object and
@@ -95,8 +92,9 @@ class BackendInputCollector {
   // 'buffer_byte_size' is the byte size of 'buffer' if it is not nullptr.
   // 'allowed_input_types' is the ordered list of the memory type and id pairs
   //   that the returned buffer can be. It must only contain the memory type
-  //   and id of 'buffer' if it is not nullptr.
+  //   and id of 'buffer' if 'buffer' is not nullptr.
   // 'dst_buffer' returns the contiguous buffer of the input tensor.
+  // 'dst_buffer_byte_size' the byte size of 'dst_buffer'.
   // 'dst_memory_type' returns the memory type of 'dst_buffer'.
   // 'dst_memory_type_id' returns the memory type id of 'dst_buffer'.
   TRITONSERVER_Error* ProcessTensor(
@@ -105,6 +103,19 @@ class BackendInputCollector {
           allowed_input_types,
       const char** dst_buffer, size_t* dst_buffer_byte_size,
       TRITONSERVER_MemoryType* dst_memory_type, int64_t* dst_memory_type_id);
+
+  // Process all requests for a named input tensor and return the
+  // concatenated values of those requests in a single contiguous
+  // 'buffer'.
+  //
+  // 'buffer' The buffer to hold the concatenates tensor value. Must
+  // be large enough to hold all tensor value.
+  // 'buffer_byte_size' is the byte size of 'buffer'.
+  // 'dst_memory_type' The memory type of 'buffer'.
+  // 'dst_memory_type_id' The memory type id of 'buffer'.
+  void ProcessTensor(
+      const char* input_name, char* buffer, const size_t buffer_byte_size,
+      const TRITONSERVER_MemoryType memory_type, const int64_t memory_type_id);
 
   // Process the batch input and return its shape. Returning error indicates
   // that the batch input can't be formed properly and the caller should abort
@@ -136,8 +147,8 @@ class BackendInputCollector {
 
   // Finalize processing of all requests for all input tensors. Return
   // true if cudaMemcpyAsync is called, and the caller should call
-  // should call cudaStreamSynchronize (or cudaEventSynchronize on 'event')
-  // before using the data.
+  // cudaStreamSynchronize (or cudaEventSynchronize on 'event') before
+  // using the data.
   bool Finalize();
 
  private:

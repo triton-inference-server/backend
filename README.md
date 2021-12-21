@@ -1,5 +1,5 @@
 <!--
-# Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
+# Copyright 2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -62,10 +62,7 @@ page](https://github.com/triton-inference-server/server/issues).
 Anyone can develop a Triton backend, so it isn't possible for us to
 know about all available backends. But the Triton project does provide
 a set of supported backends that are tested and updated with each
-Triton release. Eventually the source code and documentation for each
-of these backends will reside in its own repo. But currently, as
-noted, some reside in the main
-[server](https://github.com/triton-inference-server/server) repo.
+Triton release.
 
 **TensorRT**: The TensorRT backend is used to execute TensorRT
 models. The
@@ -78,7 +75,8 @@ models. The
 repo contains the documentation and source for the backend.
 
 **TensorFlow**: The TensorFlow backend is used to execute TensorFlow
-models in both GraphDef and SavedModel formats.. The
+models in both GraphDef and SavedModel formats. The same backend is
+used to execute both TensorFlow 1 and TensorFlow 2 models. The
 [tensorflow_backend](https://github.com/triton-inference-server/tensorflow_backend)
 repo contains the documentation and source for the backend.
 
@@ -103,9 +101,9 @@ repo contains the documentation and source for the backend.
 
 **DALI**: [DALI](https://github.com/NVIDIA/DALI) is a collection of
 highly optimized building blocks and an execution engine that
-accelerate the pre-processing of the input data for deep learning
+accelerates the pre-processing of the input data for deep learning
 applications. The DALI backend allows you to execute your DALI
-pipeline within Triton.  The
+pipeline within Triton. The
 [dali_backend](https://github.com/triton-inference-server/dali_backend)
 repo contains the documentation and source for the backend.
 
@@ -117,19 +115,15 @@ random forest models. The
 [fil_backend](https://github.com/triton-inference-server/fil_backend) repo
 contains the documentation and source for the backend.
 
-The Triton project also maintains a number of simple, example backends
-that are useful for testing and for understanding how backends
-work. The example backends are described in [Example
-Backends](#example-backends).
-
 ### How can I develop my own Triton backend?
 
 First you probably want to ask on the main Triton [issues
 page](https://github.com/triton-inference-server/server/issues) to
-make sure you are not duplicating a backend that already exists. Next
-read about [building the backend
-utilities](#build-the-backend-utilities) and then the complete
-documentation on [Triton backends](#backends).
+make sure you are not duplicating a backend that already exists. Then
+follow the [tutorial](examples/README.md) to learn how to create your
+first simple Triton backend and incrementally improve it to add more
+features. You should also read the complete documentation on [Triton
+backends](#backends).
 
 ### Can I add (or remove) a backend to an existing Triton installation?
 
@@ -143,42 +137,9 @@ are in /opt/tritonserver/backends.
 
 ### What about backends developed using the "legacy custom backend" API.
 
-As of release 21.02 the legacy custom API is deprecated and will soon
-be removed. If you have custom backends that you developed using this
-older, deprecated API you should port them to the new [Triton Backend
-API](#triton-backend-api). Support for the legacy API will be remove
-completely in an upcoming release.
-
-## Build the Backend Utilities
-
-The source in this repo builds into a single "backend utilities"
-library that is useful when building backends. You don't need to use
-these utilities but they will be helpful for most backends.
-
-Typically you don't need to build this repo directly but instead you
-can include it in the build of your backend as is shown in
-[CMakeLists.txt](https://github.com/triton-inference-server/identity_backend/blob/main/CMakeLists.txt)
-of the [example 'identity'
-backend](https://github.com/triton-inference-server/identity_backend).
-
-To build and install in a local directory use a recent cmake and the
-following commands.
-
-```
-$ mkdir build
-$ cd build
-$ cmake -DCMAKE_INSTALL_PREFIX:PATH=`pwd`/install ..
-$ make install
-```
-
-The following required Triton repositories will be pulled and used in
-the build. By default the "main" branch/tag will be used for each repo
-but the listed CMake argument can be used to override.
-
-* triton-inference-server/common: -DTRITON_COMMON_REPO_TAG=[tag]
-* triton-inference-server/core: -DTRITON_CORE_REPO_TAG=[tag]
-
-See the [CMakeLists.txt](CMakeLists.txt) file for other build options.
+The legacy custom API is removed from Triton. If you have custom
+backends that you developed using this older API you must port them to
+the new [Triton Backend API](#triton-backend-api).
 
 ## Backends
 
@@ -218,8 +179,8 @@ the shared library must be *libtriton_\<backend-name\>.so*. For
 example, if the name of the backend is "mybackend", a model indicates
 that it uses the backend by setting the model configuration 'backend'
 setting to "mybackend", and Triton looks for *libtriton_mybackend.so*
-as the shared library that implements the backend. The [example
-backends](#example-backends) show examples of how to build your
+as the shared library that implements the backend. The
+[tutorial](examples/README.md) shows examples of how to build your
 backend logic into the appropriate shared library.
 
 For a model, *M* that specifies backend *B*, Triton searches for the
@@ -238,7 +199,9 @@ to override the default.
 Typically you will install your backend into the global backend
 directory. For example, if using Triton Docker images you can follow
 the instructions in [Triton with Unsupported and Custom
-Backends](https://github.com/triton-inference-server/server/blob/main/docs/compose.md#triton-with-unsupported-and-custom-backends). Continuing the example of a backend names "mybackend", you would install into the Triton image as:
+Backends](https://github.com/triton-inference-server/server/blob/main/docs/compose.md#triton-with-unsupported-and-custom-backends). Continuing
+the example of a backend names "mybackend", you would install into the
+Triton image as:
 
 ```
 /opt/
@@ -294,7 +257,7 @@ functions with a different thread for each model. As a result, the
 backend must be able to handle multiple simultaneous calls to the
 functions. Best practice for backend implementations is to use only
 function-local and model-specific user-defined state in these
-functions, as is shown in the [example backends](#example-backends).
+functions, as is shown in the [tutorial](examples/README.md).
 
 #### TRITONBACKEND_ModelInstance
 
@@ -325,7 +288,7 @@ different thread for each model instance. As a result, the backend
 must be able to handle multiple simultaneous calls to the
 functions. Best practice for backend implementations is to use only
 function-local and model-specific user-defined state in these
-functions, as is shown in the [example backends](#example-backends).
+functions, as is shown in the [tutorial](examples/README.md).
 
 #### TRITONBACKEND_Request
 
@@ -489,30 +452,33 @@ request or not send any responses for a request. A backend may also
 send responses out-of-order relative to the order that the request
 batches are executed. Backends and models that operate in this way are
 referred to as *decoupled* backends and models, and are typically much
-more difficult to implement. The [repeat example](#example-backends)
+more difficult to implement. The [repeat example](examples/README.md)
 shows a simplified implementation of a decoupled backend.
 
-### Example Backends
+## Build the Backend Utilities
 
-Triton provides a couple of example backends that demonstrate the
-backend API. These examples are implemented to illustrate the backend
-API and not for performance; and so should not necessarily be used as
-the baseline for a high-performance backend.
+The source in this repo builds into a single "backend utilities"
+library that is useful when building backends. You don't need to use
+these utilities but they will be helpful for most backends.
 
-* The
-[*identity*](https://github.com/triton-inference-server/identity_backend)
-backend is a simple example backend that uses and explains most of the
-Triton Backend API.
+Typically you don't need to build this repo directly but instead you
+can include it in the build of your backend as is shown in the
+CMakeLists.txt files of the [tutorial examples](examples/README.md).
 
-* The
-[*repeat*](https://github.com/triton-inference-server/repeat_backend)
-backend shows a more advanced example of how a backend can produce
-multiple responses per request.
+To build and install in a local directory use the following commands.
 
-* The
-[*stateful*](https://github.com/triton-inference-server/stateful_backend)
-backend shows an example of how a backend can manage model state 
-tensors on the server-side for the 
-[sequence batcher](https://github.com/triton-inference-server/server/blob/main/docs/model_configuration.md#sequence-batcher)
-to avoid transferring state tensors between client and server.
+```
+$ mkdir build
+$ cd build
+$ cmake -DCMAKE_INSTALL_PREFIX:PATH=`pwd`/install ..
+$ make install
+```
 
+The following required Triton repositories will be pulled and used in
+the build. By default the "main" branch/tag will be used for each repo
+but the listed CMake argument can be used to override.
+
+* triton-inference-server/common: -DTRITON_COMMON_REPO_TAG=[tag]
+* triton-inference-server/core: -DTRITON_CORE_REPO_TAG=[tag]
+
+See the [CMakeLists.txt](CMakeLists.txt) file for other build options.

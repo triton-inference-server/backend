@@ -1,0 +1,19 @@
+backend: "minimal"
+max_batch_size: 8
+dynamic_batching {
+  max_queue_delay_microseconds: 5000000
+}
+input [
+  {
+    name: "IN0"
+    data_type: TYPE_INT32
+    dims: [ 4 ]
+  }
+]
+output [
+  {
+    name: "OUT0"
+    data_type: TYPE_INT32
+    dims: [ 4 ]
+  }
+]
