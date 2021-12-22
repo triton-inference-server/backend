@@ -156,6 +156,25 @@ namespace triton { namespace backend {
     }                                                                    \
   } while (false)
 
+#define RESPOND_ALL_AND_SET_TRUE_IF_ERROR(RESPONSES, RESPONSES_COUNT, BOOL, X) \
+  do {                                                                         \
+    TRITONSERVER_Error* raasnie_err__ = (X);                                   \
+    if (raasnie_err__ != nullptr) {                                            \
+      BOOL = true;                                                             \
+      for (size_t ridx = 0; ridx < RESPONSES_COUNT; ++ridx) {                  \
+        if (RESPONSES[ridx] != nullptr) {                                      \
+          LOG_IF_ERROR(                                                        \
+              TRITONBACKEND_ResponseSend(                                      \
+                  RESPONSES[ridx], TRITONSERVER_RESPONSE_COMPLETE_FINAL,       \
+                  raasnie_err__),                                              \
+              "failed to send error response");                                \
+          RESPONSES[ridx] = nullptr;                                           \
+        }                                                                      \
+      }                                                                        \
+      TRITONSERVER_ErrorDelete(raasnie_err__);                                 \
+    }                                                                          \
+  } while (false)
+
 #ifdef TRITON_ENABLE_STATS
 #define TIMESPEC_TO_NANOS(TS) ((TS).tv_sec * 1000000000 + (TS).tv_nsec)
 #define SET_TIMESTAMP(TS_NS)                                         \
