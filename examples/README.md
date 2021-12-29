@@ -136,8 +136,7 @@ in [Backend Shared Library](../README.md#backend-shared-library), you
 can run Triton and have it load the models in
 [model_repos/minimal_models](model_repos/minimal_models). Assuming you
 have created a *tritonserver* Docker image by adding the *minimal*
-backend to Triton, the following command will run Triton:at the cmd
-prompt inside your Triton Docker container:
+backend to Triton, the following command will run Triton:
 
 ```
 $ docker run --rm -it --net=host -v/path/to/model_repos/minimal_models:/models tritonserver --model-repository=/models
@@ -279,7 +278,7 @@ have it load the models in
 [model_repos/recommended_models](model_repos/recommended_models). Assuming
 you have created a *tritonserver* Docker image by adding the
 *recommended* backend to Triton, the following command will run
-Triton:at the cmd prompt inside your Triton Docker container:
+Triton:
 
 ```
 $ docker run --rm -it --net=host -v/path/to/model_repos/recommended_models:/models tritonserver --model-repository=/models
