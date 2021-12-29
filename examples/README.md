@@ -61,11 +61,11 @@ large number of features. The backend utilities and classes provide
 many functions commonly used when creating a backend. But to create a
 functional backend it is not necessary to use most of the backend API
 or utilities. The tutorial starts with an implementation that shows a
-minimal backend and then adds on recommended and optional
+*minimal* backend and then adds on recommended and optional
 enhancements. The tutorial implementations follow best practices for
 Triton backends and so can be used as templates for your own backend.
 
-### Minimal Triton Backend
+### *Minimal* Triton Backend
 
 The source code for the *minimal* backend is contained in
 [minimal.cc](backends/minimal/src/minimal.cc). The source code
@@ -84,16 +84,16 @@ demonstrate the basic organization required for a Triton backend.
 
 The *minimal* backend is complete but for clarity leaves out some
 important aspects of writing a full-featured backend that are
-described in [Recommended Triton
+described in [*Recommended* Triton
 Backend](#recommended-triton-backend). When creating your own backend
-use the [Recommended Triton Backend](#recommended-triton-backend) as a
-starting point.
+use the [*Recommended* Triton Backend](#recommended-triton-backend) as
+a starting point.
 
-#### Building the Backend
+#### Building the *Minimal* Backend
 
 [backends/minimal/CMakeLists.txt](backends/minimal/CMakeLists.txt)
 shows the recommended build and install script for a Triton
-backend. To build the minimal backend and install in a local directory
+backend. To build the *minimal* backend and install in a local directory
 use the following commands.
 
 ```
@@ -125,11 +125,11 @@ the following additional cmake flags:
 ```
 
 After building the install directory will contain a backends/minimal
-directory that contains the minimal backend. Instructions for adding
+directory that contains the *minimal* backend. Instructions for adding
 this backend to the Triton server are described in [Backend Shared
 Library](../README.md#backend-shared-library).
 
-#### Running Triton with the Minimal Backend
+#### Running Triton with the *Minimal* Backend
 
 After adding the *minimal* backend to the Triton server as described
 in [Backend Shared Library](../README.md#backend-shared-library), you
@@ -168,12 +168,12 @@ delay](https://github.com/triton-inference-server/server/blob/main/docs/model_co
 to 5 seconds so that the example client described below can
 demonstrate how the *minimal* backend receives a batch of requests.
 
-#### Testing the Backend
+#### Testing the *Minimal* Backend
 
 The [clients](clients) directory holds example clients. The
 [minimal_client](clients/minimal_client) Python script demonstrates
 sending a couple of inference requests to the *minimal* backend. With
-Triton running as described in [Running Triton with the Minimal
+Triton running as described in [Running Triton with the *Minimal*
 Backend](#running-triton-with-the-minimal-backend), execute the
 client:
 
@@ -197,8 +197,8 @@ the *minimal* backend that indicates that it received a batch
 containing the single request.
 
 ```
-I1216 23:34:28.779692 417 minimal.cc:378] model nonbatching: requests in batch 1
-I1216 23:34:28.779713 417 minimal.cc:386] batched IN0 value: [ 1, 2, 3, 4 ]
+I1221 18:14:12.964836 86 minimal.cc:348] model nonbatching: requests in batch 1
+I1221 18:14:12.964857 86 minimal.cc:356] batched IN0 value: [ 1, 2, 3, 4 ]
 ```
 
 The minimal_client next sends 2 requests at the same time to the
@@ -219,14 +219,239 @@ In the Triton console output you can see the log message indicating
 that the *minimal* backend received a batch containing both requests.
 
 ```
-I1216 23:39:46.479728 460 minimal.cc:376] model batching: requests in batch 2
-I1216 23:39:46.479770 460 minimal.cc:384] batched IN0 value: [ 10, 11, 12, 13, 20, 21, 22, 23 ]
+I1221 18:14:17.965982 86 minimal.cc:348] model batching: requests in batch 2
+I1221 18:14:17.966035 86 minimal.cc:356] batched IN0 value: [ 10, 11, 12, 13, 20, 21, 22, 23 ]
 ```
 
-### Recommended Triton Backend
+### *Recommended* Triton Backend
 
-Under construction.
+The source code for the *recommended* backend is contained in
+[recommended.cc](backends/recommended/src/recommended.cc). The source
+code contains extensive documentation describing the operation of the
+backend and the use of the [Triton Backend
+API](../README.md#triton-backend-api) and the backend
+utilities. Before reading the source code, make sure you understand
+the concepts associated with Triton backend abstractions
+[TRITONBACKEND_Backend](../README.md#tritonbackend-backend),
+[TRITONBACKEND_Model](../README.md#tritonbackend-model), and
+[TRITONBACKEND_ModelInstance](../README.md#tritonbackend-modelinstance).
+
+The *recommended* backend improves the [*minimal*
+backend](#minimal-triton-backend) to include the following features
+which should be present in any robust backend implementation:
+
+* Enhances the backend to support models with input/output tensors
+  that have datatypes other than INT32.
+
+* Enhances the backend to support models with input/output tensors
+  that have any shape.
+
+* Uses the Triton backend metric APIs to record statistics about
+  requests executing in the backend. These metrics can then we queried
+  using the Triton
+  [metrics](https://github.com/triton-inference-server/server/blob/main/docs/metrics.md)
+  and
+  [statistics](https://github.com/triton-inference-server/server/blob/main/docs/protocol/extension_statistics.md)
+  APIs.
+
+* Additional error checking to ensure that the backend's version is
+  compatible with Triton and that each model's configuration is
+  compatible with the backend.
+
+As with the *minimal* backend, the *recommended* backend just returns
+the input tensor value in the output tensor. Because of the additions
+described above, the *recommended* backend can serve as a starting
+point for your backend.
+
+#### Building the *Recommended* Backend
+
+[backends/recommended/CMakeLists.txt](backends/recommended/CMakeLists.txt)
+shows the recommended build and install script for a Triton
+backend. Building and installing is the same as decribed in [Building
+the *Minimal* Backend](#building-the-minimal-backend).
+
+#### Running Triton with the *Recommended* Backend
+
+After adding the *recommended* backend to the Triton server as
+described in [Backend Shared
+Library](../README.md#backend-shared-library), you can run Triton and
+have it load the models in
+[model_repos/recommended_models](model_repos/recommended_models). Assuming
+you have created a *tritonserver* Docker image by adding the
+*recommended* backend to Triton, the following command will run
+Triton:at the cmd prompt inside your Triton Docker container:
+
+```
+$ docker run --rm -it --net=host -v/path/to/model_repos/recommended_models:/models tritonserver --model-repository=/models
+```
+
+The console output will show similar to the following indicating that
+the *batching* model from the recommended_models repository have
+loaded correctly.
+
+```
+I1215 23:46:00.250284 68 server.cc:589]
++-------------+---------+--------+
+| Model       | Version | Status |
++-------------+---------+--------+
+| batching    | 1       | READY  |
++-------------+---------+--------+
+```
+
+#### Testing the *Recommended* Backend
+
+The [clients](clients) directory holds example clients. The
+[recommended_client](clients/recommended_client) Python script
+demonstrates sending a couple of inference requests to the
+*recommended* backend. With Triton running as described in [Running
+Triton with the *Recommended*
+Backend](#running-triton-with-the-recommended-backend), execute the
+client:
+
+```
+$ clients/recommended_client
+```
+
+The recommended_client next sends 2 requests at the same time to the
+batching model, similar to what was done above with the *minimal*
+backend. Triton will dynamically batch those requests into a single
+batch and send that single batch to the *recommended* backend. In this
+model, batching is supported, the datatype is FP32 and the tensor
+shape is [ -1, 4, 4 ].
+
+```
+=========
+Sending request to batching model: input = [[[1.  1.1 1.2 1.3]
+  [2.  2.1 2.2 2.3]
+  [3.  3.1 3.2 3.3]
+  [4.  4.1 4.2 4.3]]]
+Sending request to batching model: input = [[[10.  10.1 10.2 10.3]
+  [20.  20.1 20.2 20.3]
+  [30.  30.1 30.2 30.3]
+  [40.  40.1 40.2 40.3]]]
+Response: {'model_name': 'batching', 'model_version': '1', 'outputs': [{'name': 'OUTPUT', 'datatype': 'FP32', 'shape': [1, 4, 4], 'parameters': {'binary_data_size': 64}}]}
+OUTPUT = [[[1.  1.1 1.2 1.3]
+  [2.  2.1 2.2 2.3]
+  [3.  3.1 3.2 3.3]
+  [4.  4.1 4.2 4.3]]]
+Response: {'model_name': 'batching', 'model_version': '1', 'outputs': [{'name': 'OUTPUT', 'datatype': 'FP32', 'shape': [1, 4, 4], 'parameters': {'binary_data_size': 64}}]}
+OUTPUT = [[[10.  10.1 10.2 10.3]
+  [20.  20.1 20.2 20.3]
+  [30.  30.1 30.2 30.3]
+  [40.  40.1 40.2 40.3]]]
+```
+
+In the Triton console output you can see the log message indicating
+that the *recommended* backend received a batch containing both
+requests.
+
+```
+I1221 18:30:52.223226 127 recommended.cc:604] model batching: requests in batch 2
+I1221 18:30:52.223313 127 recommended.cc:613] batched INPUT value: [ 1.000000, 1.100000, 1.200000, 1.300000, 2.000000, 2.100000, 2.200000, 2.300000, 3.000000, 3.100000, 3.200000, 3.300000, 4.000000, 4.100000, 4.200000, 4.300000, 10.000000, 10.100000, 10.200000, 10.300000, 20.000000, 20.100000, 20.200001, 20.299999, 30.000000, 30.100000, 30.200001, 30.299999, 40.000000, 40.099998, 40.200001, 40.299999 ]
+```
+
+Because the *recommended* backend can support models that have
+input/output tensors with any datatype and shape, you can edit the
+model configuration and the client to experiment with these options.
+
+To see the metrics collected for these two inference requests, use the following command to access Triton's metrics endpoint.
+
+```
+$ curl localhost:8002/metrics
+```
+
+The output will be metric values in Prometheus data format. The
+[metrics
+documentation](https://github.com/triton-inference-server/server/blob/main/docs/metrics.md)
+gives a description of these metric values.
+
+```
+# HELP nv_inference_request_success Number of successful inference requests, all batch sizes
+# TYPE nv_inference_request_success counter
+nv_inference_request_success{model="batching",version="1"} 2.000000
+# HELP nv_inference_request_failure Number of failed inference requests, all batch sizes
+# TYPE nv_inference_request_failure counter
+nv_inference_request_failure{model="batching",version="1"} 0.000000
+# HELP nv_inference_count Number of inferences performed
+# TYPE nv_inference_count counter
+nv_inference_count{model="batching",version="1"} 2.000000
+# HELP nv_inference_exec_count Number of model executions performed
+# TYPE nv_inference_exec_count counter
+nv_inference_exec_count{model="batching",version="1"} 1.000000
+...
+```
+
+You can also see the collected statistics using the [statistics
+endpoint](https://github.com/triton-inference-server/server/blob/main/docs/protocol/extension_statistics.md).
+
+```
+$ curl localhost:8000/v2/models/batching/stats
+{"model_stats":[{"name":"batching","version":"1","last_inference":1640111452223,"inference_count":2,"execution_count":1,"inference_stats":{"success":{"count":2,"ns":9997025869},"fail":{"count":0,"ns":0},"queue":{"count":2,"ns":9996491319},"compute_input":{"count":2,"ns":95288},"compute_infer":{"count":2,"ns":232202},"compute_output":{"count":2,"ns":195850}},"batch_stats":[{"batch_size":2,"compute_input":{"count":1,"ns":47644},"compute_infer":{"count":1,"ns":116101},"compute_output":{"count":1,"ns":97925}}]}]}
+```
 
 ### Enhancements
 
-Under construction.
+This section describes several optional features that you can add to
+enhance the capabilities of your backend.
+
+#### Automatically Model Configuration Generation
+
+[Automatic model configuration
+generation](https://github.com/triton-inference-server/server/blob/main/docs/model_configuration.md#auto-generated-model-configuration)
+is enabled by the backend implementing the appropriate logic (for
+example, in a function called AutoCompleteConfig) during
+TRITONBACKEND_ModelInitialize. For the *recommended* backend you would
+add a call to AutoCompleteConfig in the ModelState constructor just
+before the call to ValidateModelConfig. The AutoCompleteConfig
+function can update the model configuration with input tensor, output
+tensor, and max-batch-size configuration; and then update the
+configuration using TRITONBACKEND_ModelSetConfig. Examples can be
+found in [ONNXRuntime
+backend](https://github.com/triton-inference-server/onnxruntime_backend),
+[TensorFlow
+backend](https://github.com/triton-inference-server/tensorflow_backend)
+and other backends.
+
+#### Add Key-Value Parameters to a Response
+
+A backend can add a key-value pair to a response any time after the
+response is created and before it is sent. The parameter key must be a
+string and the parameter value can be a string, integer or
+boolean. The following example shows the TRITONBACKEND API used to set
+response parameters. Error checking code is not shown to improve
+clarity.
+
+```
+TRITONBACKEND_ResponseSetStringParameter(response, "param0", "an example string parameter");
+TRITONBACKEND_ResponseSetIntParameter(responses[r], "param1", 42);
+TRITONBACKEND_ResponseSetBoolParameter(responses[r], "param2", false);
+```
+
+#### Access Model Artifacts in the Model Repository
+
+A backend can access any of the files in a model's area of the model
+registry. These files are typically needed during
+TRITONBACKEND_ModelInitialize but can be accessed at other times as
+well. The TRITONBACKEND_ModelRepository API gives the location of the
+model's repository. For example, the following code can be run during
+TRITONBACKEND_ModelInitialize to write the location to the log.
+
+```
+// Can get location of the model artifacts. Normally we would need
+// to check the artifact type to make sure it was something we can
+// handle... but we are just going to log the location so we don't
+// need the check. We would use the location if we wanted to load
+// something from the model's repo.
+TRITONBACKEND_ArtifactType artifact_type;
+const char* clocation;
+RETURN_IF_ERROR(
+    TRITONBACKEND_ModelRepository(model, &artifact_type, &clocation));
+LOG_MESSAGE(
+    TRITONSERVER_LOG_INFO,
+    (std::string("Repository location: ") + clocation).c_str());
+```
+
+The framework backends (for example, TensorRT, ONNXRuntime,
+TensorFlow, PyTorch) read the actual model file from the model
+repository using this API. See those backends for examples of how it
+can be used.
