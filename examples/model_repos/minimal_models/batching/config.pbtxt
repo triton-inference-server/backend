@@ -17,3 +17,8 @@ output [
     dims: [ 4 ]
   }
 ]
+instance_group [
+  {
+    kind: KIND_CPU
+  }
+]
