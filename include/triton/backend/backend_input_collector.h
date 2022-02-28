@@ -218,6 +218,10 @@ class BackendInputCollector {
   TRITONSERVER_Error* SetAccumulatedElementCount(
       const std::string& source_input, char* buffer,
       const size_t buffer_byte_size);
+  template <typename T>
+  TRITONSERVER_Error* SetBatchItemShape(
+      const std::string& source_input, char* buffer,
+      const size_t buffer_byte_size);
 
   bool need_sync_;
   TRITONBACKEND_Request** requests_;

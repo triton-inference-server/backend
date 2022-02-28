@@ -1029,6 +1029,10 @@ BatchInput::ParseFromModelConfig(
         batch_input.kind_ = Kind::BATCH_ACCUMULATED_ELEMENT_COUNT_WITH_ZERO;
       } else if (bi_kind == "BATCH_MAX_ELEMENT_COUNT_AS_SHAPE") {
         batch_input.kind_ = Kind::BATCH_MAX_ELEMENT_COUNT_AS_SHAPE;
+      } else if (bi_kind == "BATCH_ITEM_SHAPE") {
+        batch_input.kind_ = Kind::BATCH_ITEM_SHAPE;
+      } else if (bi_kind == "BATCH_ITEM_SHAPE_FLATTEN") {
+        batch_input.kind_ = Kind::BATCH_ITEM_SHAPE_FLATTEN;
       } else {
         RETURN_ERROR_IF_FALSE(
             false, TRITONSERVER_ERROR_INVALID_ARG,
