@@ -1,4 +1,4 @@
-// Copyright 2019-2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -964,13 +964,11 @@ BackendInputCollector::ProcessBatchInput(
       if (data_type == TRITONSERVER_TYPE_FP32) {
         *reinterpret_cast<float*>(input_buffer) = 0;
         RETURN_IF_ERROR(SetBatchItemShape<float>(
-            source_input, input_buffer + sizeof(float),
-            *dst_buffer_byte_size - sizeof(float)));
+            source_input, input_buffer, *dst_buffer_byte_size));
       } else {
         *reinterpret_cast<int32_t*>(input_buffer) = 0;
         RETURN_IF_ERROR(SetBatchItemShape<int32_t>(
-            source_input, input_buffer + sizeof(int32_t),
-            *dst_buffer_byte_size - sizeof(int32_t)));
+            source_input, input_buffer, *dst_buffer_byte_size));
       }
       break;
     }
