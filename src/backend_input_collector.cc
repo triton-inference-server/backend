@@ -788,7 +788,6 @@ BackendInputCollector::BatchInputShape(
       break;
     }
     case BatchInput::Kind::BATCH_ITEM_SHAPE_FLATTEN: {
-      shape->emplace_back(0);
       const auto& source_input = batch_input.SourceInputs()[0];
       for (size_t req_idx = 0; req_idx < request_count_; req_idx++) {
         TRITONBACKEND_Input* input;
