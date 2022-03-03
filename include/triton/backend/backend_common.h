@@ -222,6 +222,7 @@ class BatchInput {
   const std::vector<std::string>& TargetNames() const { return target_names_; }
   TRITONSERVER_DataType DataType() const { return data_type_; }
   Kind BatchInputKind() const { return kind_; }
+  std::string BatchInputKindString() const { return kind_str_; }
   const std::vector<std::string>& SourceInputs() const
   {
     return source_inputs_;
@@ -229,6 +230,7 @@ class BatchInput {
 
  private:
   Kind kind_;
+  std::string kind_str_;
   std::vector<std::string> target_names_;
   TRITONSERVER_DataType data_type_;
   std::vector<std::string> source_inputs_;

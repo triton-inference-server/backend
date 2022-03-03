@@ -1019,24 +1019,26 @@ BatchInput::ParseFromModelConfig(
       }
     }
     {
-      std::string bi_kind;
-      RETURN_IF_ERROR(bi.MemberAsString("kind", &bi_kind));
-      if (bi_kind == "BATCH_ELEMENT_COUNT") {
+      RETURN_IF_ERROR(bi.MemberAsString("kind", &batch_input.kind_str_));
+      if (batch_input.kind_str_ == "BATCH_ELEMENT_COUNT") {
         batch_input.kind_ = Kind::BATCH_ELEMENT_COUNT;
-      } else if (bi_kind == "BATCH_ACCUMULATED_ELEMENT_COUNT") {
+      } else if (batch_input.kind_str_ == "BATCH_ACCUMULATED_ELEMENT_COUNT") {
         batch_input.kind_ = Kind::BATCH_ACCUMULATED_ELEMENT_COUNT;
-      } else if (bi_kind == "BATCH_ACCUMULATED_ELEMENT_COUNT_WITH_ZERO") {
+      } else if (
+          batch_input.kind_str_ ==
+          "BATCH_ACCUMULATED_ELEMENT_COUNT_WITH_ZERO") {
         batch_input.kind_ = Kind::BATCH_ACCUMULATED_ELEMENT_COUNT_WITH_ZERO;
-      } else if (bi_kind == "BATCH_MAX_ELEMENT_COUNT_AS_SHAPE") {
+      } else if (batch_input.kind_str_ == "BATCH_MAX_ELEMENT_COUNT_AS_SHAPE") {
         batch_input.kind_ = Kind::BATCH_MAX_ELEMENT_COUNT_AS_SHAPE;
-      } else if (bi_kind == "BATCH_ITEM_SHAPE") {
+      } else if (batch_input.kind_str_ == "BATCH_ITEM_SHAPE") {
         batch_input.kind_ = Kind::BATCH_ITEM_SHAPE;
-      } else if (bi_kind == "BATCH_ITEM_SHAPE_FLATTEN") {
+      } else if (batch_input.kind_str_ == "BATCH_ITEM_SHAPE_FLATTEN") {
         batch_input.kind_ = Kind::BATCH_ITEM_SHAPE_FLATTEN;
       } else {
         RETURN_ERROR_IF_FALSE(
             false, TRITONSERVER_ERROR_INVALID_ARG,
-            std::string("unexpected batch input kind '" + bi_kind + "'"));
+            std::string(
+                "unexpected batch input kind '" + batch_input.kind_str_ + "'"));
       }
     }
     {
