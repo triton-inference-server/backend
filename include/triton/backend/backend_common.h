@@ -229,6 +229,7 @@ class BatchInput {
   }
 
  private:
+  TRITONSERVER_Error* Init(triton::common::TritonJson::Value& bi_config);
   Kind kind_;
   std::string kind_str_;
   std::vector<std::string> target_names_;
