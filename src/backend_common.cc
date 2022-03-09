@@ -1019,7 +1019,7 @@ BatchInput::Init(triton::common::TritonJson::Value& bi_config)
 {
   {
     triton::common::TritonJson::Value bi_target_names;
-    RETURN_IF_ERROR(bi.MemberAsArray("target_name", &bi_target_names));
+    RETURN_IF_ERROR(bi_config.MemberAsArray("target_name", &bi_target_names));
     for (size_t i = 0; i < bi_target_names.ArraySize(); ++i) {
       std::string tn;
       RETURN_IF_ERROR(bi_target_names.IndexAsString(i, &tn));
@@ -1027,7 +1027,7 @@ BatchInput::Init(triton::common::TritonJson::Value& bi_config)
     }
   }
   {
-    RETURN_IF_ERROR(bi.MemberAsString("kind", &kind_str_));
+    RETURN_IF_ERROR(bi_config.MemberAsString("kind", &kind_str_));
     if (kind_str_ == "BATCH_ELEMENT_COUNT") {
       kind_ = Kind::BATCH_ELEMENT_COUNT;
     } else if (kind_str_ == "BATCH_ACCUMULATED_ELEMENT_COUNT") {
@@ -1048,7 +1048,7 @@ BatchInput::Init(triton::common::TritonJson::Value& bi_config)
   }
   {
     std::string bi_dtype;
-    RETURN_IF_ERROR(bi.MemberAsString("data_type", &bi_dtype));
+    RETURN_IF_ERROR(bi_config.MemberAsString("data_type", &bi_dtype));
     data_type_ = ModelConfigDataTypeToTritonServerDataType(bi_dtype);
     RETURN_ERROR_IF_TRUE(
         data_type_ == TRITONSERVER_TYPE_INVALID, TRITONSERVER_ERROR_INVALID_ARG,
@@ -1056,7 +1056,7 @@ BatchInput::Init(triton::common::TritonJson::Value& bi_config)
   }
   {
     triton::common::TritonJson::Value bi_source_inputs;
-    RETURN_IF_ERROR(bi.MemberAsArray("source_input", &bi_source_inputs));
+    RETURN_IF_ERROR(bi_config.MemberAsArray("source_input", &bi_source_inputs));
     for (size_t i = 0; i < bi_source_inputs.ArraySize(); ++i) {
       std::string si;
       RETURN_IF_ERROR(bi_source_inputs.IndexAsString(i, &si));
