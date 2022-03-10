@@ -1,4 +1,4 @@
-// Copyright 2019-2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -216,6 +216,10 @@ class BackendInputCollector {
       const size_t buffer_byte_size);
   template <typename T>
   TRITONSERVER_Error* SetAccumulatedElementCount(
+      const std::string& source_input, char* buffer,
+      const size_t buffer_byte_size);
+  template <typename T>
+  TRITONSERVER_Error* SetBatchItemShape(
       const std::string& source_input, char* buffer,
       const size_t buffer_byte_size);
 

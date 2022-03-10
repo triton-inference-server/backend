@@ -1,4 +1,4 @@
-// Copyright 2019-2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -766,6 +766,46 @@ BackendInputCollector::BatchInputShape(
       }
       break;
     }
+    case BatchInput::Kind::BATCH_ITEM_SHAPE: {
+      shape->emplace_back(0);
+      const auto& source_input = batch_input.SourceInputs()[0];
+      for (size_t req_idx = 0; req_idx < request_count_; req_idx++) {
+        TRITONBACKEND_Input* input;
+        RETURN_IF_ERROR(TRITONBACKEND_RequestInput(
+            requests_[req_idx], source_input.c_str(), &input));
+        const int64_t* shape_arr;
+        uint32_t dims_count;
+        RETURN_IF_ERROR(TRITONBACKEND_InputPropertiesForHostPolicy(
+            input, host_policy_cstr_, nullptr, nullptr, &shape_arr, &dims_count,
+            nullptr, nullptr));
+        // Assuming first dimension is batch size and ragged input is only set
+        // for batching enabled model.
+        (*shape)[0] += shape_arr[0];
+        // The batch input tracks the shape without batch dimension for
+        // each batch item
+        (*shape)[1] = (dims_count - 1);
+      }
+      break;
+    }
+    case BatchInput::Kind::BATCH_ITEM_SHAPE_FLATTEN: {
+      const auto& source_input = batch_input.SourceInputs()[0];
+      for (size_t req_idx = 0; req_idx < request_count_; req_idx++) {
+        TRITONBACKEND_Input* input;
+        RETURN_IF_ERROR(TRITONBACKEND_RequestInput(
+            requests_[req_idx], source_input.c_str(), &input));
+        const int64_t* shape_arr;
+        uint32_t dims_count;
+        RETURN_IF_ERROR(TRITONBACKEND_InputPropertiesForHostPolicy(
+            input, host_policy_cstr_, nullptr, nullptr, &shape_arr, &dims_count,
+            nullptr, nullptr));
+        // Assuming first dimension is batch size and ragged input is only set
+        // for batching enabled model.
+        // The batch input tracks the shape without batch dimension for
+        // each batch item
+        (*shape)[0] += (shape_arr[0] * (dims_count - 1));
+      }
+      break;
+    }
     default:
       return TRITONSERVER_ErrorNew(
           TRITONSERVER_ERROR_INTERNAL, "unsupported BatchInputKind received");
@@ -876,22 +916,22 @@ BackendInputCollector::ProcessBatchInput(
     case BatchInput::Kind::BATCH_ELEMENT_COUNT: {
       const auto& source_input = batch_input.SourceInputs()[0];
       if (data_type == TRITONSERVER_TYPE_FP32) {
-        SetElementCount<float>(
-            source_input, input_buffer, *dst_buffer_byte_size);
+        RETURN_IF_ERROR(SetElementCount<float>(
+            source_input, input_buffer, *dst_buffer_byte_size));
       } else {
-        SetElementCount<int32_t>(
-            source_input, input_buffer, *dst_buffer_byte_size);
+        RETURN_IF_ERROR(SetElementCount<int32_t>(
+            source_input, input_buffer, *dst_buffer_byte_size));
       }
       break;
     }
     case BatchInput::Kind::BATCH_ACCUMULATED_ELEMENT_COUNT: {
       const auto& source_input = batch_input.SourceInputs()[0];
       if (data_type == TRITONSERVER_TYPE_FP32) {
-        SetAccumulatedElementCount<float>(
-            source_input, input_buffer, *dst_buffer_byte_size);
+        RETURN_IF_ERROR(SetAccumulatedElementCount<float>(
+            source_input, input_buffer, *dst_buffer_byte_size));
       } else {
-        SetAccumulatedElementCount<int32_t>(
-            source_input, input_buffer, *dst_buffer_byte_size);
+        RETURN_IF_ERROR(SetAccumulatedElementCount<int32_t>(
+            source_input, input_buffer, *dst_buffer_byte_size));
       }
       break;
     }
@@ -899,21 +939,38 @@ BackendInputCollector::ProcessBatchInput(
       const auto& source_input = batch_input.SourceInputs()[0];
       if (data_type == TRITONSERVER_TYPE_FP32) {
         *reinterpret_cast<float*>(input_buffer) = 0;
-        SetAccumulatedElementCount<float>(
+        RETURN_IF_ERROR(SetAccumulatedElementCount<float>(
             source_input, input_buffer + sizeof(float),
-            *dst_buffer_byte_size - sizeof(float));
+            *dst_buffer_byte_size - sizeof(float)));
       } else {
         *reinterpret_cast<int32_t*>(input_buffer) = 0;
-        SetAccumulatedElementCount<int32_t>(
+        RETURN_IF_ERROR(SetAccumulatedElementCount<int32_t>(
             source_input, input_buffer + sizeof(int32_t),
-            *dst_buffer_byte_size - sizeof(int32_t));
+            *dst_buffer_byte_size - sizeof(int32_t)));
       }
       break;
     }
-    case BatchInput::Kind::BATCH_MAX_ELEMENT_COUNT_AS_SHAPE:
+    case BatchInput::Kind::BATCH_MAX_ELEMENT_COUNT_AS_SHAPE: {
       // The batch input is described by the shape,
       // no data modification is needed
       return nullptr;  // success
+    }
+    case BatchInput::Kind::BATCH_ITEM_SHAPE:
+    case BatchInput::Kind::BATCH_ITEM_SHAPE_FLATTEN: {
+      // Use the same utilities for both types as the data will be the same,
+      // only difference is the shape of the tensor.
+      const auto& source_input = batch_input.SourceInputs()[0];
+      if (data_type == TRITONSERVER_TYPE_FP32) {
+        *reinterpret_cast<float*>(input_buffer) = 0;
+        RETURN_IF_ERROR(SetBatchItemShape<float>(
+            source_input, input_buffer, *dst_buffer_byte_size));
+      } else {
+        *reinterpret_cast<int32_t*>(input_buffer) = 0;
+        RETURN_IF_ERROR(SetBatchItemShape<int32_t>(
+            source_input, input_buffer, *dst_buffer_byte_size));
+      }
+      break;
+    }
   }
   if (*dst_memory_type == TRITONSERVER_MEMORY_GPU) {
     bool cuda_used;
@@ -995,6 +1052,47 @@ BackendInputCollector::SetAccumulatedElementCount(
   for (; buffer_offset + sizeof(T) <= buffer_byte_size;
        buffer_offset += sizeof(T)) {
     *reinterpret_cast<T*>(buffer + buffer_offset) = accumulated_element_count;
+  }
+  return nullptr;  // success
+}
+
+template <typename T>
+TRITONSERVER_Error*
+BackendInputCollector::SetBatchItemShape(
+    const std::string& source_input, char* buffer,
+    const size_t buffer_byte_size)
+{
+  size_t buffer_offset = 0;
+  for (size_t req_idx = 0; req_idx < request_count_; req_idx++) {
+    TRITONBACKEND_Input* input;
+    RETURN_IF_ERROR(TRITONBACKEND_RequestInput(
+        requests_[req_idx], source_input.c_str(), &input));
+    const int64_t* shape;
+    uint32_t dims_count;
+    RETURN_IF_ERROR(TRITONBACKEND_InputPropertiesForHostPolicy(
+        input, host_policy_cstr_, nullptr, nullptr, &shape, &dims_count,
+        nullptr, nullptr));
+    // Assuming first dimension is batch size and ragged input is only set
+    // for batching enabled model.
+    size_t batch_1_size = sizeof(T) * (dims_count - 1);
+    if (buffer_offset + (size_t)shape[0] * batch_1_size > buffer_byte_size) {
+      return TRITONSERVER_ErrorNew(
+          TRITONSERVER_ERROR_INVALID_ARG,
+          "unexpected total byte size for batch input");
+    }
+    // The batch input tracks the shape without batch dimension for
+    // each batch item
+    for (size_t idx = 1; idx < dims_count; ++idx) {
+      // Need to set the element explicitly for type conversion
+      *(reinterpret_cast<T*>(buffer + buffer_offset) + (idx - 1)) = shape[idx];
+    }
+    // memcpy the data repeatedly if the request has batch size > 1
+    for (int64_t idx = 1; idx < shape[0]; ++idx) {
+      memcpy(
+          buffer + buffer_offset + idx * batch_1_size, buffer + buffer_offset,
+          batch_1_size);
+    }
+    buffer_offset += batch_1_size * (size_t)shape[0];
   }
   return nullptr;  // success
 }

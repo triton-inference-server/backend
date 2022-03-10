@@ -1,4 +1,4 @@
-// Copyright 2020-2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -212,7 +212,9 @@ class BatchInput {
     BATCH_ELEMENT_COUNT,
     BATCH_ACCUMULATED_ELEMENT_COUNT,
     BATCH_ACCUMULATED_ELEMENT_COUNT_WITH_ZERO,
-    BATCH_MAX_ELEMENT_COUNT_AS_SHAPE
+    BATCH_MAX_ELEMENT_COUNT_AS_SHAPE,
+    BATCH_ITEM_SHAPE,
+    BATCH_ITEM_SHAPE_FLATTEN
   };
   static TRITONSERVER_Error* ParseFromModelConfig(
       triton::common::TritonJson::Value& config,
@@ -220,13 +222,16 @@ class BatchInput {
   const std::vector<std::string>& TargetNames() const { return target_names_; }
   TRITONSERVER_DataType DataType() const { return data_type_; }
   Kind BatchInputKind() const { return kind_; }
+  std::string BatchInputKindString() const { return kind_str_; }
   const std::vector<std::string>& SourceInputs() const
   {
     return source_inputs_;
   }
 
  private:
+  TRITONSERVER_Error* Init(triton::common::TritonJson::Value& bi_config);
   Kind kind_;
+  std::string kind_str_;
   std::vector<std::string> target_names_;
   TRITONSERVER_DataType data_type_;
   std::vector<std::string> source_inputs_;
