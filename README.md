@@ -338,8 +338,8 @@ Triton loads a model.
   * Triton calls TRITONBACKEND_Initialize if it is implemented in the
     backend shared library. TRITONBACKEND_Initialize should not return
     until the backend is completely initialized. If
-    TRITONBACKEND_Initialize returns an error, Triton will unload the
-    backend shared library and show that the model failed to load.
+    TRITONBACKEND_Initialize returns an error, Triton will report that
+    the model failed to load.
 
 * Triton creates the TRITONBACKEND_Model object that represents the
   model. Triton calls TRITONBACKEND_ModelInitialize if it is
@@ -386,7 +386,9 @@ Triton unloads a model.
 * Triton destroys the TRITONBACKEND_Model object that represents the
   model.
 
-* If no other loaded model requires the backend, then:
+* Even if no other loaded model requires the backend, Triton does not
+  finalize and unload the backend until the tritonserver process is
+  exiting. When the tritonserver process exits:
 
   * Triton calls TRITONBACKEND_Finalize if it is implemented in the
     backend shared library. TRITONBACKEND_ModelFinalize should not
@@ -396,8 +398,6 @@ Triton unloads a model.
 
   * Triton destroys the TRITONBACKEND_Backend object that represents
     the backend.
-
-  * Triton unloads the shared library that implements the backend.
 
 #### Inference Requests and Responses
 
