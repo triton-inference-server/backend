@@ -1102,6 +1102,8 @@ ModelConfigDataTypeToTritonServerDataType(const std::string& data_type_str)
     return TRITONSERVER_TYPE_FP64;
   } else if (dtype == "STRING") {
     return TRITONSERVER_TYPE_BYTES;
+  } else if (dtype == "BF16") {
+    return TRITONSERVER_TYPE_BF16;
   }
 
   return TRITONSERVER_TYPE_INVALID;
