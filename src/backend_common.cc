@@ -1,4 +1,4 @@
-// Copyright 2020-2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -1102,6 +1102,8 @@ ModelConfigDataTypeToTritonServerDataType(const std::string& data_type_str)
     return TRITONSERVER_TYPE_FP64;
   } else if (dtype == "STRING") {
     return TRITONSERVER_TYPE_BYTES;
+  } else if (dtype == "BF16") {
+    return TRITONSERVER_TYPE_BF16;
   }
 
   return TRITONSERVER_TYPE_INVALID;
