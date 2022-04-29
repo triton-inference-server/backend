@@ -78,8 +78,13 @@ BackendOutputResponder::ProcessTensor(
       need_sync_ |= FlushPendingPinned(buffer, memory_type, memory_type_id);
     }
 
-    // Override shape to be correct for this response.
-    if (first_dim_batching_) {
+    bool is_empty_tensor =
+        ((batchn_shape.size() == 0) ||
+         ((batchn_shape.size() == 1) && (batchn_shape[0] == 0)));
+
+    // Override shape to be correct for this response if not an empty
+    // tensor.
+    if (first_dim_batching_ && (!is_empty_tensor)) {
       TRITONBACKEND_Input* input;
       TRITONBACKEND_RequestInputByIndex(request, 0, &input);
       const int64_t* shape;
