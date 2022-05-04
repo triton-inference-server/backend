@@ -62,6 +62,9 @@ BackendOutputResponder::ProcessTensor(
     use_pinned_memory_type = GetUsePinnedMemoryType(memory_type);
   }
 
+  const int64_t batchn_batch_size = batchn_shape[0];
+  int64_t batch_size_offset = 0;
+
   size_t tensor_offset = 0;
 
   for (size_t idx = 0; idx < responses_->size(); idx++) {
@@ -85,7 +88,24 @@ BackendOutputResponder::ProcessTensor(
       const int64_t* shape;
       TRITONBACKEND_InputProperties(
           input, nullptr, nullptr, &shape, nullptr, nullptr, nullptr);
+      if ((batchn_batch_size != -1) &&
+          ((batch_size_offset + shape[0]) > batchn_batch_size)) {
+        if (response != nullptr) {
+          RESPOND_AND_SET_NULL_IF_ERROR(
+              &response,
+              TRITONSERVER_ErrorNew(
+                  TRITONSERVER_ERROR_UNSUPPORTED,
+                  std::string(
+                      "failed to split the output tensor `" + output_name +
+                      "` in responses: expected batch size of atleast " +
+                      std::to_string(batch_size_offset + shape[0]) +
+                      " in model output, got " +
+                      std::to_string(batchn_batch_size))
+                      .c_str()));
+        }
+      }
       batchn_shape[0] = shape[0];
+      batch_size_offset += shape[0];
     }
 
     const size_t tensor_byte_size = GetByteSize(datatype, batchn_shape);
@@ -149,6 +169,9 @@ BackendOutputResponder::ProcessStateTensor(
 
   std::vector<TRITONBACKEND_State*> states;
 
+  const int64_t batchn_batch_size = batchn_shape[0];
+  int64_t batch_size_offset = 0;
+
   size_t tensor_offset = 0;
 
   for (size_t idx = 0; idx < responses_->size(); idx++) {
@@ -172,7 +195,25 @@ BackendOutputResponder::ProcessStateTensor(
       const int64_t* shape;
       TRITONBACKEND_InputProperties(
           input, nullptr, nullptr, &shape, nullptr, nullptr, nullptr);
+      if ((batchn_batch_size != -1) &&
+          ((batch_size_offset + shape[0]) > batchn_batch_size)) {
+        if (response != nullptr) {
+          RESPOND_AND_SET_NULL_IF_ERROR(
+              &response,
+              TRITONSERVER_ErrorNew(
+                  TRITONSERVER_ERROR_UNSUPPORTED,
+                  std::string(
+                      "failed to split the output state tensor `" +
+                      output_state_name +
+                      "` in responses: expected batch size of atleast " +
+                      std::to_string(batch_size_offset + shape[0]) +
+                      " in model output, got " +
+                      std::to_string(batchn_batch_size))
+                      .c_str()));
+        }
+      }
       batchn_shape[0] = shape[0];
+      batch_size_offset += shape[0];
     }
 
     const size_t tensor_byte_size = GetByteSize(datatype, batchn_shape);
