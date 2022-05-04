@@ -648,6 +648,25 @@ CopyBuffer(
 {
   *cuda_used = false;
 
+  if ((src == nullptr) && (byte_size > 0)) {
+    return TRITONSERVER_ErrorNew(
+        TRITONSERVER_ERROR_INTERNAL,
+        std::string(
+            msg + ": attempted a copy of " + std::to_string(byte_size) +
+            " Bytes from an uninitialized memory")
+            .c_str());
+  }
+
+  if ((dst == nullptr) && (byte_size > 0)) {
+    return TRITONSERVER_ErrorNew(
+        TRITONSERVER_ERROR_INTERNAL,
+        std::string(
+            msg + ": attempted a copy of " + std::to_string(byte_size) +
+            " Bytes to an uninitialized memory")
+            .c_str());
+  }
+
+
   // For CUDA memcpy, if copy_on_stream is false, all host to host copy will be
   // blocked in respect to the host, so use memcpy() directly. In this case,
   // need to be careful on whether the src buffer is valid.
