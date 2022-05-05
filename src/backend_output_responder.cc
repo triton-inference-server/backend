@@ -96,8 +96,8 @@ BackendOutputResponder::ProcessTensor(
               TRITONSERVER_ErrorNew(
                   TRITONSERVER_ERROR_UNSUPPORTED,
                   std::string(
-                      "failed to split the output tensor `" + output_name +
-                      "` in responses: expected batch size of atleast " +
+                      "failed to split the output tensor '" + output_name +
+                      "' in responses: expected batch size of atleast " +
                       std::to_string(batch_size_offset + shape[0]) +
                       " in model output, got " +
                       std::to_string(batchn_batch_size))
@@ -203,9 +203,9 @@ BackendOutputResponder::ProcessStateTensor(
               TRITONSERVER_ErrorNew(
                   TRITONSERVER_ERROR_UNSUPPORTED,
                   std::string(
-                      "failed to split the output state tensor `" +
+                      "failed to split the output state tensor '" +
                       output_state_name +
-                      "` in responses: expected batch size of atleast " +
+                      "' in responses: expected batch size of atleast " +
                       std::to_string(batch_size_offset + shape[0]) +
                       " in model output, got " +
                       std::to_string(batchn_batch_size))
