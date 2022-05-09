@@ -421,7 +421,7 @@ lifetimes, study the documentation of TRITONBACKEND_ModelInstanceExecute in
 ##### Single Response
 
 Most backends will create a single response for each request. For that
-kind of backend executing a single inference requests requires the
+kind of backend executing a single inference request requires the
 following steps:
 
 * Create a response for the request using TRITONBACKEND_ResponseNew.
@@ -430,7 +430,7 @@ following steps:
   get shape and datatype of the input as well as the buffer(s)
   containing the tensor contents.
 
-* For each output tensor that the request expects to be returned, use
+* For each output tensor which the request expects to be returned, use
   TRITONBACKEND_ResponseOutput to create the output tensor of the
   required datatype and shape. Use TRITONBACKEND_OutputBuffer to get a
   pointer to the buffer where the tensor's contents should be written.
@@ -457,7 +457,7 @@ send responses out-of-order relative to the order that the request
 batches are executed. Such backends are called *decoupled* backends.
 The decoupled backends use `ResponseFactory` object per request to keep
 create and send any number of responses.  For this kind of backend
-executing a single inference requests typically requires the following
+executing a single inference request typically requires the following
 steps:
 
 * For each request input tensor use TRITONBACKEND_InputProperties to
@@ -471,7 +471,7 @@ steps:
   TRITONBACKEND_ResponseNewFromFactory. As long as you have
   `ResponseFactory` object you can continue creating responses.
 
-  2. For each output tensor that the request expects to be returned, use
+  2. For each output tensor which the request expects to be returned, use
   TRITONBACKEND_ResponseOutput to create the output tensor of the
   required datatype and shape. Use TRITONBACKEND_OutputBuffer to get a
   pointer to the buffer where the tensor's contents should be written.
