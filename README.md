@@ -455,7 +455,7 @@ It is also possible for a backend to send multiple responses for a
 request or not send any responses for a request. A backend may also
 send responses out-of-order relative to the order that the request
 batches are executed. Such backends are called *decoupled* backends.
-The decoupled models use `ResponseFactory` object per request to keep
+The decoupled backends use `ResponseFactory` object per request to keep
 create and send any number of responses.  For this kind of backend
 executing a single inference requests typically requires the following
 steps:
