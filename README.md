@@ -456,9 +456,9 @@ request or not send any responses for a request. A backend may also
 send responses out-of-order relative to the order that the request
 batches are executed. Such backends are called *decoupled* backends.
 The decoupled backends use `ResponseFactory` object per request to keep
-create and send any number of responses.  For this kind of backend
-executing a single inference request typically requires the following
-steps:
+creating and sending any number of responses for the request.  For this
+kind of backend executing a single inference request typically requires
+the following steps:
 
 * For each request input tensor use TRITONBACKEND_InputProperties to
   get shape and datatype of the input as well as the buffer(s)
@@ -496,6 +496,9 @@ The decoupled API is powerful and supports various special cases:
 * If the backend should not send any response for the request,
   TRITONBACKEND_ResponseFactorySendFlags can be used to send
   TRITONSERVER_RESPONSE_COMPLETE_FINAL using the `ResponseFactory`.
+
+* The model can also send responses out-of-order in which it received
+  requests.
 
 * The backend can copy out the contents of the input buffer(s) if
   request is to be released before the contents are completely
