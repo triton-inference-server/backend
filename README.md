@@ -1,5 +1,5 @@
 <!--
-# Copyright 2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2021-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -405,7 +405,7 @@ Triton calls TRITONBACKEND_ModelInstanceExecute to execute inference
 requests on a model instance. Each call to
 TRITONBACKEND_ModelInstanceExecute communicates a batch of requests
 to execute and the instance of the model that should be used to
-execute those requests. The backend should not allow the scheduler
+execute those requests. The backend should not allow the caller
 thread to return from TRITONBACKEND_ModelInstanceExecute until that
 instance is ready to handle another set of requests. Typically this
 means that the TRITONBACKEND_ModelInstanceExecute function will
@@ -418,8 +418,10 @@ or access them in any way. For more detailed description of request/response
 lifetimes, study the documentation of TRITONBACKEND_ModelInstanceExecute in
 [tritonbackend.h](https://github.com/triton-inference-server/core/blob/main/include/triton/core/tritonbackend.h).
 
+##### Single Response
+
 Most backends will create a single response for each request. For that
-kind of backend executing a single inference requests requires the
+kind of backend, executing a single inference request requires the
 following steps:
 
 * Create a response for the request using TRITONBACKEND_ResponseNew.
@@ -428,7 +430,7 @@ following steps:
   get shape and datatype of the input as well as the buffer(s)
   containing the tensor contents.
 
-* For each output tensor that the request expects to be returned, use
+* For each output tensor which the request expects to be returned, use
   TRITONBACKEND_ResponseOutput to create the output tensor of the
   required datatype and shape. Use TRITONBACKEND_OutputBuffer to get a
   pointer to the buffer where the tensor's contents should be written.
@@ -447,13 +449,76 @@ For a batch of requests the backend should attempt to combine the
 execution of the individual requests as much as possible to increase
 performance.
 
+##### Decoupled Responses
+
 It is also possible for a backend to send multiple responses for a
 request or not send any responses for a request. A backend may also
 send responses out-of-order relative to the order that the request
-batches are executed. Backends and models that operate in this way are
-referred to as *decoupled* backends and models, and are typically much
-more difficult to implement. The [repeat example](examples/README.md)
-shows a simplified implementation of a decoupled backend.
+batches are executed. Such backends are called *decoupled* backends.
+The decoupled backends use one `ResponseFactory` object per request to keep
+creating and sending any number of responses for the request. For this
+kind of backend, executing a single inference request typically requires
+the following steps:
+
+* For each request input tensor use TRITONBACKEND_InputProperties to
+  get shape and datatype of the input as well as the buffer(s)
+  containing the tensor contents.
+
+* Create a `ResponseFactory` object for the request using
+  TRITONBACKEND_ResponseFactoryNew.
+
+  1. Create a response from the `ResponseFactory` object using
+  TRITONBACKEND_ResponseNewFromFactory. As long as you have
+  `ResponseFactory` object you can continue creating responses.
+
+  2. For each output tensor which the request expects to be returned, use
+  TRITONBACKEND_ResponseOutput to create the output tensor of the
+  required datatype and shape. Use TRITONBACKEND_OutputBuffer to get a
+  pointer to the buffer where the tensor's contents should be written.
+
+  3. Use the inputs to perform the inference computation that produces
+  the requested output tensor contents into the appropriate output
+  buffers.
+
+  4. Optionally set parameters in the response.
+
+  5. Send the response using TRITONBACKEND_ResponseSend. If this is the
+     last request then use TRITONSERVER_ResponseCompleteFlag with
+     TRITONBACKEND_ResponseSend. Otherwise continue with Step 1 for
+     sending next request
+
+* Release the request using TRITONBACKEND_RequestRelease.
+
+###### Special Cases
+
+The decoupled API is powerful and supports various special cases:
+
+* If the backend should not send any response for the request,
+  TRITONBACKEND_ResponseFactorySendFlags can be used to send
+  TRITONSERVER_RESPONSE_COMPLETE_FINAL using the `ResponseFactory`.
+
+* The model can also send responses out-of-order in which it received
+  requests.
+
+* The backend can copy out the contents of the input buffer(s) if
+  request is to be released before the contents are completely
+  consumed to generate responses. After copy, the request can be
+  released anytime before exiting TRITONBACKEND_ModelInstanceExecute.
+  The copies and `ResponseFactory` object can be passed to a separate
+  thread in backend. This means main caller thread can exit from
+  TRITONBACKEND_ModelInstanceExecute and the backend can still continue
+  generating responses as long as it holds `ResponseFactory` object.
+
+
+The [repeat example](examples/README.md) demonstrates full power of
+what can be acheived from decoupled API.
+
+
+Study documentation of these TRTIONBACKEND_* functions in
+[tritonbackend.h](https://github.com/triton-inference-server/core/blob/main/include/triton/core/tritonbackend.h)
+for more details on these APIs. Read
+[Decoupled Backends and Models](https://github.com/triton-inference-server/server/blob/main/docs/decoupled_models.md)
+for more details on how to host a decoupled model.
 
 ## Build the Backend Utilities
 
