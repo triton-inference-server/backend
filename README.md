@@ -421,7 +421,7 @@ lifetimes, study the documentation of TRITONBACKEND_ModelInstanceExecute in
 ##### Single Response
 
 Most backends will create a single response for each request. For that
-kind of backend executing a single inference request requires the
+kind of backend, executing a single inference request requires the
 following steps:
 
 * Create a response for the request using TRITONBACKEND_ResponseNew.
@@ -455,9 +455,9 @@ It is also possible for a backend to send multiple responses for a
 request or not send any responses for a request. A backend may also
 send responses out-of-order relative to the order that the request
 batches are executed. Such backends are called *decoupled* backends.
-The decoupled backends use `ResponseFactory` object per request to keep
-creating and sending any number of responses for the request.  For this
-kind of backend executing a single inference request typically requires
+The decoupled backends use one `ResponseFactory` object per request to keep
+creating and sending any number of responses for the request. For this
+kind of backend, executing a single inference request typically requires
 the following steps:
 
 * For each request input tensor use TRITONBACKEND_InputProperties to
