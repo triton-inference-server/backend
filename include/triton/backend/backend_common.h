@@ -353,6 +353,34 @@ TRITONSERVER_Error* ReadInputTensor(
     TRITONBACKEND_Request* request, const std::string& input_name, char* buffer,
     size_t* buffer_byte_size, const char* host_policy_name = nullptr);
 
+/// Get an input tensor's contents into a buffer.
+///
+/// \param request The inference request.
+/// \param input_name The name of the input buffer.
+/// \param buffer The buffer where the input tensor content is copied into.
+/// \param buffer_byte_size Acts as both input and output. On input
+/// gives the size of 'buffer', in bytes. The function will fail if
+/// the buffer is not large enough to hold the input tensor
+/// contents. Returns the size of the input tensor data returned in
+/// 'buffer'.
+/// \param host_policy_name The host policy name to look up the input buffer.
+/// Default input buffer will be used if nullptr is provided.
+/// \param memory_type The memory type of the buffer provided.
+/// \param memory_type_id The memory type id of the buffer provided.
+/// \param cuda_stream specifies the stream to be associated with, and 0 can be
+/// passed for default stream.
+/// \param cuda_used returns whether a CUDA memory copy is initiated. If true,
+/// the caller should synchronize on the given 'cuda_stream' to ensure data copy
+/// is completed.
+/// \param copy_on_stream whether the memory copies should be performed in cuda
+/// host functions on the 'cuda_stream'.
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error* ReadInputTensor(
+    TRITONBACKEND_Request* request, const std::string& input_name, char* buffer,
+    size_t* buffer_byte_size, TRITONSERVER_MemoryType memory_type,
+    int64_t memory_type_id, cudaStream_t cuda_stream, bool* cuda_used,
+    const char* host_policy_name = nullptr, const bool copy_on_stream = false);
+
 /// Validate that an input matches one of the allowed input names.
 /// \param io The model input.
 /// \param allowed The set of allowed input names.
