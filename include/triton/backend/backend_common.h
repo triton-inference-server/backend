@@ -336,7 +336,8 @@ int64_t GetElementCount(const std::vector<int64_t>& shape);
 int64_t GetByteSize(
     const TRITONSERVER_DataType& dtype, const std::vector<int64_t>& dims);
 
-/// Get an input tensor's contents into a buffer.
+/// Get an input tensor's contents into a buffer. This overload expects
+/// both 'buffer' and buffers of the input to be in CPU.
 ///
 /// \param request The inference request.
 /// \param input_name The name of the input buffer.
@@ -353,7 +354,8 @@ TRITONSERVER_Error* ReadInputTensor(
     TRITONBACKEND_Request* request, const std::string& input_name, char* buffer,
     size_t* buffer_byte_size, const char* host_policy_name = nullptr);
 
-/// Get an input tensor's contents into a buffer.
+/// Get an input tensor's contents into a buffer. This overload of 'ReadInputTensor'
+/// supports input buffers that can be in any memory.
 ///
 /// \param request The inference request.
 /// \param input_name The name of the input buffer.
