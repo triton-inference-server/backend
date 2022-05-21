@@ -204,7 +204,9 @@ GetByteSize(
 TRITONSERVER_Error*
 ReadInputTensor(
     TRITONBACKEND_Request* request, const std::string& input_name, char* buffer,
-    size_t* buffer_byte_size, const char* host_policy_name)
+    size_t* buffer_byte_size, TRITONSERVER_MemoryType memory_type,
+    int64_t memory_type_id, cudaStream_t cuda_stream, bool* cuda_used,
+    const char* host_policy_name, const bool copy_on_stream)
 {
   TRITONBACKEND_Input* input;
   RETURN_IF_ERROR(
@@ -228,21 +230,34 @@ ReadInputTensor(
     uint64_t input_buffer_byte_size = 0;
     TRITONSERVER_MemoryType input_memory_type = TRITONSERVER_MEMORY_CPU;
     int64_t input_memory_type_id = 0;
+
     RETURN_IF_ERROR(TRITONBACKEND_InputBufferForHostPolicy(
         input, host_policy_name, b, &input_buffer, &input_buffer_byte_size,
         &input_memory_type, &input_memory_type_id));
-    RETURN_ERROR_IF_FALSE(
-        input_memory_type != TRITONSERVER_MEMORY_GPU,
-        TRITONSERVER_ERROR_INTERNAL,
-        std::string("expected input tensor in CPU memory"));
 
-    memcpy(buffer + output_buffer_offset, input_buffer, input_buffer_byte_size);
+    RETURN_IF_ERROR(CopyBuffer(
+        "Failed to copy buffer", input_memory_type, input_memory_type_id,
+        memory_type, memory_type_id, input_buffer_byte_size, input_buffer,
+        buffer + output_buffer_offset, cuda_stream, cuda_used, copy_on_stream));
+
     output_buffer_offset += input_buffer_byte_size;
   }
 
   *buffer_byte_size = input_byte_size;
 
   return nullptr;  // success
+}
+
+TRITONSERVER_Error*
+ReadInputTensor(
+    TRITONBACKEND_Request* request, const std::string& input_name, char* buffer,
+    size_t* buffer_byte_size, const char* host_policy_name)
+{
+  bool cuda_used;
+  return ReadInputTensor(
+      request, input_name, buffer, buffer_byte_size,
+      TRITONSERVER_MEMORY_CPU /* memory_type */, 0 /* memory_type_id */,
+      0 /* cuda_stream */, &cuda_used);
 }
 
 TRITONSERVER_Error*
