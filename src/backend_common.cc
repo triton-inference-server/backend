@@ -612,13 +612,13 @@ RequestsRespondWithError(
     TRITONBACKEND_Response* response;
     auto err = TRITONBACKEND_ResponseNew(&response, requests[i]);
     if (err != nullptr) {
-      LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (requests[i].IdString() + "fail to create response").c_str());
+      LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (requests[i]->IdString() + "fail to create response").c_str());
       TRITONSERVER_ErrorDelete(err);
     } else {
       LOG_IF_ERROR(
           TRITONBACKEND_ResponseSend(
               response, TRITONSERVER_RESPONSE_COMPLETE_FINAL, response_err),
-          (requests[i].IdString() + "fail to send error response").c_str());
+          (requests[i]->IdString() + "fail to send error response").c_str());
     }
 
     if (release_request) {
