@@ -218,7 +218,7 @@ ReadInputTensor(
       input, host_policy_name, nullptr, nullptr, nullptr, nullptr,
       &input_byte_size, &input_buffer_count));
   const char* request_id;
-  LOG_IF_ERR(
+  LOG_IF_ERROR(
       TRITONSERVER_InferenceRequestIdString(request, &request_id),
       "unable to get request ID string");
   RETURN_ERROR_IF_FALSE(
@@ -616,7 +616,7 @@ RequestsRespondWithError(
     TRITONBACKEND_Response* response;
     auto err = TRITONBACKEND_ResponseNew(&response, requests[i]);
     const char* request_id;
-    LOG_IF_ERR(
+    LOG_IF_ERROR(
         TRITONSERVER_InferenceRequestIdString(requests[i], &request_id),
         "unable to get request ID string");
     if (err != nullptr) {
