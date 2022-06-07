@@ -217,14 +217,10 @@ ReadInputTensor(
   RETURN_IF_ERROR(TRITONBACKEND_InputPropertiesForHostPolicy(
       input, host_policy_name, nullptr, nullptr, nullptr, nullptr,
       &input_byte_size, &input_buffer_count));
-  const char* request_id = "";
-  LOG_IF_ERROR(
-      TRITONBACKEND_RequestIdString(request, &request_id),
-      "unable to get request ID string");
   RETURN_ERROR_IF_FALSE(
       input_byte_size <= *buffer_byte_size, TRITONSERVER_ERROR_INVALID_ARG,
       std::string(
-          std::string(request_id) + "buffer too small for input tensor '" +
+          GetRequestId(request) + "buffer too small for input tensor '" +
           input_name + "', " + std::to_string(*buffer_byte_size) + " < " +
           std::to_string(input_byte_size)));
 
@@ -615,20 +611,16 @@ RequestsRespondWithError(
   for (size_t i = 0; i < request_count; i++) {
     TRITONBACKEND_Response* response;
     auto err = TRITONBACKEND_ResponseNew(&response, requests[i]);
-    const char* request_id = "";
-    LOG_IF_ERROR(
-        TRITONBACKEND_RequestIdString(requests[i], &request_id),
-        "unable to get request ID string");
     if (err != nullptr) {
       LOG_MESSAGE(
           TRITONSERVER_LOG_ERROR,
-          (std::string(request_id) + "fail to create response").c_str());
+          (GetRequestId(requests[i]) + "fail to create response").c_str());
       TRITONSERVER_ErrorDelete(err);
     } else {
       LOG_IF_ERROR(
           TRITONBACKEND_ResponseSend(
               response, TRITONSERVER_RESPONSE_COMPLETE_FINAL, response_err),
-          (std::string(request_id) + "fail to send error response").c_str());
+          (GetRequestId(requests[i]) + "fail to send error response").c_str());
     }
 
     if (release_request) {
@@ -1364,6 +1356,16 @@ BufferAsTypedString(
   }
 
   return nullptr;  // success
+}
+
+std::string
+GetRequestId(TRITONBACKEND_Request* request)
+{
+  const char* request_id = "";
+  LOG_IF_ERROR(
+      TRITONBACKEND_RequestIdString(request, &request_id),
+      "unable to get request ID string");
+  return std::string(request_id);
 }
 
 }}  // namespace triton::backend

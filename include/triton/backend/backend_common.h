@@ -663,4 +663,10 @@ TRITONSERVER_Error* BufferAsTypedString(
     std::string& str, const char* buffer, size_t buffer_byte_size,
     TRITONSERVER_DataType datatype);
 
+/// Get the ID of the request as a string formatted for logging.
+///
+/// \param request Request of which to get the ID.
+/// \return a formatted string for logging the request ID.
+std::string GetRequestId(TRITONBACKEND_Request* request);
+
 }}  // namespace triton::backend
