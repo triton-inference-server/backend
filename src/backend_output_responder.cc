@@ -93,7 +93,7 @@ BackendOutputResponder::ProcessTensor(
         if (response != nullptr) {
           const char* request_id;
           LOG_IF_ERROR(
-              TRITONSERVER_InferenceRequestIdString(request, &request_id),
+              TRITONBACKEND_RequestIdString(request, &request_id),
               "unable to get request ID string");
           RESPOND_AND_SET_NULL_IF_ERROR(
               &response,
@@ -205,7 +205,7 @@ BackendOutputResponder::ProcessStateTensor(
         if (response != nullptr) {
           const char* request_id;
           LOG_IF_ERROR(
-              TRITONSERVER_InferenceRequestIdString(request, &request_id),
+              TRITONBACKEND_RequestIdString(request, &request_id),
               "unable to get request ID string");
           RESPOND_AND_SET_NULL_IF_ERROR(
               &response,
