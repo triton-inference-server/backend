@@ -1077,7 +1077,7 @@ BackendInputCollector::SetBatchItemShape(
     size_t batch_1_size = sizeof(T) * (dims_count - 1);
     if (buffer_offset + (size_t)shape[0] * batch_1_size > buffer_byte_size) {
       const char* request_id;
-      LOG_IF_ERR(
+      LOG_IF_ERROR(
           TRITONSERVER_InferenceRequestIdString(
               requests_[req_idx], &request_id),
           "unable to get request ID string");

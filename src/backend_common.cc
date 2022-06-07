@@ -217,12 +217,12 @@ ReadInputTensor(
   RETURN_IF_ERROR(TRITONBACKEND_InputPropertiesForHostPolicy(
       input, host_policy_name, nullptr, nullptr, nullptr, nullptr,
       &input_byte_size, &input_buffer_count));
+  const char* request_id;
+  LOG_IF_ERR(
+      TRITONSERVER_InferenceRequestIdString(request, &request_id),
+      "unable to get request ID string");
   RETURN_ERROR_IF_FALSE(
       input_byte_size <= *buffer_byte_size, TRITONSERVER_ERROR_INVALID_ARG,
-      const char* request_id;
-      LOG_IF_ERR(
-          TRITONSERVER_InferenceRequestIdString(requests[i], &request_id),
-          "unable to get request ID string");
       std::string(
           request_id + "buffer too small for input tensor '" + input_name +
           "', " + std::to_string(*buffer_byte_size) + " < " +
