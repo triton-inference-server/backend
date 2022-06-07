@@ -219,9 +219,13 @@ ReadInputTensor(
       &input_byte_size, &input_buffer_count));
   RETURN_ERROR_IF_FALSE(
       input_byte_size <= *buffer_byte_size, TRITONSERVER_ERROR_INVALID_ARG,
+      const char* request_id;
+      LOG_IF_ERR(
+          TRITONSERVER_InferenceRequestIdString(requests[i], &request_id),
+          "unable to get request ID string");
       std::string(
-          request->IdString() + "buffer too small for input tensor '" + input_name + "', " +
-          std::to_string(*buffer_byte_size) + " < " +
+          request_id + "buffer too small for input tensor '" + input_name +
+          "', " + std::to_string(*buffer_byte_size) + " < " +
           std::to_string(input_byte_size)));
 
   size_t output_buffer_offset = 0;
@@ -611,14 +615,20 @@ RequestsRespondWithError(
   for (size_t i = 0; i < request_count; i++) {
     TRITONBACKEND_Response* response;
     auto err = TRITONBACKEND_ResponseNew(&response, requests[i]);
+    const char* request_id;
+    LOG_IF_ERR(
+        TRITONSERVER_InferenceRequestIdString(requests[i], &request_id),
+        "unable to get request ID string");
     if (err != nullptr) {
-      LOG_MESSAGE(TRITONSERVER_LOG_ERROR, (requests[i]->IdString() + "fail to create response").c_str());
+      LOG_MESSAGE(
+          TRITONSERVER_LOG_ERROR,
+          (std::string(request_id) + "fail to create response").c_str());
       TRITONSERVER_ErrorDelete(err);
     } else {
       LOG_IF_ERROR(
           TRITONBACKEND_ResponseSend(
               response, TRITONSERVER_RESPONSE_COMPLETE_FINAL, response_err),
-          (requests[i]->IdString() + "fail to send error response").c_str());
+          (std::string(request_id) + "fail to send error response").c_str());
     }
 
     if (release_request) {
