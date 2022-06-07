@@ -224,8 +224,8 @@ ReadInputTensor(
   RETURN_ERROR_IF_FALSE(
       input_byte_size <= *buffer_byte_size, TRITONSERVER_ERROR_INVALID_ARG,
       std::string(
-          request_id + "buffer too small for input tensor '" + input_name +
-          "', " + std::to_string(*buffer_byte_size) + " < " +
+          std::string(request_id) + "buffer too small for input tensor '" +
+          input_name + "', " + std::to_string(*buffer_byte_size) + " < " +
           std::to_string(input_byte_size)));
 
   size_t output_buffer_offset = 0;
