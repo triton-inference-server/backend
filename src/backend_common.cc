@@ -217,7 +217,7 @@ ReadInputTensor(
   RETURN_IF_ERROR(TRITONBACKEND_InputPropertiesForHostPolicy(
       input, host_policy_name, nullptr, nullptr, nullptr, nullptr,
       &input_byte_size, &input_buffer_count));
-  const char* request_id;
+  const char* request_id = "";
   LOG_IF_ERROR(
       TRITONBACKEND_RequestIdString(request, &request_id),
       "unable to get request ID string");
@@ -615,7 +615,7 @@ RequestsRespondWithError(
   for (size_t i = 0; i < request_count; i++) {
     TRITONBACKEND_Response* response;
     auto err = TRITONBACKEND_ResponseNew(&response, requests[i]);
-    const char* request_id;
+    const char* request_id = "";
     LOG_IF_ERROR(
         TRITONBACKEND_RequestIdString(requests[i], &request_id),
         "unable to get request ID string");

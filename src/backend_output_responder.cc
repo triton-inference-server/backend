@@ -91,7 +91,7 @@ BackendOutputResponder::ProcessTensor(
       if ((batchn_batch_size != -1) &&
           ((batch_size_offset + shape[0]) > batchn_batch_size)) {
         if (response != nullptr) {
-          const char* request_id;
+          const char* request_id = "";
           LOG_IF_ERROR(
               TRITONBACKEND_RequestIdString(request, &request_id),
               "unable to get request ID string");
@@ -203,7 +203,7 @@ BackendOutputResponder::ProcessStateTensor(
       if ((batchn_batch_size != -1) &&
           ((batch_size_offset + shape[0]) > batchn_batch_size)) {
         if (response != nullptr) {
-          const char* request_id;
+          const char* request_id = "";
           LOG_IF_ERROR(
               TRITONBACKEND_RequestIdString(request, &request_id),
               "unable to get request ID string");
