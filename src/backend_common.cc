@@ -1361,11 +1361,15 @@ BufferAsTypedString(
 std::string
 GetRequestId(TRITONBACKEND_Request* request)
 {
-  const char* request_id = "";
+  const char* request_id = nullptr;
   LOG_IF_ERROR(
       TRITONBACKEND_RequestIdString(request, &request_id),
       "unable to get request ID string");
-  return std::string(request_id);
+  if (request_id != nullptr) {
+    return std::string("[request id: ") + Id() + "]";
+  } else {
+    return "";
+  }
 }
 
 }}  // namespace triton::backend

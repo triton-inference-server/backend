@@ -1076,13 +1076,9 @@ BackendInputCollector::SetBatchItemShape(
     // for batching enabled model.
     size_t batch_1_size = sizeof(T) * (dims_count - 1);
     if (buffer_offset + (size_t)shape[0] * batch_1_size > buffer_byte_size) {
-      const char* request_id = "";
-      LOG_IF_ERROR(
-          TRITONBACKEND_RequestIdString(requests_[req_idx], &request_id),
-          "unable to get request ID string");
       return TRITONSERVER_ErrorNew(
           TRITONSERVER_ERROR_INVALID_ARG,
-          (std::string(request_id) +
+          (GetRequestId(requests_[req_idx]) +
            "unexpected total byte size for batch input")
               .c_str());
     }

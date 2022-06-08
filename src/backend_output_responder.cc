@@ -91,16 +91,12 @@ BackendOutputResponder::ProcessTensor(
       if ((batchn_batch_size != -1) &&
           ((batch_size_offset + shape[0]) > batchn_batch_size)) {
         if (response != nullptr) {
-          const char* request_id = "";
-          LOG_IF_ERROR(
-              TRITONBACKEND_RequestIdString(request, &request_id),
-              "unable to get request ID string");
           RESPOND_AND_SET_NULL_IF_ERROR(
               &response,
               TRITONSERVER_ErrorNew(
                   TRITONSERVER_ERROR_UNSUPPORTED,
                   std::string(
-                      std::string(request_id) +
+                      GetRequestId(request) +
                       "failed to split the output tensor '" + output_name +
                       "' in responses: expected batch size of atleast " +
                       std::to_string(batch_size_offset + shape[0]) +
@@ -203,16 +199,12 @@ BackendOutputResponder::ProcessStateTensor(
       if ((batchn_batch_size != -1) &&
           ((batch_size_offset + shape[0]) > batchn_batch_size)) {
         if (response != nullptr) {
-          const char* request_id = "";
-          LOG_IF_ERROR(
-              TRITONBACKEND_RequestIdString(request, &request_id),
-              "unable to get request ID string");
           RESPOND_AND_SET_NULL_IF_ERROR(
               &response,
               TRITONSERVER_ErrorNew(
                   TRITONSERVER_ERROR_UNSUPPORTED,
                   std::string(
-                      std::string(request_id) +
+                      GetRequestId(request) +
                       "failed to split the output state tensor '" +
                       output_state_name +
                       "' in responses: expected batch size of atleast " +
