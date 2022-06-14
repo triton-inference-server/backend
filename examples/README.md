@@ -1,5 +1,5 @@
 <!--
-# Copyright 2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2021-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -53,6 +53,13 @@ also implements [Implicit State
 Management](https://github.com/triton-inference-server/server/blob/main/docs/architecture.md#implicit-state-management)
 which allows backends to behave in a stateless manner and leave the
 state management to Triton.
+
+Besides, Triton provides the
+[*BLS*](https://github.com/triton-inference-server/bls_backend) backend that
+demonstrates using in-process C-API to execute inferences within the backend.
+The [*BLS*](https://github.com/triton-inference-server/bls_backend) backend
+serves as an example to backend developers for implementing their own custom
+pipeline in C++.
 
 ## Tutorial
 
