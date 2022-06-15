@@ -181,7 +181,6 @@ target_link_libraries(
     triton-core-serverapi          # from repo-core
     triton-common-async-work-queue # from repo-common
     triton-common-json             # from repo-common
-    triton-common-sync-queue # from repo-common
 )
 
 if(${TRITON_ENABLE_GPU})

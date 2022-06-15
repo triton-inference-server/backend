@@ -32,6 +32,7 @@
 #include "triton/backend/backend_common.h"
 #include "triton/backend/backend_memory.h"
 #include "triton/common/async_work_queue.h"
+#include "triton/common/sync_queue.h"
 #include "triton/core/tritonbackend.h"
 
 #ifdef TRITON_ENABLE_GPU
