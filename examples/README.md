@@ -54,13 +54,6 @@ Management](https://github.com/triton-inference-server/server/blob/main/docs/arc
 which allows backends to behave in a stateless manner and leave the
 state management to Triton.
 
-Besides, Triton provides the
-[*BLS*](https://github.com/triton-inference-server/bls_backend) backend that
-demonstrates using in-process C-API to execute inferences within the backend.
-The [*BLS*](https://github.com/triton-inference-server/bls_backend) backend
-serves as an example to backend developers for implementing their own custom
-pipeline in C++.
-
 ## Tutorial
 
 The [Triton Backend API](../README.md#triton-backend-api) exposes a
@@ -393,6 +386,92 @@ endpoint](https://github.com/triton-inference-server/server/blob/main/docs/proto
 ```
 $ curl localhost:8000/v2/models/batching/stats
 {"model_stats":[{"name":"batching","version":"1","last_inference":1640111452223,"inference_count":2,"execution_count":1,"inference_stats":{"success":{"count":2,"ns":9997025869},"fail":{"count":0,"ns":0},"queue":{"count":2,"ns":9996491319},"compute_input":{"count":2,"ns":95288},"compute_infer":{"count":2,"ns":232202},"compute_output":{"count":2,"ns":195850}},"batch_stats":[{"batch_size":2,"compute_input":{"count":1,"ns":47644},"compute_infer":{"count":1,"ns":116101},"compute_output":{"count":1,"ns":97925}}]}]}
+```
+
+### *BLS* Triton Backend
+
+The [*BLS*](backends/bls) backend demonstrates using in-process C-API to
+execute inferences within the backend. This backend serves as an example to
+backend developers for implementing their own custom pipeline in C++.
+For Python use cases, please refer to 
+[Business Logic Scripting](https://github.com/triton-inference-server/python_backend#business-logic-scripting)
+section in Python backend.
+
+The source code for the *bls* backend is contained in
+[backends/bls/src](backends/bls/src). [bls.cc](backends/bls/src/bls.cc)
+includes the main backend implementation while the BLS implementation is
+placed in [bls_utils.h](backends/bls/src/bls_utils.h) and
+[bls_utils.cc](backends/bls/src/bls_utils.cc).
+The source code contains extensive documentation describing the operation of
+the backend and the use of the
+[Triton Backend API](../README.md#triton-backend-api) and the
+[Triton Server API](https://github.com/triton-inference-server/server/blob/main/docs/inference_protocols.md#in-process-triton-server-api).
+Before reading the source code, make sure you understand
+the concepts associated with Triton backend abstractions
+[TRITONBACKEND_Backend](../README.md#tritonbackend-backend),
+[TRITONBACKEND_Model](../README.md#tritonbackend-model), and
+[TRITONBACKEND_ModelInstance](../README.md#tritonbackend-modelinstance).
+
+The *bls* backend will send two requests on the 'addsub_python' and 'addsub_tf'
+models. After the inference requests are completed, this backend will extract
+OUTPUT0 from the 'addsub_python' and OUTPUT1 from the 'addsub_tf' model to
+construct the final inference response object using these tensors.
+
+#### Building the *BLS* Backend
+
+[backends/bls/CMakeLists.txt](backends/bls/CMakeLists.txt)
+shows the recommended build and install script for a Triton
+backend. Building and installing is the same as decribed in [Building
+the *Minimal* Backend](#building-the-minimal-backend).
+
+#### Running Triton with the *BLS* Backend
+
+After adding the *bls* backend to the Triton server as
+described in [Backend Shared
+Library](../README.md#backend-shared-library), you can run Triton and
+have it load the models in
+[model_repos/bls_models](model_repos/bls_models). Assuming you have created a
+*tritonserver* Docker image by adding the *bls* backend to Triton, the
+following command will run Triton:
+
+```
+$ docker run --rm -it --net=host -v/path/to/model_repos/bls_models:/models tritonserver --model-repository=/models
+```
+
+The console output will show similar to the following indicating that
+the *bls_fp32*, *addsub_python* and *addsub_tf* models from the bls_models repository have
+loaded correctly.
+
+```
+I0616 09:34:47.767433 19214 server.cc:629] 
++---------------+---------+--------+
+| Model         | Version | Status |
++---------------+---------+--------+
+| addsub_python | 1       | READY  |
+| addsub_tf     | 1       | READY  |
+| bls_fp32      | 1       | READY  |
++---------------+---------+--------+
+```
+
+#### Testing the *BLS* Backend
+
+The [clients](clients) directory holds example clients. The
+[bls_client](clients/bls_client) Python script demonstrates sending an
+inference requests to the *bls* backend. With Triton running as
+described in [Running Triton with the *BLS* Backend](#running-triton-with-the-bls-backend),
+execute the client:
+
+```
+$ clients/bls_client
+```
+
+You should see an output similar to the output below:
+
+```
+INPUT0 ([0.42935285 0.51512766 0.43625894 ... 0.6670954  0.17747518 0.7976901 ]) + INPUT1 ([6.7752063e-01 2.4223252e-01 6.7743927e-01 ... 4.1531715e-01 2.5451833e-01 7.9097062e-01]) = OUTPUT0 ([1.1068735  0.75736016 1.1136982 ... 1.0824126  0.4319935  1.5886607 ])
+INPUT0 ([0.42935285 0.51512766 0.43625894 ... 0.6670954  0.17747518 0.7976901 ]) - INPUT1 ([6.7752063e-01 2.4223252e-01 6.7743927e-01 ... 4.1531715e-01 2.5451833e-01 7.9097062e-01]) = OUTPUT1 ([-0.24816778  0.27289516 -0.24118033 ... 0.25177827 -0.07704315  0.00671947])
+
+PASS
 ```
 
 ### Enhancements
