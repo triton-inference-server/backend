@@ -67,6 +67,11 @@ TRITONSERVER_Error* PrepareInferenceOutput(
     TRITONBACKEND_Request* bls_request,
     TRITONSERVER_InferenceRequest** irequest);
 
+// Constructs the final response.
+void ConstructFinalResponse(
+    TRITONBACKEND_Response** response,
+    std::vector<std::future<TRITONSERVER_InferenceResponse*>> futures);
+
 //
 // BLSExecutor
 //
@@ -74,23 +79,20 @@ TRITONSERVER_Error* PrepareInferenceOutput(
 //
 class BLSExecutor {
  public:
-  BLSExecutor(TRITONSERVER_Server* server) : server_(server) {}
+  BLSExecutor(TRITONSERVER_Server* server);
 
   // Performs the custom inference request.
   TRITONSERVER_Error* Execute(
       TRITONSERVER_InferenceRequest* irequest,
       std::future<TRITONSERVER_InferenceResponse*>* future);
 
-  // Constructs the final response.
-  void ConstructFinalResponse(
-      TRITONBACKEND_Response** response,
-      std::vector<std::future<TRITONSERVER_InferenceResponse*>> futures);
-
-
  private:
   // The server object that encapsulates all the functionality of the Triton
   // server and allows access to the Triton server API.
   TRITONSERVER_Server* server_;
+
+  // The allocator object that will be used for allocation.
+  TRITONSERVER_ResponseAllocator* allocator_;
 };
 
 }}}  // namespace triton::backend::bls

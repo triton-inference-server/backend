@@ -116,6 +116,10 @@ void
 InferResponseComplete(
     TRITONSERVER_InferenceResponse* response, const uint32_t flags, void* userp)
 {
+  // The following logic only works for non-decoupled models as for decoupled
+  // models it may send multiple responses for a request or not send any
+  // responses for a request. Need to modify this function if the model is using
+  // decoupled API.
   if (response != nullptr) {
     // Send 'response' to the future.
     std::promise<TRITONSERVER_InferenceResponse*>* p =
@@ -216,43 +220,8 @@ PrepareInferenceOutput(
   return nullptr;  // success
 }
 
-TRITONSERVER_Error*
-BLSExecutor::Execute(
-    TRITONSERVER_InferenceRequest* irequest,
-    std::future<TRITONSERVER_InferenceResponse*>* future)
-{
-  // When triton needs a buffer to hold an output tensor, it will ask
-  // us to provide the buffer. In this way we can have any buffer
-  // management and sharing strategy that we want. To communicate to
-  // triton the functions that we want it to call to perform the
-  // allocations, we create a "response allocator" object. We pass
-  // this response allocate object to triton when requesting
-  // inference. We can reuse this response allocate object for any
-  // number of inference requests.
-  TRITONSERVER_ResponseAllocator* allocator = nullptr;
-  RETURN_IF_ERROR(TRITONSERVER_ResponseAllocatorNew(
-      &allocator, CPUAllocator, ResponseRelease, nullptr /* start_fn */));
-
-  // Perform inference by calling TRITONSERVER_ServerInferAsync. This
-  // call is asychronous and therefore returns immediately. The
-  // completion of the inference and delivery of the response is done
-  // by triton by calling the "response complete" callback functions
-  // (InferResponseComplete in this case).
-  auto p = new std::promise<TRITONSERVER_InferenceResponse*>();
-  *future = p->get_future();
-
-  RETURN_IF_ERROR(TRITONSERVER_InferenceRequestSetResponseCallback(
-      irequest, allocator, nullptr /* response_allocator_userp */,
-      InferResponseComplete, reinterpret_cast<void*>(p)));
-
-  RETURN_IF_ERROR(
-      TRITONSERVER_ServerInferAsync(server_, irequest, nullptr /* trace */));
-
-  return nullptr;  // success
-}
-
 void
-BLSExecutor::ConstructFinalResponse(
+ConstructFinalResponse(
     TRITONBACKEND_Response** response,
     std::vector<std::future<TRITONSERVER_InferenceResponse*>> futures)
 {
@@ -332,6 +301,44 @@ BLSExecutor::ConstructFinalResponse(
       }
     }
   }
+}
+
+BLSExecutor::BLSExecutor(TRITONSERVER_Server* server) : server_(server)
+{
+  // When triton needs a buffer to hold an output tensor, it will ask
+  // us to provide the buffer. In this way we can have any buffer
+  // management and sharing strategy that we want. To communicate to
+  // triton the functions that we want it to call to perform the
+  // allocations, we create a "response allocator" object. We pass
+  // this response allocate object to triton when requesting
+  // inference. We can reuse this response allocate object for any
+  // number of inference requests.
+  allocator_ = nullptr;
+  THROW_IF_TRITON_ERROR(TRITONSERVER_ResponseAllocatorNew(
+      &allocator_, CPUAllocator, ResponseRelease, nullptr /* start_fn */));
+}
+
+TRITONSERVER_Error*
+BLSExecutor::Execute(
+    TRITONSERVER_InferenceRequest* irequest,
+    std::future<TRITONSERVER_InferenceResponse*>* future)
+{
+  // Perform inference by calling TRITONSERVER_ServerInferAsync. This
+  // call is asychronous and therefore returns immediately. The
+  // completion of the inference and delivery of the response is done
+  // by triton by calling the "response complete" callback functions
+  // (InferResponseComplete in this case).
+  auto p = new std::promise<TRITONSERVER_InferenceResponse*>();
+  *future = p->get_future();
+
+  RETURN_IF_ERROR(TRITONSERVER_InferenceRequestSetResponseCallback(
+      irequest, allocator_, nullptr /* response_allocator_userp */,
+      InferResponseComplete, reinterpret_cast<void*>(p)));
+
+  RETURN_IF_ERROR(
+      TRITONSERVER_ServerInferAsync(server_, irequest, nullptr /* trace */));
+
+  return nullptr;  // success
 }
 
 }}}  // namespace triton::backend::bls

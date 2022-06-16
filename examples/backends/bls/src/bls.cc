@@ -314,9 +314,9 @@ ModelInstanceState::ProcessRequests(
 
   // Process requests
   for (size_t r = 0; r < request_count; r++) {
-    // First, check if both models are ready.
     try {
       for (size_t i = 0; i < 2; i++) {
+        // Check if the model is ready.
         bool is_ready = false;
         THROW_IF_TRITON_ERROR(TRITONSERVER_ServerModelIsReady(
             model_state->TritonServer(), model_names[i].c_str(),
@@ -326,6 +326,21 @@ ModelInstanceState::ProcessRequests(
               (std::string("Failed to execute the inference request. Model '") +
                model_names[i].c_str() + "' is not ready.")
                   .c_str());
+        }
+
+        // Fail to execute the inference if the model is using the decoupled
+        // transaction policy.
+        uint32_t txn_flags;
+        THROW_IF_TRITON_ERROR(TRITONSERVER_ServerModelTransactionProperties(
+            model_state->TritonServer(), model_names[i].c_str(),
+            1 /* model_version */, &txn_flags, nullptr /* voidp */));
+
+        // Decoupled API is not supported in the current BLS interface.
+        if ((txn_flags & TRITONSERVER_TXN_DECOUPLED) != 0) {
+          throw BLSBackendException(
+              std::string("Model '") + model_names[i].c_str() +
+              "' is using the decoupled. BLS doesn't support models using the "
+              "decoupled transaction policy.");
         }
       }
     }
@@ -393,7 +408,7 @@ ModelInstanceState::ProcessRequests(
 
     // If both internal requests are sent successfully, retrieve the output from
     // each request and construct the final response.
-    bls_executor->ConstructFinalResponse(&responses[r], std::move(futures));
+    ConstructFinalResponse(&responses[r], std::move(futures));
   }
 
   uint64_t compute_end_ns = 0;
