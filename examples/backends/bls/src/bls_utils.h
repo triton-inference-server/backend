@@ -59,13 +59,20 @@ struct BLSBackendException : std::exception {
 //
 class ModelExecutor {
  public:
-  ModelExecutor(){};
+  ModelExecutor(TRITONSERVER_Server* server);
 
   // Performs async inference request.
   TRITONSERVER_Error* Execute(
-      TRITONSERVER_Server* server, TRITONSERVER_ResponseAllocator* allocator,
       TRITONSERVER_InferenceRequest* irequest,
       std::future<TRITONSERVER_InferenceResponse*>* future);
+
+ private:
+  // The server object that encapsulates all the functionality of the Triton
+  // server and allows access to the Triton server API.
+  TRITONSERVER_Server* server_;
+
+  // The allocator object that will be used for allocation.
+  TRITONSERVER_ResponseAllocator* allocator_;
 };
 
 //
@@ -106,8 +113,8 @@ class BLSExecutor {
   // server and allows access to the Triton server API.
   TRITONSERVER_Server* server_;
 
-  // The allocator object that will be used for allocation.
-  TRITONSERVER_ResponseAllocator* allocator_;
+  // The ModelExecutor object for executing inference request on a model.
+  std::unique_ptr<ModelExecutor> model_executor_;
 };
 
 }}}  // namespace triton::backend::bls

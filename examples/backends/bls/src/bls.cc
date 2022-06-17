@@ -299,9 +299,6 @@ ModelInstanceState::ProcessRequests(
 
   ModelState* model_state = reinterpret_cast<ModelState*>(Model());
 
-  // The names of the models that we will send internal requests on.
-  std::vector<std::string> model_names = {"addsub_python", "addsub_tf"};
-
   // The way we collect these batch timestamps is not entirely
   // accurate. Normally, in a performant backend you would execute all
   // the requests at the same time, and so there would be a single

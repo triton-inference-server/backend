@@ -146,31 +146,7 @@ InferResponseComplete(
   }
 }
 
-TRITONSERVER_Error*
-ModelExecutor::Execute(
-    TRITONSERVER_Server* server, TRITONSERVER_ResponseAllocator* allocator,
-    TRITONSERVER_InferenceRequest* irequest,
-    std::future<TRITONSERVER_InferenceResponse*>* future)
-{
-  // Perform inference by calling TRITONSERVER_ServerInferAsync. This
-  // call is asychronous and therefore returns immediately. The
-  // completion of the inference and delivery of the response is done
-  // by triton by calling the "response complete" callback functions
-  // (InferResponseComplete in this case).
-  auto p = new std::promise<TRITONSERVER_InferenceResponse*>();
-  *future = p->get_future();
-
-  RETURN_IF_ERROR(TRITONSERVER_InferenceRequestSetResponseCallback(
-      irequest, allocator, nullptr /* response_allocator_userp */,
-      InferResponseComplete, reinterpret_cast<void*>(p)));
-
-  RETURN_IF_ERROR(
-      TRITONSERVER_ServerInferAsync(server, irequest, nullptr /* trace */));
-
-  return nullptr;  // success
-}
-
-BLSExecutor::BLSExecutor(TRITONSERVER_Server* server) : server_(server)
+ModelExecutor::ModelExecutor(TRITONSERVER_Server* server) : server_(server)
 {
   // When triton needs a buffer to hold an output tensor, it will ask
   // us to provide the buffer. In this way we can have any buffer
@@ -183,6 +159,33 @@ BLSExecutor::BLSExecutor(TRITONSERVER_Server* server) : server_(server)
   allocator_ = nullptr;
   THROW_IF_TRITON_ERROR(TRITONSERVER_ResponseAllocatorNew(
       &allocator_, CPUAllocator, ResponseRelease, nullptr /* start_fn */));
+}
+
+TRITONSERVER_Error*
+ModelExecutor::Execute(
+    TRITONSERVER_InferenceRequest* irequest,
+    std::future<TRITONSERVER_InferenceResponse*>* future)
+{
+  // Perform inference by calling TRITONSERVER_ServerInferAsync. This
+  // call is asychronous and therefore returns immediately. The
+  // completion of the inference and delivery of the response is done
+  // by triton by calling the "response complete" callback functions
+  // (InferResponseComplete in this case).
+  auto p = new std::promise<TRITONSERVER_InferenceResponse*>();
+  *future = p->get_future();
+
+  RETURN_IF_ERROR(TRITONSERVER_InferenceRequestSetResponseCallback(
+      irequest, allocator_, nullptr /* response_allocator_userp */,
+      InferResponseComplete, reinterpret_cast<void*>(p)));
+
+  RETURN_IF_ERROR(
+      TRITONSERVER_ServerInferAsync(server_, irequest, nullptr /* trace */));
+
+  return nullptr;  // success
+}
+
+BLSExecutor::BLSExecutor(TRITONSERVER_Server* server) : server_(server)
+{
 }
 
 TRITONSERVER_Error*
@@ -330,6 +333,8 @@ BLSExecutor::Execute(
   // For each inference request, the backend sends two requests on the
   // 'addsub_python' and 'addsub_tf' models.
   try {
+    model_executor_ = std::make_unique<ModelExecutor>(server_);
+
     for (size_t icount = 0; icount < 2; icount++) {
       // Initialize the inference request with required information.
       THROW_IF_TRITON_ERROR(
@@ -337,9 +342,9 @@ BLSExecutor::Execute(
       THROW_IF_TRITON_ERROR(PrepareInferenceInput(bls_request, irequest));
       THROW_IF_TRITON_ERROR(PrepareInferenceOutput(bls_request, irequest));
 
-      ModelExecutor model_executor;
-      THROW_IF_TRITON_ERROR(model_executor.Execute(
-          server_, allocator_, irequest, &futures[icount]));
+      // Execute inference request.
+      THROW_IF_TRITON_ERROR(
+          model_executor_->Execute(irequest, &futures[icount]));
     }
   }
   catch (const BLSBackendException& bls_exception) {
@@ -353,6 +358,8 @@ BLSExecutor::Execute(
             TRITONSERVER_ERROR_INTERNAL, "Failed to send inference requests"));
     return;
   }
+
+  model_executor_.reset();
 
   // If both internal requests are sent successfully, retrieve the output from
   // each request and construct the final response.
