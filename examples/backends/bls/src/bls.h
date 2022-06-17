@@ -25,73 +25,55 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <future>
-#include <sstream>
+#include "bls_utils.h"
 #include "triton/backend/backend_common.h"
 #include "triton/core/tritonbackend.h"
 #include "triton/core/tritonserver.h"
 
 namespace triton { namespace backend { namespace bls {
 
-#define THROW_IF_TRITON_ERROR(X)                                       \
-  do {                                                                 \
-    TRITONSERVER_Error* tie_err__ = (X);                               \
-    if (tie_err__ != nullptr) {                                        \
-      throw BLSBackendException(TRITONSERVER_ErrorMessage(tie_err__)); \
-    }                                                                  \
-  } while (false)
-
 //
-// BLSBackendException
+// BLSExecutor
 //
-// Exception thrown if error occurs in BLSBackend.
+// Includes the custom BLS logic for this backend.
+// This class shows how to utilize Triton in-process C-API to build the
+// execution pipeline.
 //
-struct BLSBackendException : std::exception {
-  BLSBackendException(const std::string& message) : message_(message) {}
-
-  const char* what() const throw() { return message_.c_str(); }
-
-  std::string message_;
-};
-
-TRITONSERVER_Error* CPUAllocator(
-    TRITONSERVER_ResponseAllocator* allocator, const char* tensor_name,
-    size_t byte_size, TRITONSERVER_MemoryType preferred_memory_type,
-    int64_t preferred_memory_type_id, void* userp, void** buffer,
-    void** buffer_userp, TRITONSERVER_MemoryType* actual_memory_type,
-    int64_t* actual_memory_type_id);
-
-TRITONSERVER_Error* ResponseRelease(
-    TRITONSERVER_ResponseAllocator* allocator, void* buffer, void* buffer_userp,
-    size_t byte_size, TRITONSERVER_MemoryType memory_type,
-    int64_t memory_type_id);
-
-void InferRequestComplete(
-    TRITONSERVER_InferenceRequest* request, const uint32_t flags, void* userp);
-
-void InferResponseComplete(
-    TRITONSERVER_InferenceResponse* response, const uint32_t flags, void* userp);
-
-//
-// ModelExecutor
-//
-// Execute inference request on a model.
-//
-class ModelExecutor {
+class BLSExecutor {
  public:
-  ModelExecutor(TRITONSERVER_Server* server);
+  BLSExecutor(TRITONSERVER_Server* server);
 
-  // Performs async inference request.
-  TRITONSERVER_Error* Execute(
-      TRITONSERVER_InferenceRequest* irequest,
-      std::future<TRITONSERVER_InferenceResponse*>* future);
+  // Prepares the inference request that will be used internally.
+  TRITONSERVER_Error* PrepareInferenceRequest(
+      TRITONBACKEND_Request* bls_request,
+      TRITONSERVER_InferenceRequest** irequest, const std::string model_name);
+
+  // Prepares the input for the internal inference request.
+  TRITONSERVER_Error* PrepareInferenceInput(
+      TRITONBACKEND_Request* bls_request,
+      TRITONSERVER_InferenceRequest* irequest);
+
+  // Prepares the output for the internal inference request.
+  TRITONSERVER_Error* PrepareInferenceOutput(
+      TRITONBACKEND_Request* bls_request,
+      TRITONSERVER_InferenceRequest* irequest);
+
+  // Performs the whole BLS pipeline.
+  void Execute(
+      TRITONBACKEND_Request* bls_request, TRITONBACKEND_Response** response);
+
+  // Constructs the final response.
+  void ConstructFinalResponse(
+      TRITONBACKEND_Response** response,
+      std::vector<std::future<TRITONSERVER_InferenceResponse*>> futures);
 
  private:
   // The server object that encapsulates all the functionality of the Triton
   // server and allows access to the Triton server API.
   TRITONSERVER_Server* server_;
 
-  // The allocator object that will be used for allocation.
-  TRITONSERVER_ResponseAllocator* allocator_;
+  // The ModelExecutor object for executing inference request on a model.
+  ModelExecutor model_executor_;
 };
 
 }}}  // namespace triton::backend::bls

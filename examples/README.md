@@ -398,10 +398,22 @@ For Python use cases, please refer to
 section in Python backend.
 
 The source code for the *bls* backend is contained in
-[backends/bls/src](backends/bls/src). [bls.cc](backends/bls/src/bls.cc)
-includes the main backend implementation while the BLS implementation is
-placed in [bls_utils.h](backends/bls/src/bls_utils.h) and
-[bls_utils.cc](backends/bls/src/bls_utils.cc).
+[backends/bls/src](backends/bls/src).
+
+* [backend.cc](backends/bls/src/backend.cc) contains the main backend
+implementation. The content of this file is not BLS specific. It only includes
+the required Triton backend functions that is standard for any backend
+implementation. The BLS logic is set off in the
+[`TRITONBACKEND_ModelInstanceExecute`](backends/bls/src/backend.cc#L317).
+function.
+
+* [bls.h](backends/bls/src/bls.h) is where the BLS (class `BLSExecutor`) of
+this example is located. You can refer to this file to see how to interact with
+Triton in-process C-API to build the custom execution pipeline.
+
+* [bls_utils.h](backends/bls/src/bls_utils.h) is where all the utilities that
+are not BLS dependent are located.
+
 The source code contains extensive documentation describing the operation of
 the backend and the use of the
 [Triton Backend API](../README.md#triton-backend-api) and the

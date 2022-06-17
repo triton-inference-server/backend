@@ -83,6 +83,8 @@ configure_file(src/libtriton_bls.ldscript libtriton_bls.ldscript COPYONLY)
 
 add_library(
   triton-bls-backend SHARED
+  src/backend.cc
+  src/bls.h
   src/bls.cc
   src/bls_utils.h
   src/bls_utils.cc
