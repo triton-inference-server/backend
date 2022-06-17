@@ -59,25 +59,7 @@ struct BLSBackendException : std::exception {
 //
 class ModelExecutor {
  public:
-  ModelExecutor(
-      const std::string model_name, TRITONSERVER_Server* server,
-      TRITONBACKEND_Request* bls_request,
-      TRITONSERVER_InferenceRequest** irequest);
-
-  // Prepares the inference request that will be used internally.
-  TRITONSERVER_Error* PrepareInferenceRequest(
-      TRITONSERVER_Server* server, TRITONBACKEND_Request* bls_request,
-      TRITONSERVER_InferenceRequest** irequest, const std::string model_name);
-
-  // Prepares the input for the internal inference request.
-  TRITONSERVER_Error* PrepareInferenceInput(
-      TRITONBACKEND_Request* bls_request,
-      TRITONSERVER_InferenceRequest* irequest);
-
-  // Prepares the output for the internal inference request.
-  TRITONSERVER_Error* PrepareInferenceOutput(
-      TRITONBACKEND_Request* bls_request,
-      TRITONSERVER_InferenceRequest* irequest);
+  ModelExecutor(){};
 
   // Performs async inference request.
   TRITONSERVER_Error* Execute(
@@ -94,6 +76,21 @@ class ModelExecutor {
 class BLSExecutor {
  public:
   BLSExecutor(TRITONSERVER_Server* server);
+
+  // Prepares the inference request that will be used internally.
+  TRITONSERVER_Error* PrepareInferenceRequest(
+      TRITONBACKEND_Request* bls_request,
+      TRITONSERVER_InferenceRequest** irequest, const std::string model_name);
+
+  // Prepares the input for the internal inference request.
+  TRITONSERVER_Error* PrepareInferenceInput(
+      TRITONBACKEND_Request* bls_request,
+      TRITONSERVER_InferenceRequest* irequest);
+
+  // Prepares the output for the internal inference request.
+  TRITONSERVER_Error* PrepareInferenceOutput(
+      TRITONBACKEND_Request* bls_request,
+      TRITONSERVER_InferenceRequest* irequest);
 
   // Performs the whole BLS pipeline.
   void Execute(

@@ -146,107 +146,6 @@ InferResponseComplete(
   }
 }
 
-ModelExecutor::ModelExecutor(
-    const std::string model_name, TRITONSERVER_Server* server,
-    TRITONBACKEND_Request* bls_request,
-    TRITONSERVER_InferenceRequest** irequest)
-{
-  // Initialize the inference request with required information.
-  THROW_IF_TRITON_ERROR(
-      PrepareInferenceRequest(server, bls_request, irequest, model_name));
-  THROW_IF_TRITON_ERROR(PrepareInferenceInput(bls_request, *irequest));
-  THROW_IF_TRITON_ERROR(PrepareInferenceOutput(bls_request, *irequest));
-}
-
-TRITONSERVER_Error*
-ModelExecutor::PrepareInferenceRequest(
-    TRITONSERVER_Server* server, TRITONBACKEND_Request* bls_request,
-    TRITONSERVER_InferenceRequest** irequest, const std::string model_name)
-{
-  // Get request_id, correlation_id, and flags from the current request
-  // for preparing a new inference request that we will send to 'addsub_python'
-  // or 'addsub_tf' model later.
-  const char* request_id;
-  uint64_t correlation_id;
-  uint32_t flags;
-  RETURN_IF_ERROR(TRITONBACKEND_RequestId(bls_request, &request_id));
-  RETURN_IF_ERROR(
-      TRITONBACKEND_RequestCorrelationId(bls_request, &correlation_id));
-  RETURN_IF_ERROR(TRITONBACKEND_RequestFlags(bls_request, &flags));
-
-  // Create an inference request object. The inference request object
-  // is where we set the name of the model we want to use for
-  // inference and the input tensors.
-  RETURN_IF_ERROR(TRITONSERVER_InferenceRequestNew(
-      irequest, server, model_name.c_str(), 1 /* model_version */));
-  // Set request_id, correlation_id, and flags for the new request.
-  RETURN_IF_ERROR(TRITONSERVER_InferenceRequestSetId(*irequest, request_id));
-  RETURN_IF_ERROR(
-      TRITONSERVER_InferenceRequestSetCorrelationId(*irequest, correlation_id));
-  RETURN_IF_ERROR(TRITONSERVER_InferenceRequestSetFlags(*irequest, flags));
-  RETURN_IF_ERROR(TRITONSERVER_InferenceRequestSetReleaseCallback(
-      *irequest, InferRequestComplete, nullptr /* request_release_userp */));
-
-  return nullptr;  // success
-}
-
-TRITONSERVER_Error*
-ModelExecutor::PrepareInferenceInput(
-    TRITONBACKEND_Request* bls_request, TRITONSERVER_InferenceRequest* irequest)
-{
-  // Get the properties of the two inputs from the current request.
-  // Then, add the two input tensors and append the input data to the new
-  // request.
-  uint32_t input_count;
-  RETURN_IF_ERROR(TRITONBACKEND_RequestInputCount(bls_request, &input_count));
-
-  TRITONBACKEND_Input* input;
-  const char* name;
-  TRITONSERVER_DataType datatype;
-  const int64_t* shape;
-  uint32_t dims_count;
-  size_t data_byte_size;
-  TRITONSERVER_MemoryType data_memory_type;
-  int64_t data_memory_id;
-  const char* data_buffer;
-
-  for (size_t count = 0; count < input_count; count++) {
-    RETURN_IF_ERROR(TRITONBACKEND_RequestInputByIndex(
-        bls_request, count /* index */, &input));
-    RETURN_IF_ERROR(TRITONBACKEND_InputProperties(
-        input, &name, &datatype, &shape, &dims_count, nullptr, nullptr));
-    RETURN_IF_ERROR(TRITONBACKEND_InputBuffer(
-        input, 0 /* idx */, reinterpret_cast<const void**>(&data_buffer),
-        &data_byte_size, &data_memory_type, &data_memory_id));
-    RETURN_IF_ERROR(TRITONSERVER_InferenceRequestAddInput(
-        irequest, name, datatype, shape, dims_count));
-    RETURN_IF_ERROR(TRITONSERVER_InferenceRequestAppendInputData(
-        irequest, name, &data_buffer[0], data_byte_size, data_memory_type,
-        data_memory_id));
-  }
-
-  return nullptr;  // success
-}
-
-TRITONSERVER_Error*
-ModelExecutor::PrepareInferenceOutput(
-    TRITONBACKEND_Request* bls_request, TRITONSERVER_InferenceRequest* irequest)
-{
-  // Indicate the output tensors to be calculated and returned
-  // for the inference request.
-  uint32_t output_count;
-  RETURN_IF_ERROR(TRITONBACKEND_RequestOutputCount(bls_request, &output_count));
-  const char* output_name;
-  for (size_t count = 0; count < output_count; count++) {
-    RETURN_IF_ERROR(TRITONBACKEND_RequestOutputName(
-        bls_request, count /* index */, &output_name));
-    RETURN_IF_ERROR(
-        TRITONSERVER_InferenceRequestAddRequestedOutput(irequest, output_name));
-  }
-
-  return nullptr;  // success
-}
-
 TRITONSERVER_Error*
 ModelExecutor::Execute(
     TRITONSERVER_Server* server, TRITONSERVER_ResponseAllocator* allocator,
@@ -284,6 +183,95 @@ BLSExecutor::BLSExecutor(TRITONSERVER_Server* server) : server_(server)
   allocator_ = nullptr;
   THROW_IF_TRITON_ERROR(TRITONSERVER_ResponseAllocatorNew(
       &allocator_, CPUAllocator, ResponseRelease, nullptr /* start_fn */));
+}
+
+TRITONSERVER_Error*
+BLSExecutor::PrepareInferenceRequest(
+    TRITONBACKEND_Request* bls_request,
+    TRITONSERVER_InferenceRequest** irequest, const std::string model_name)
+{
+  // Get request_id, correlation_id, and flags from the current request
+  // for preparing a new inference request that we will send to 'addsub_python'
+  // or 'addsub_tf' model later.
+  const char* request_id;
+  uint64_t correlation_id;
+  uint32_t flags;
+  RETURN_IF_ERROR(TRITONBACKEND_RequestId(bls_request, &request_id));
+  RETURN_IF_ERROR(
+      TRITONBACKEND_RequestCorrelationId(bls_request, &correlation_id));
+  RETURN_IF_ERROR(TRITONBACKEND_RequestFlags(bls_request, &flags));
+
+  // Create an inference request object. The inference request object
+  // is where we set the name of the model we want to use for
+  // inference and the input tensors.
+  RETURN_IF_ERROR(TRITONSERVER_InferenceRequestNew(
+      irequest, server_, model_name.c_str(), 1 /* model_version */));
+  // Set request_id, correlation_id, and flags for the new request.
+  RETURN_IF_ERROR(TRITONSERVER_InferenceRequestSetId(*irequest, request_id));
+  RETURN_IF_ERROR(
+      TRITONSERVER_InferenceRequestSetCorrelationId(*irequest, correlation_id));
+  RETURN_IF_ERROR(TRITONSERVER_InferenceRequestSetFlags(*irequest, flags));
+  RETURN_IF_ERROR(TRITONSERVER_InferenceRequestSetReleaseCallback(
+      *irequest, InferRequestComplete, nullptr /* request_release_userp */));
+
+  return nullptr;  // success
+}
+
+TRITONSERVER_Error*
+BLSExecutor::PrepareInferenceInput(
+    TRITONBACKEND_Request* bls_request, TRITONSERVER_InferenceRequest* irequest)
+{
+  // Get the properties of the two inputs from the current request.
+  // Then, add the two input tensors and append the input data to the new
+  // request.
+  uint32_t input_count;
+  RETURN_IF_ERROR(TRITONBACKEND_RequestInputCount(bls_request, &input_count));
+
+  TRITONBACKEND_Input* input;
+  const char* name;
+  TRITONSERVER_DataType datatype;
+  const int64_t* shape;
+  uint32_t dims_count;
+  size_t data_byte_size;
+  TRITONSERVER_MemoryType data_memory_type;
+  int64_t data_memory_id;
+  const char* data_buffer;
+
+  for (size_t count = 0; count < input_count; count++) {
+    RETURN_IF_ERROR(TRITONBACKEND_RequestInputByIndex(
+        bls_request, count /* index */, &input));
+    RETURN_IF_ERROR(TRITONBACKEND_InputProperties(
+        input, &name, &datatype, &shape, &dims_count, nullptr, nullptr));
+    RETURN_IF_ERROR(TRITONBACKEND_InputBuffer(
+        input, 0 /* idx */, reinterpret_cast<const void**>(&data_buffer),
+        &data_byte_size, &data_memory_type, &data_memory_id));
+    RETURN_IF_ERROR(TRITONSERVER_InferenceRequestAddInput(
+        irequest, name, datatype, shape, dims_count));
+    RETURN_IF_ERROR(TRITONSERVER_InferenceRequestAppendInputData(
+        irequest, name, &data_buffer[0], data_byte_size, data_memory_type,
+        data_memory_id));
+  }
+
+  return nullptr;  // success
+}
+
+TRITONSERVER_Error*
+BLSExecutor::PrepareInferenceOutput(
+    TRITONBACKEND_Request* bls_request, TRITONSERVER_InferenceRequest* irequest)
+{
+  // Indicate the output tensors to be calculated and returned
+  // for the inference request.
+  uint32_t output_count;
+  RETURN_IF_ERROR(TRITONBACKEND_RequestOutputCount(bls_request, &output_count));
+  const char* output_name;
+  for (size_t count = 0; count < output_count; count++) {
+    RETURN_IF_ERROR(TRITONBACKEND_RequestOutputName(
+        bls_request, count /* index */, &output_name));
+    RETURN_IF_ERROR(
+        TRITONSERVER_InferenceRequestAddRequestedOutput(irequest, output_name));
+  }
+
+  return nullptr;  // success
 }
 
 void
@@ -343,8 +331,13 @@ BLSExecutor::Execute(
   // 'addsub_python' and 'addsub_tf' models.
   try {
     for (size_t icount = 0; icount < 2; icount++) {
-      ModelExecutor model_executor(
-          model_names[icount], server_, bls_request, &irequest);
+      // Initialize the inference request with required information.
+      THROW_IF_TRITON_ERROR(
+          PrepareInferenceRequest(bls_request, &irequest, model_names[icount]));
+      THROW_IF_TRITON_ERROR(PrepareInferenceInput(bls_request, irequest));
+      THROW_IF_TRITON_ERROR(PrepareInferenceOutput(bls_request, irequest));
+
+      ModelExecutor model_executor;
       THROW_IF_TRITON_ERROR(model_executor.Execute(
           server_, allocator_, irequest, &futures[icount]));
     }
