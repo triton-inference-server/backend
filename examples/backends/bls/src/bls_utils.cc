@@ -25,6 +25,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "bls_utils.h"
+#include <sstream>
 
 namespace triton { namespace backend { namespace bls {
 
@@ -49,8 +50,10 @@ CPUAllocator(
   if (byte_size == 0) {
     *buffer = nullptr;
     *buffer_userp = nullptr;
-    std::cout << "allocated " << byte_size << " bytes for result tensor "
-              << tensor_name << std::endl;
+    LOG_MESSAGE(
+        TRITONSERVER_LOG_VERBOSE, ("allocated " + std::to_string(byte_size) +
+                                   " bytes for result tensor " + tensor_name)
+                                      .c_str());
   } else {
     void* allocated_ptr = nullptr;
     *actual_memory_type = TRITONSERVER_MEMORY_CPU;
@@ -61,9 +64,12 @@ CPUAllocator(
     if (allocated_ptr != nullptr) {
       *buffer = allocated_ptr;
       *buffer_userp = new std::string(tensor_name);
-      std::cout << "allocated " << byte_size << " bytes in "
-                << TRITONSERVER_MemoryTypeString(*actual_memory_type)
-                << " for result tensor " << tensor_name << std::endl;
+      LOG_MESSAGE(
+          TRITONSERVER_LOG_VERBOSE,
+          ("allocated " + std::to_string(byte_size) + " bytes in " +
+           TRITONSERVER_MemoryTypeString(*actual_memory_type) +
+           " for result tensor " + tensor_name)
+              .c_str());
     }
   }
 
@@ -83,16 +89,27 @@ ResponseRelease(
     name = new std::string("<unknown>");
   }
 
-  std::cout << "Releasing buffer " << buffer << " of size " << byte_size
-            << " in " << TRITONSERVER_MemoryTypeString(memory_type)
-            << " for result '" << *name << "'" << std::endl;
+  std::stringstream ss;
+  ss << buffer;
+  std::string buffer_str = ss.str();
+
+  LOG_MESSAGE(
+      TRITONSERVER_LOG_VERBOSE,
+      ("Releasing buffer " + buffer_str + " of size " +
+       std::to_string(byte_size) + " in " +
+       TRITONSERVER_MemoryTypeString(memory_type) + " for result '" + *name)
+          .c_str());
+
   switch (memory_type) {
     case TRITONSERVER_MEMORY_CPU:
       free(buffer);
       break;
     default:
-      std::cerr << "error: unexpected buffer allocated in CUDA managed memory"
-                << std::endl;
+      LOG_MESSAGE(
+          TRITONSERVER_LOG_ERROR,
+          std::string(
+              "error: unexpected buffer allocated in CUDA managed memory")
+              .c_str());
       break;
   }
 
@@ -129,8 +146,20 @@ InferResponseComplete(
   }
 }
 
+ModelExecutor::ModelExecutor(
+    const std::string model_name, TRITONSERVER_Server* server,
+    TRITONBACKEND_Request* bls_request,
+    TRITONSERVER_InferenceRequest** irequest)
+{
+  // Initialize the inference request with required information.
+  THROW_IF_TRITON_ERROR(
+      PrepareInferenceRequest(server, bls_request, irequest, model_name));
+  THROW_IF_TRITON_ERROR(PrepareInferenceInput(bls_request, *irequest));
+  THROW_IF_TRITON_ERROR(PrepareInferenceOutput(bls_request, *irequest));
+}
+
 TRITONSERVER_Error*
-PrepareInferenceRequest(
+ModelExecutor::PrepareInferenceRequest(
     TRITONSERVER_Server* server, TRITONBACKEND_Request* bls_request,
     TRITONSERVER_InferenceRequest** irequest, const std::string model_name)
 {
@@ -162,9 +191,8 @@ PrepareInferenceRequest(
 }
 
 TRITONSERVER_Error*
-PrepareInferenceInput(
-    TRITONBACKEND_Request* bls_request,
-    TRITONSERVER_InferenceRequest** irequest)
+ModelExecutor::PrepareInferenceInput(
+    TRITONBACKEND_Request* bls_request, TRITONSERVER_InferenceRequest* irequest)
 {
   // Get the properties of the two inputs from the current request.
   // Then, add the two input tensors and append the input data to the new
@@ -191,9 +219,9 @@ PrepareInferenceInput(
         input, 0 /* idx */, reinterpret_cast<const void**>(&data_buffer),
         &data_byte_size, &data_memory_type, &data_memory_id));
     RETURN_IF_ERROR(TRITONSERVER_InferenceRequestAddInput(
-        *irequest, name, datatype, shape, dims_count));
+        irequest, name, datatype, shape, dims_count));
     RETURN_IF_ERROR(TRITONSERVER_InferenceRequestAppendInputData(
-        *irequest, name, &data_buffer[0], data_byte_size, data_memory_type,
+        irequest, name, &data_buffer[0], data_byte_size, data_memory_type,
         data_memory_id));
   }
 
@@ -201,9 +229,8 @@ PrepareInferenceInput(
 }
 
 TRITONSERVER_Error*
-PrepareInferenceOutput(
-    TRITONBACKEND_Request* bls_request,
-    TRITONSERVER_InferenceRequest** irequest)
+ModelExecutor::PrepareInferenceOutput(
+    TRITONBACKEND_Request* bls_request, TRITONSERVER_InferenceRequest* irequest)
 {
   // Indicate the output tensors to be calculated and returned
   // for the inference request.
@@ -213,15 +240,134 @@ PrepareInferenceOutput(
   for (size_t count = 0; count < output_count; count++) {
     RETURN_IF_ERROR(TRITONBACKEND_RequestOutputName(
         bls_request, count /* index */, &output_name));
-    RETURN_IF_ERROR(TRITONSERVER_InferenceRequestAddRequestedOutput(
-        *irequest, output_name));
+    RETURN_IF_ERROR(
+        TRITONSERVER_InferenceRequestAddRequestedOutput(irequest, output_name));
   }
 
   return nullptr;  // success
 }
 
+TRITONSERVER_Error*
+ModelExecutor::Execute(
+    TRITONSERVER_Server* server, TRITONSERVER_ResponseAllocator* allocator,
+    TRITONSERVER_InferenceRequest* irequest,
+    std::future<TRITONSERVER_InferenceResponse*>* future)
+{
+  // Perform inference by calling TRITONSERVER_ServerInferAsync. This
+  // call is asychronous and therefore returns immediately. The
+  // completion of the inference and delivery of the response is done
+  // by triton by calling the "response complete" callback functions
+  // (InferResponseComplete in this case).
+  auto p = new std::promise<TRITONSERVER_InferenceResponse*>();
+  *future = p->get_future();
+
+  RETURN_IF_ERROR(TRITONSERVER_InferenceRequestSetResponseCallback(
+      irequest, allocator, nullptr /* response_allocator_userp */,
+      InferResponseComplete, reinterpret_cast<void*>(p)));
+
+  RETURN_IF_ERROR(
+      TRITONSERVER_ServerInferAsync(server, irequest, nullptr /* trace */));
+
+  return nullptr;  // success
+}
+
+BLSExecutor::BLSExecutor(TRITONSERVER_Server* server) : server_(server)
+{
+  // When triton needs a buffer to hold an output tensor, it will ask
+  // us to provide the buffer. In this way we can have any buffer
+  // management and sharing strategy that we want. To communicate to
+  // triton the functions that we want it to call to perform the
+  // allocations, we create a "response allocator" object. We pass
+  // this response allocate object to triton when requesting
+  // inference. We can reuse this response allocate object for any
+  // number of inference requests.
+  allocator_ = nullptr;
+  THROW_IF_TRITON_ERROR(TRITONSERVER_ResponseAllocatorNew(
+      &allocator_, CPUAllocator, ResponseRelease, nullptr /* start_fn */));
+}
+
 void
-ConstructFinalResponse(
+BLSExecutor::Execute(
+    TRITONBACKEND_Request* bls_request, TRITONBACKEND_Response** response)
+{
+  // The names of the models that we will send internal requests on.
+  std::vector<std::string> model_names = {"addsub_python", "addsub_tf"};
+
+  // Check if both models are valid before executing request.
+  try {
+    for (size_t i = 0; i < 2; i++) {
+      // Check if the model is ready.
+      bool is_ready = false;
+      THROW_IF_TRITON_ERROR(TRITONSERVER_ServerModelIsReady(
+          server_, model_names[i].c_str(), 1 /* model_version */, &is_ready));
+      if (!is_ready) {
+        throw BLSBackendException(
+            (std::string("Failed to execute the inference request. Model '") +
+             model_names[i].c_str() + "' is not ready.")
+                .c_str());
+      }
+      // Fail to execute the inference if the model is using the decoupled
+      // transaction policy.
+      uint32_t txn_flags;
+      THROW_IF_TRITON_ERROR(TRITONSERVER_ServerModelTransactionProperties(
+          server_, model_names[i].c_str(), 1 /* model_version */, &txn_flags,
+          nullptr /* voidp */));
+
+      // Decoupled API is not supported in the current BLS interface.
+      if ((txn_flags & TRITONSERVER_TXN_DECOUPLED) != 0) {
+        throw BLSBackendException(
+            std::string("Model '") + model_names[i].c_str() +
+            "' is using the decoupled. BLS doesn't support models using the "
+            "decoupled transaction policy.");
+      }
+    }
+  }
+  catch (const BLSBackendException& bls_exception) {
+    LOG_MESSAGE(TRITONSERVER_LOG_ERROR, bls_exception.what());
+    RESPOND_AND_SET_NULL_IF_ERROR(
+        response,
+        TRITONSERVER_ErrorNew(
+            TRITONSERVER_ERROR_INTERNAL, "Failed to send inference requests"));
+    return;
+  }
+
+  // Prepare std::future for each model. Since this BLS backend
+  // can handle requests in parallel, we will send all the inference
+  // requests first and then retrieve them later.
+  std::vector<std::future<TRITONSERVER_InferenceResponse*>> futures(2);
+
+  // The inference request object for sending internal requests.
+  TRITONSERVER_InferenceRequest* irequest = nullptr;
+
+  // For each inference request, the backend sends two requests on the
+  // 'addsub_python' and 'addsub_tf' models.
+  try {
+    for (size_t icount = 0; icount < 2; icount++) {
+      ModelExecutor model_executor(
+          model_names[icount], server_, bls_request, &irequest);
+      THROW_IF_TRITON_ERROR(model_executor.Execute(
+          server_, allocator_, irequest, &futures[icount]));
+    }
+  }
+  catch (const BLSBackendException& bls_exception) {
+    LOG_MESSAGE(TRITONSERVER_LOG_ERROR, bls_exception.what());
+    LOG_IF_ERROR(
+        TRITONSERVER_InferenceRequestDelete(irequest),
+        "Failed to delete inference request.");
+    RESPOND_AND_SET_NULL_IF_ERROR(
+        response,
+        TRITONSERVER_ErrorNew(
+            TRITONSERVER_ERROR_INTERNAL, "Failed to send inference requests"));
+    return;
+  }
+
+  // If both internal requests are sent successfully, retrieve the output from
+  // each request and construct the final response.
+  ConstructFinalResponse(response, std::move(futures));
+}
+
+void
+BLSExecutor::ConstructFinalResponse(
     TRITONBACKEND_Response** response,
     std::vector<std::future<TRITONSERVER_InferenceResponse*>> futures)
 {
@@ -240,56 +386,13 @@ ConstructFinalResponse(
   const void* output_base;
   void* userp;
   for (size_t icount = 0; icount < 2; icount++) {
+    // Retrieve the corresponding TRITONSERVER_InferenceResponse object from
+    // 'futures'. The InferResponseComplete function sets the std::promise
+    // so that this thread will block until the response is returned.
+    completed_responses[icount] = futures[icount].get();
     try {
-      // Retrieve the corresponding TRITONSERVER_InferenceResponse object from
-      // 'futures'. The InferResponseComplete function sets the std::promise
-      // so that this thread will block until the response is returned.
-      completed_responses[icount] = futures[icount].get();
       THROW_IF_TRITON_ERROR(
           TRITONSERVER_InferenceResponseError(completed_responses[icount]));
-
-      // Retrieve outputs from 'completed_responses'.
-      // Extract OUTPUT0 from the 'addsub_python' and OUTPUT1 from the
-      // 'addsub_tf' model to form the final inference response object.
-      // Get all the information about the output tensor.
-      RESPOND_AND_SET_NULL_IF_ERROR(
-          response, TRITONSERVER_InferenceResponseOutput(
-                        completed_responses[icount], icount, &output_name,
-                        &output_datatype, &output_shape, &dims_count,
-                        &output_base, &output_byte_size, &output_memory_type,
-                        &output_memory_id, &userp));
-
-      // Create an output tensor in the final response with
-      // the information retrieved above.
-      TRITONBACKEND_Output* output;
-      RESPOND_AND_SET_NULL_IF_ERROR(
-          response, TRITONBACKEND_ResponseOutput(
-                        *response, &output, output_name, output_datatype,
-                        output_shape, dims_count));
-
-      // Get a buffer that holds the tensor data for the output.
-      // We request a buffer in CPU memory but we have to handle any returned
-      // type. If we get back a buffer in GPU memory we just fail the request.
-      void* output_buffer;
-      output_memory_type = TRITONSERVER_MEMORY_CPU;
-      RESPOND_AND_SET_NULL_IF_ERROR(
-          response, TRITONBACKEND_OutputBuffer(
-                        output, &output_buffer, output_byte_size,
-                        &output_memory_type, &output_memory_id));
-      if (output_memory_type == TRITONSERVER_MEMORY_GPU) {
-        RESPOND_AND_SET_NULL_IF_ERROR(
-            response, TRITONSERVER_ErrorNew(
-                          TRITONSERVER_ERROR_INTERNAL,
-                          "failed to create output buffer in CPU memory"));
-      }
-
-      // Fill the BLS output buffer with output data returned by internal
-      // requests.
-      memcpy(output_buffer, output_base, output_byte_size);
-
-      LOG_IF_ERROR(
-          TRITONSERVER_InferenceResponseDelete(completed_responses[icount]),
-          "Failed to delete inference response.");
     }
     catch (const BLSBackendException& bls_exception) {
       LOG_MESSAGE(TRITONSERVER_LOG_ERROR, bls_exception.what());
@@ -299,46 +402,51 @@ ConstructFinalResponse(
             TRITONSERVER_InferenceResponseDelete(completed_responses[icount]),
             "Failed to delete inference response.");
       }
+      return;
     }
+    // Retrieve outputs from 'completed_responses'.
+    // Extract OUTPUT0 from the 'addsub_python' and OUTPUT1 from the
+    // 'addsub_tf' model to form the final inference response object.
+    // Get all the information about the output tensor.
+    RESPOND_AND_SET_NULL_IF_ERROR(
+        response,
+        TRITONSERVER_InferenceResponseOutput(
+            completed_responses[icount], icount, &output_name, &output_datatype,
+            &output_shape, &dims_count, &output_base, &output_byte_size,
+            &output_memory_type, &output_memory_id, &userp));
+
+    // Create an output tensor in the final response with
+    // the information retrieved above.
+    TRITONBACKEND_Output* output;
+    RESPOND_AND_SET_NULL_IF_ERROR(
+        response, TRITONBACKEND_ResponseOutput(
+                      *response, &output, output_name, output_datatype,
+                      output_shape, dims_count));
+
+    // Get a buffer that holds the tensor data for the output.
+    // We request a buffer in CPU memory but we have to handle any returned
+    // type. If we get back a buffer in GPU memory we just fail the request.
+    void* output_buffer;
+    output_memory_type = TRITONSERVER_MEMORY_CPU;
+    RESPOND_AND_SET_NULL_IF_ERROR(
+        response, TRITONBACKEND_OutputBuffer(
+                      output, &output_buffer, output_byte_size,
+                      &output_memory_type, &output_memory_id));
+    if (output_memory_type == TRITONSERVER_MEMORY_GPU) {
+      RESPOND_AND_SET_NULL_IF_ERROR(
+          response, TRITONSERVER_ErrorNew(
+                        TRITONSERVER_ERROR_INTERNAL,
+                        "failed to create output buffer in CPU memory"));
+    }
+
+    // Fill the BLS output buffer with output data returned by internal
+    // requests.
+    memcpy(output_buffer, output_base, output_byte_size);
+
+    LOG_IF_ERROR(
+        TRITONSERVER_InferenceResponseDelete(completed_responses[icount]),
+        "Failed to delete inference response.");
   }
-}
-
-BLSExecutor::BLSExecutor(TRITONSERVER_Server* server) : server_(server)
-{
-  // When triton needs a buffer to hold an output tensor, it will ask
-  // us to provide the buffer. In this way we can have any buffer
-  // management and sharing strategy that we want. To communicate to
-  // triton the functions that we want it to call to perform the
-  // allocations, we create a "response allocator" object. We pass
-  // this response allocate object to triton when requesting
-  // inference. We can reuse this response allocate object for any
-  // number of inference requests.
-  allocator_ = nullptr;
-  THROW_IF_TRITON_ERROR(TRITONSERVER_ResponseAllocatorNew(
-      &allocator_, CPUAllocator, ResponseRelease, nullptr /* start_fn */));
-}
-
-TRITONSERVER_Error*
-BLSExecutor::Execute(
-    TRITONSERVER_InferenceRequest* irequest,
-    std::future<TRITONSERVER_InferenceResponse*>* future)
-{
-  // Perform inference by calling TRITONSERVER_ServerInferAsync. This
-  // call is asychronous and therefore returns immediately. The
-  // completion of the inference and delivery of the response is done
-  // by triton by calling the "response complete" callback functions
-  // (InferResponseComplete in this case).
-  auto p = new std::promise<TRITONSERVER_InferenceResponse*>();
-  *future = p->get_future();
-
-  RETURN_IF_ERROR(TRITONSERVER_InferenceRequestSetResponseCallback(
-      irequest, allocator_, nullptr /* response_allocator_userp */,
-      InferResponseComplete, reinterpret_cast<void*>(p)));
-
-  RETURN_IF_ERROR(
-      TRITONSERVER_ServerInferAsync(server_, irequest, nullptr /* trace */));
-
-  return nullptr;  // success
 }
 
 }}}  // namespace triton::backend::bls

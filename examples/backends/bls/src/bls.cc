@@ -312,103 +312,12 @@ ModelInstanceState::ProcessRequests(
   uint64_t compute_start_ns = 0;
   SET_TIMESTAMP(compute_start_ns);
 
-  // Process requests
+  // Create a BLSExecutor object. To separate from standard backend
+  // implementation, the BLS logic is placed inside class BLSExecutor.
+  BLSExecutor bls_executor(model_state->TritonServer());
+
   for (size_t r = 0; r < request_count; r++) {
-    try {
-      for (size_t i = 0; i < 2; i++) {
-        // Check if the model is ready.
-        bool is_ready = false;
-        THROW_IF_TRITON_ERROR(TRITONSERVER_ServerModelIsReady(
-            model_state->TritonServer(), model_names[i].c_str(),
-            1 /* model_version */, &is_ready));
-        if (!is_ready) {
-          throw BLSBackendException(
-              (std::string("Failed to execute the inference request. Model '") +
-               model_names[i].c_str() + "' is not ready.")
-                  .c_str());
-        }
-
-        // Fail to execute the inference if the model is using the decoupled
-        // transaction policy.
-        uint32_t txn_flags;
-        THROW_IF_TRITON_ERROR(TRITONSERVER_ServerModelTransactionProperties(
-            model_state->TritonServer(), model_names[i].c_str(),
-            1 /* model_version */, &txn_flags, nullptr /* voidp */));
-
-        // Decoupled API is not supported in the current BLS interface.
-        if ((txn_flags & TRITONSERVER_TXN_DECOUPLED) != 0) {
-          throw BLSBackendException(
-              std::string("Model '") + model_names[i].c_str() +
-              "' is using the decoupled. BLS doesn't support models using the "
-              "decoupled transaction policy.");
-        }
-      }
-    }
-    catch (const BLSBackendException& bls_exception) {
-      LOG_MESSAGE(TRITONSERVER_LOG_ERROR, bls_exception.what());
-      RESPOND_AND_SET_NULL_IF_ERROR(
-          &responses[r],
-          TRITONSERVER_ErrorNew(
-              TRITONSERVER_ERROR_INTERNAL,
-              "Failed to send inference requests, models are not ready"));
-      break;
-    }
-
-    // For each inference request, the backend sends two requests on the
-    // 'addsub_python' and 'addsub_tf' models.
-    // Prepare std::future for each model. Since this BLS backend
-    // can handle requests in parallel, we will send all the inference
-    // requests first and then retrieve them later.
-    std::vector<std::future<TRITONSERVER_InferenceResponse*>> futures(2);
-
-    // The inference request object for sending internal requests.
-    TRITONSERVER_InferenceRequest* irequest = nullptr;
-
-    // Create a BLSExecutor object. The custom BLS logic is placed inside
-    // class BLSExecutor.
-    BLSExecutor* bls_executor = nullptr;
-
-    // This variable indicates whether the InferenceRequest should be deleted
-    // as a part of the catch block or it will be automatically deleted using
-    // the InferResponseComplete callback when the inference is performed
-    // successfully.
-    bool is_inference_success;
-
-    try {
-      for (size_t icount = 0; icount < 2; icount++) {
-        is_inference_success = false;
-        THROW_IF_TRITON_ERROR(PrepareInferenceRequest(
-            model_state->TritonServer(), requests[r], &irequest,
-            model_names[icount]));
-        THROW_IF_TRITON_ERROR(PrepareInferenceInput(requests[r], &irequest));
-        THROW_IF_TRITON_ERROR(PrepareInferenceOutput(requests[r], &irequest));
-
-        // Initialize bls_executor with the server object.
-        bls_executor = new BLSExecutor(model_state->TritonServer());
-
-        THROW_IF_TRITON_ERROR(
-            bls_executor->Execute(irequest, &futures[icount]));
-
-        is_inference_success = true;
-      }
-    }
-    catch (const BLSBackendException& bls_exception) {
-      LOG_MESSAGE(TRITONSERVER_LOG_ERROR, bls_exception.what());
-      if (!is_inference_success) {
-        LOG_IF_ERROR(
-            TRITONSERVER_InferenceRequestDelete(irequest),
-            "Failed to delete inference request.");
-        RESPOND_AND_SET_NULL_IF_ERROR(
-            &responses[r], TRITONSERVER_ErrorNew(
-                               TRITONSERVER_ERROR_INTERNAL,
-                               "Failed to send inference requests"));
-      }
-      break;
-    }
-
-    // If both internal requests are sent successfully, retrieve the output from
-    // each request and construct the final response.
-    ConstructFinalResponse(&responses[r], std::move(futures));
+    bls_executor.Execute(requests[r], &responses[r]);
   }
 
   uint64_t compute_end_ns = 0;
