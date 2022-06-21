@@ -53,7 +53,7 @@ BLSExecutor::PrepareInferenceRequest(
   // is where we set the name of the model we want to use for
   // inference and the input tensors.
   RETURN_IF_ERROR(TRITONSERVER_InferenceRequestNew(
-      irequest, server_, model_name.c_str(), 1 /* model_version */));
+      irequest, server_, model_name.c_str(), -1 /* model_version */));
   // Set request_id, correlation_id, and flags for the new request.
   RETURN_IF_ERROR(TRITONSERVER_InferenceRequestSetId(*irequest, request_id));
   RETURN_IF_ERROR(
@@ -135,26 +135,24 @@ BLSExecutor::Execute(
       // Check if the model is ready.
       bool is_ready = false;
       THROW_IF_TRITON_ERROR(TRITONSERVER_ServerModelIsReady(
-          server_, model_names[i].c_str(), 1 /* model_version */, &is_ready));
+          server_, model_names[i].c_str(), -1 /* model_version */, &is_ready));
       if (!is_ready) {
         throw BLSBackendException(
             (std::string("Failed to execute the inference request. Model '") +
              model_names[i].c_str() + "' is not ready.")
                 .c_str());
       }
-      // Fail to execute the inference if the model is using the decoupled
-      // transaction policy.
+      // For simplicity, decoupled API is not supported in this BLS backend. You
+      // can implement your own backend that supports decoupled models.
       uint32_t txn_flags;
       THROW_IF_TRITON_ERROR(TRITONSERVER_ServerModelTransactionProperties(
-          server_, model_names[i].c_str(), 1 /* model_version */, &txn_flags,
+          server_, model_names[i].c_str(), -1 /* model_version */, &txn_flags,
           nullptr /* voidp */));
-
-      // Decoupled API is not supported in the current BLS interface.
       if ((txn_flags & TRITONSERVER_TXN_DECOUPLED) != 0) {
         throw BLSBackendException(
             std::string("Model '") + model_names[i].c_str() +
-            "' is using the decoupled. BLS doesn't support models using the "
-            "decoupled transaction policy.");
+            "' is using the decoupled. This BLS Backend doesn't support models "
+            "using the decoupled transaction policy.");
       }
     }
   }
@@ -187,7 +185,7 @@ BLSExecutor::Execute(
 
       // Execute inference request.
       THROW_IF_TRITON_ERROR(
-          model_executor_.Execute(irequest, &futures[icount]));
+          model_executor_.AsyncExecute(irequest, &futures[icount]));
     }
   }
   catch (const BLSBackendException& bls_exception) {

@@ -53,6 +53,7 @@ struct BLSBackendException : std::exception {
   std::string message_;
 };
 
+// Performs the allocations of output tensors.
 TRITONSERVER_Error* CPUAllocator(
     TRITONSERVER_ResponseAllocator* allocator, const char* tensor_name,
     size_t byte_size, TRITONSERVER_MemoryType preferred_memory_type,
@@ -60,16 +61,16 @@ TRITONSERVER_Error* CPUAllocator(
     void** buffer_userp, TRITONSERVER_MemoryType* actual_memory_type,
     int64_t* actual_memory_type_id);
 
+// Callback functions for server inference.
 TRITONSERVER_Error* ResponseRelease(
     TRITONSERVER_ResponseAllocator* allocator, void* buffer, void* buffer_userp,
     size_t byte_size, TRITONSERVER_MemoryType memory_type,
     int64_t memory_type_id);
-
 void InferRequestComplete(
     TRITONSERVER_InferenceRequest* request, const uint32_t flags, void* userp);
-
 void InferResponseComplete(
-    TRITONSERVER_InferenceResponse* response, const uint32_t flags, void* userp);
+    TRITONSERVER_InferenceResponse* response, const uint32_t flags,
+    void* userp);
 
 //
 // ModelExecutor
@@ -81,7 +82,7 @@ class ModelExecutor {
   ModelExecutor(TRITONSERVER_Server* server);
 
   // Performs async inference request.
-  TRITONSERVER_Error* Execute(
+  TRITONSERVER_Error* AsyncExecute(
       TRITONSERVER_InferenceRequest* irequest,
       std::future<TRITONSERVER_InferenceResponse*>* future);
 
@@ -90,7 +91,7 @@ class ModelExecutor {
   // server and allows access to the Triton server API.
   TRITONSERVER_Server* server_;
 
-  // The allocator object that will be used for allocation.
+  // The allocator object that will be used for allocating output tensors.
   TRITONSERVER_ResponseAllocator* allocator_;
 };
 

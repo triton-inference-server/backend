@@ -36,11 +36,11 @@ CPUAllocator(
     void** buffer_userp, TRITONSERVER_MemoryType* actual_memory_type,
     int64_t* actual_memory_type_id)
 {
-  // For simplifying this example, this backend always uses CPU memory
-  // regardless of the preferred memory type. You can make the actual memory
-  // type and id that we allocate be the same as preferred memory type. You can
-  // also provide a customized allocator to support different
-  // preferred_memory_type, and reuse memory buffer when possible.
+  // For simplicity, this backend example always uses CPU memory regardless of
+  // the preferred memory type. You can make the actual memory type and id that
+  // we allocate be the same as preferred memory type. You can also provide a
+  // customized allocator to support different preferred_memory_type, and reuse
+  // memory buffer when possible.
   *actual_memory_type = TRITONSERVER_MEMORY_CPU;
   *actual_memory_type_id = preferred_memory_type_id;
 
@@ -153,7 +153,7 @@ ModelExecutor::ModelExecutor(TRITONSERVER_Server* server) : server_(server)
   // triton the functions that we want it to call to perform the
   // allocations, we create a "response allocator" object. We pass
   // this response allocate object to triton when requesting
-  // inference. We can reuse this response allocate object for any
+  // inference. We can reuse this response allocator object for any
   // number of inference requests.
   allocator_ = nullptr;
   THROW_IF_TRITON_ERROR(TRITONSERVER_ResponseAllocatorNew(
@@ -161,7 +161,7 @@ ModelExecutor::ModelExecutor(TRITONSERVER_Server* server) : server_(server)
 }
 
 TRITONSERVER_Error*
-ModelExecutor::Execute(
+ModelExecutor::AsyncExecute(
     TRITONSERVER_InferenceRequest* irequest,
     std::future<TRITONSERVER_InferenceResponse*>* future)
 {

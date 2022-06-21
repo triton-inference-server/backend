@@ -32,10 +32,9 @@
 // Backend that demonstrates using in-process C-API to execute inferences
 // within the backend.
 //
-// Two particular models, 'addsub_python' and 'addsub_tf', must be loaded for
-// the specific inference execution this backend performs.
+// Two particular models, 'addsub_python' and 'addsub_tf', must be loaded on
+// the server for a successful inference execution on this backend.
 //
-// This backend supports a model that has two inputs and two outputs.
 // The model configuration should be set as follows in order to be in line with
 // the 'addsub_python' and 'addsub_tf' models. This backend does not support
 // batching. These limitations are only for this specific backend. You can

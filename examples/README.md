@@ -429,6 +429,17 @@ models. After the inference requests are completed, this backend will extract
 OUTPUT0 from the 'addsub_python' and OUTPUT1 from the 'addsub_tf' model to
 construct the final inference response object using these tensors.
 
+There are some self-imposed limitations that were made for the simplicity of
+this example:
+1. This backend does not support batching.
+1. This backend does not support decoupled models.
+1. This backend does not support GPU tensors.
+1. The model configuraion should be strictly set as the comments in
+[backend.cc](backends/bls/src/backend.cc) describe.
+
+You can implement your custom backend that is not limited to the limitations
+mentioned above.
+
 #### Building the *BLS* Backend
 
 [backends/bls/CMakeLists.txt](backends/bls/CMakeLists.txt)
