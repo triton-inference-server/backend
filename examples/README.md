@@ -434,8 +434,8 @@ this example:
 1. This backend does not support batching.
 1. This backend does not support decoupled models.
 1. This backend does not support GPU tensors.
-1. The model configuraion should be strictly set as the comments in
-[backend.cc](backends/bls/src/backend.cc) describe.
+1. The model configuraion should be strictly set as the comments described in
+[backend.cc](backends/bls/src/backend.cc).
 
 You can implement your custom backend that is not limited to the limitations
 mentioned above.
