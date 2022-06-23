@@ -1,5 +1,5 @@
 <!--
-# Copyright 2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2021-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -387,6 +387,10 @@ endpoint](https://github.com/triton-inference-server/server/blob/main/docs/proto
 $ curl localhost:8000/v2/models/batching/stats
 {"model_stats":[{"name":"batching","version":"1","last_inference":1640111452223,"inference_count":2,"execution_count":1,"inference_stats":{"success":{"count":2,"ns":9997025869},"fail":{"count":0,"ns":0},"queue":{"count":2,"ns":9996491319},"compute_input":{"count":2,"ns":95288},"compute_infer":{"count":2,"ns":232202},"compute_output":{"count":2,"ns":195850}},"batch_stats":[{"batch_size":2,"compute_input":{"count":1,"ns":47644},"compute_infer":{"count":1,"ns":116101},"compute_output":{"count":1,"ns":97925}}]}]}
 ```
+
+### *BLS* Triton Backend
+
+Please see the [doucumentation](backends/bls/README.md) of *BLS* Backend.
 
 ### Enhancements
 
