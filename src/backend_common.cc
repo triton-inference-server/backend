@@ -1361,11 +1361,11 @@ BufferAsTypedString(
 std::string
 GetRequestId(TRITONBACKEND_Request* request)
 {
-  const char* request_id;
+  const char* request_id = nullptr;
   LOG_IF_ERROR(
       TRITONBACKEND_RequestId(request, &request_id),
       "unable to retrieve request ID string");
-  if (request_id == nullptr || *request_id == 0) {
+  if (request_id == nullptr || request_id[0] != '\0') {
     request_id = "<id_unknown>";
   }
   return std::string("[request id: ") + request_id + "]";
