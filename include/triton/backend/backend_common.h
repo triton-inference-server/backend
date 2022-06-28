@@ -354,8 +354,8 @@ TRITONSERVER_Error* ReadInputTensor(
     TRITONBACKEND_Request* request, const std::string& input_name, char* buffer,
     size_t* buffer_byte_size, const char* host_policy_name = nullptr);
 
-/// Get an input tensor's contents into a buffer. This overload of 'ReadInputTensor'
-/// supports input buffers that can be in any memory.
+/// Get an input tensor's contents into a buffer. This overload of
+/// 'ReadInputTensor' supports input buffers that can be in any memory.
 ///
 /// \param request The inference request.
 /// \param input_name The name of the input buffer.
