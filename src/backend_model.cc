@@ -1,4 +1,4 @@
-// Copyright 2019-2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -37,23 +37,6 @@ BackendModel::BackendModel(
     TRITONBACKEND_Model* triton_model, const bool allow_optional)
     : triton_model_(triton_model), allow_optional_(allow_optional)
 {
-  TRITONSERVER_Message* config_message;
-  THROW_IF_BACKEND_MODEL_ERROR(TRITONBACKEND_ModelConfig(
-      triton_model, 1 /* config_version */, &config_message));
-
-  // Get the model configuration as a json string from
-  // config_message. We use TritonJson, which is a wrapper that
-  // returns nice errors (currently the underlying implementation is
-  // rapidjson... but others could be added).
-  const char* buffer;
-  size_t byte_size;
-  THROW_IF_BACKEND_MODEL_ERROR(
-      TRITONSERVER_MessageSerializeToJson(config_message, &buffer, &byte_size));
-
-  TRITONSERVER_Error* err = model_config_.Parse(buffer, byte_size);
-  THROW_IF_BACKEND_MODEL_ERROR(TRITONSERVER_MessageDelete(config_message));
-  THROW_IF_BACKEND_MODEL_ERROR(err);
-
   const char* model_name;
   THROW_IF_BACKEND_MODEL_ERROR(
       TRITONBACKEND_ModelName(triton_model, &model_name));
@@ -175,7 +158,7 @@ TRITONSERVER_Error*
 BackendModel::SetModelConfig()
 {
   triton::common::TritonJson::WriteBuffer json_buffer;
-  ModelConfig().Write(&json_buffer);
+  RETURN_IF_ERROR(ModelConfig().Write(&json_buffer));
 
   TRITONSERVER_Message* message;
   RETURN_IF_ERROR(TRITONSERVER_MessageNewFromSerializedJson(
@@ -190,7 +173,6 @@ BackendModel::SetModelConfig()
 
   return nullptr;
 }
-
 
 TRITONSERVER_Error*
 BackendModel::SupportsFirstDimBatching(bool* supports)
