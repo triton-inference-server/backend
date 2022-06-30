@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020, NVIDIA CORPORATION. All rights reserved.
+// Copyright 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -66,6 +66,12 @@ class BackendModel {
   // The model configuration.
   common::TritonJson::Value& ModelConfig() { return model_config_; }
 
+  // Sets the updated model configuration to the core.
+  TRITONSERVER_Error* SetModelConfig();
+
+  // Parses information out of the model configuration.
+  TRITONSERVER_Error* ParseModelConfig();
+
   // Maximum batch size supported by the model. A value of 0
   // indicates that the model does not support batching.
   int MaxBatchSize() const { return max_batch_size_; }
@@ -105,6 +111,7 @@ class BackendModel {
   std::string name_;
   uint64_t version_;
   std::string repository_path_;
+  bool allow_optional_;
 
   common::TritonJson::Value model_config_;
   int max_batch_size_;
