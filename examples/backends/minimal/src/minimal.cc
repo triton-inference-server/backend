@@ -279,7 +279,7 @@ TRITONBACKEND_ModelInstanceExecute(
   // processing of a request, an appropriate error response is sent
   // and the corresponding TRITONBACKEND_Response object within
   // 'responses' is set to nullptr to indicate that the
-  // request/response has already been handled an no futher processing
+  // request/response has already been handled and no futher processing
   // should be performed for that request. Even if all responses fail,
   // the backend still allows execution to flow to the end of the
   // function. RESPOND_AND_SET_NULL_IF_ERROR, and
