@@ -1368,7 +1368,7 @@ GetRequestId(TRITONBACKEND_Request* request)
   if ((request_id == nullptr) || (request_id[0] == '\0')) {
     request_id = "<id_unknown>";
   }
-  return std::string("[request id: ") + request_id + "]";
+  return std::string("[request id: ") + request_id + "] ";
 }
 
 }}  // namespace triton::backend
