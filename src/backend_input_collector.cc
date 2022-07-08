@@ -1078,7 +1078,9 @@ BackendInputCollector::SetBatchItemShape(
     if (buffer_offset + (size_t)shape[0] * batch_1_size > buffer_byte_size) {
       return TRITONSERVER_ErrorNew(
           TRITONSERVER_ERROR_INVALID_ARG,
-          "unexpected total byte size for batch input");
+          (GetRequestId(requests_[req_idx]) +
+           "unexpected total byte size for batch input")
+              .c_str());
     }
     // The batch input tracks the shape without batch dimension for
     // each batch item
