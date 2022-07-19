@@ -165,6 +165,7 @@ BackendModel::SetModelConfig()
       &message, json_buffer.Base(), json_buffer.Size()));
   RETURN_IF_ERROR(TRITONBACKEND_ModelSetConfig(
       triton_model_, 1 /* config_version */, message));
+  RETURN_IF_ERROR(TRITONSERVER_MessageDelete(message));
 
   // Triton core can normalize the missing config settings
   // in the above call. We must retrieve the updated model
