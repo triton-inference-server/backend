@@ -152,8 +152,8 @@ requests to the backend for execution and the backend uses the API to
 communicate with Triton.
 
 Every model must be associated with a backend. A model's backend is
-specified in the model's configuration using the 'backend' and
-'platform' settings. Depending on the backend one or the other of
+specified in the model's configuration using the 'backend'(recommended) and
+'platform'(legacy field supported for backward compatibility) settings. Depending on the backend one or the other of
 these properties is optional.
 
 * For TensorRT, 'backend' must be set to *tensorrt* or 'platform' must
