@@ -555,7 +555,7 @@ GetTypedSequenceControlProperties(
 
             *tensor_name = input_name;
             if (tensor_datatype != nullptr) {
-              c.MemberAsString("data_type", tensor_datatype);
+              RETURN_IF_ERROR(c.MemberAsString("data_type", tensor_datatype));
             }
 
             seen_control = true;
