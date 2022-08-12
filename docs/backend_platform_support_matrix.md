@@ -49,7 +49,7 @@ each backend on different platforms.
 | ONNX Runtime |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |   :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU      |
 | TensorFlow   |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |   :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU      |
 | PyTorch      |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |   :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU      |
-| OpenVINO     |  :x: GPU <br/> :heavy_check_mark: CPU    |     :x: GPU <br/> :heavy_check_mark: CPU       |
+| OpenVINO     |  :x: GPU <br/> :heavy_check_mark: CPU    |     :x: GPU <br/> :x: CPU       |
 | Python[^1]   |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |
 | DALI         |  :heavy_check_mark: GPU <br/> :x: CPU     |     :heavy_check_mark: GPU <br/> :x: CPU       |
 | FIL          |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |  Unsupported  |
