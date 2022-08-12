@@ -30,8 +30,8 @@
 
 Even though Triton supports inference across varied platforms such as
 cloud, data center, edge and embedded devices on NVIDIA GPUs, x86 and
-ARM CPU, or AWS Inferentia, it does so by the relying on the backends.
-Note that not all the Triton backends support all these different
+ARM CPU, or AWS Inferentia, it does so by relying on the backends.
+Note that not all Triton backends support all these different
 platforms. The purpose of this document is to go over what all
 compute platforms are supported by each of these Triton backends.
 GPU in this document refers to Nvidia GPU. See
@@ -92,5 +92,5 @@ where the deployed python script invokes AWS Neuron SDK.
 respect to Triton. The python script running in python backend can
 be used to execute inference on any hardware if there are available
 python APIs to do so. AWS inferentia is one such example. Triton
-core is largely unaware of the fact the inference will run in
+core is largely unaware of the fact that inference will run on
 Inferentia.
