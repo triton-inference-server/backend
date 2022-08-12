@@ -115,7 +115,7 @@ random forest models. The
 [fil_backend](https://github.com/triton-inference-server/fil_backend) repo
 contains the documentation and source for the backend.
 
-**Important Note!** Not all the above backends are supported on all platforms
+**Important Note!** Not all the above backends are supported on every platform
 supported by Triton. Look at the
 [Backend-Platform Support Matrix](docs/backend_platform_support_matrix.md)
 to learn about the same.

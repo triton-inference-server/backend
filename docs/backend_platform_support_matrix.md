@@ -28,31 +28,31 @@
 
 # Backend-Platform Support Matrix
 
-Even though Triton supports inference across varied platforms such as
+Even though Triton supports inference across various platforms such as
 cloud, data center, edge and embedded devices on NVIDIA GPUs, x86 and
 ARM CPU, or AWS Inferentia, it does so by relying on the backends.
-Note that not all Triton backends support all these different
-platforms. The purpose of this document is to go over what all
-compute platforms are supported by each of these Triton backends.
+Note that not all Triton backends support every platform. The purpose
+of this document is to go over what all compute platforms are supported
+by each of these Triton backends.
 GPU in this document refers to Nvidia GPU. See
 [GPU, Driver, and CUDA Support Matrix](https://docs.nvidia.com/deeplearning/frameworks/support-matrix/index.html)
 to learn more about supported GPUs.
 
 ## Ubuntu 20.04
 
-The table below describes target device supported for inference by
-each backend on multiple systems.
+The table below describes target device(s) supported for inference by
+each backend on different platforms.
 
-| Backend      | x86-GPUs  | ARM-SBSA-GPUs | x86 CPU only | ARM-SBSA CPU only |
-| ------------ | --------- | ------------- | ------------ |------------------ |
-| TensorRT     |    GPU    |     GPU       |  Unsupported |  Unsupported      |
-| ONNX Runtime |  CPU/GPU  |   CPU/GPU     |     CPU      |      CPU          |
-| TensorFlow   |  CPU/GPU  |   CPU/GPU     |     CPU      |      CPU          | 
-| PyTorch      |  CPU/GPU  |   CPU/GPU     |     CPU      |      CPU          |
-| OpenVINO     |    CPU    |     CPU       |     CPU      |      CPU          |
-| Python       |CPU/GPU[^1]|  CPU/GPU[^1]  |     CPU[^1]  |      CPU[^1]      |
-| DALI         |   GPU     |     GPU       |  Unsupported |  Unsupported      |
-| FIL          |  CPU/GPU  |  Unsupported  |    CPU       |  Unsupported      |
+| Backend      | x86       | ARM-SBSA      |
+| ------------ | --------- | ------------- |
+| TensorRT     |  :heavy_check_mark: GPU <br/> :x: CPU | :heavy_check_mark: GPU <br/> :x: CPU       |
+| ONNX Runtime |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |   :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU      |
+| TensorFlow   |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |   :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU      |
+| PyTorch      |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |   :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU      |
+| OpenVINO     |  :x: GPU <br/> :heavy_check_mark: CPU    |     :x: GPU <br/> :heavy_check_mark: CPU       |
+| Python[^1]   |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |
+| DALI         |  :heavy_check_mark: GPU <br/> :x: CPU     |     :heavy_check_mark: GPU <br/> :x: CPU       |
+| FIL          |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |  Unsupported  |
 
 
 
@@ -60,10 +60,11 @@ each backend on multiple systems.
 
 Only TensorRT and ONNX Runtime backends are supported on Windows.
 
-| Backend      | x86-GPUs  | x86 CPU only |
-| ------------ | --------- | ------------ |
-| TensorRT     |    GPU    |  Unsupported |
-| ONNX Runtime |  CPU/GPU  |     CPU      |
+| Backend      | x86       | ARM-SBSA      |
+| ------------ | --------- | ------------- |
+| TensorRT     |  :heavy_check_mark: GPU <br/> :x: CPU | :heavy_check_mark: GPU <br/> :x: CPU       |
+| ONNX Runtime |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |   :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU      |
+
 
 ## Jetson JetPack
 
@@ -71,11 +72,11 @@ Following backends are currently supported on Jetson Jetpack:
 
 | Backend      |   Jetson  |
 | ------------ | --------- |
-| TensorRT     |    GPU    |
-| ONNX Runtime |  CPU/GPU  |
-| TensorFlow   |  CPU/GPU  |
-| PyTorch      |  CPU/GPU  |
-| Python       |  CPU[^1]  |
+| TensorRT     |  :heavy_check_mark: GPU <br/> :x: CPU    |
+| ONNX Runtime |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |   :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |
+| TensorFlow   |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |   :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |
+| PyTorch      |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |   :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |
+| Python[^1]   |  :x: GPU <br/> :heavy_check_mark: CPU    |
 
 
 Look at the [Triton Inference Server Support for Jetson and JetPack](https://github.com/triton-inference-server/server/blob/main/docs/jetson.md).
@@ -88,8 +89,8 @@ Currently, inference on AWS Inferentia is only supported via
 where the deployed python script invokes AWS Neuron SDK.
 
 
-[^1]: The supported devices for python backend are mentioned with
-respect to Triton. The python script running in python backend can
+[^1]: The supported devices for Python Backend are mentioned with
+respect to Triton. The python script running in Python Backend can
 be used to execute inference on any hardware if there are available
 python APIs to do so. AWS inferentia is one such example. Triton
 core is largely unaware of the fact that inference will run on
