@@ -152,18 +152,7 @@ requests to the backend for execution and the backend uses the API to
 communicate with Triton.
 
 Every model must be associated with a backend. A model's backend is
-specified in the model's configuration using the 'backend' setting. 
-
-* For TensorRT, 'backend' must be set to *tensorrt*.
-
-* For PyTorch, 'backend' must be set to *pytorch*.
-
-* For ONNX, 'backend' must be set to *onnxruntime*.
-
-* For TensorFlow, 'backend' must be set to *tensorflow*.
-
-* For all other backends, 'backend' must be set to the name of the
-  backend.
+specified in the model's configuration using the 'backend' setting. For using TensorRT backend, the value of this setting should be *tensorrt*. Similarly, for using PyTorch, ONNX and TensorFlow Backends, the `backend` field should be set to *pytorch*, *onnxruntime* or *tensorflow* respectively.
 
 ### Backend Shared Library
 
