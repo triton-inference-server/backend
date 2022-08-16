@@ -51,7 +51,7 @@ each backend on different platforms.
 | PyTorch      |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |   :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU      |
 | OpenVINO     |  :x: GPU <br/> :heavy_check_mark: CPU    |     :x: GPU <br/> :x: CPU       |
 | Python[^1]   |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |
-| DALI         |  :heavy_check_mark: GPU <br/> :x: CPU     |     :heavy_check_mark: GPU <br/> :x: CPU       |
+| DALI         |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  | :heavy_check_mark: GPU[^2] <br/> :heavy_check_mark: CPU[^2] |
 | FIL          |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |  Unsupported  |
 
 
@@ -95,3 +95,5 @@ be used to execute inference on any hardware if there are available
 python APIs to do so. AWS inferentia is one such example. Triton
 core is largely unaware of the fact that inference will run on
 Inferentia.
+
+[^2]: In case of ARM-SBSA, some operations are not fully supported.
