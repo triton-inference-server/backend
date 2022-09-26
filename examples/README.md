@@ -248,7 +248,7 @@ which should be present in any robust backend implementation:
 * Uses the Triton backend metric APIs to record statistics about
   requests executing in the backend. These metrics can then we queried
   using the Triton
-  [metrics](https://github.com/triton-inference-server/server/blob/main/docs/metrics.md)
+  [metrics](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/metrics.md)
   and
   [statistics](https://github.com/triton-inference-server/server/blob/main/docs/protocol/extension_statistics.md)
   APIs.
