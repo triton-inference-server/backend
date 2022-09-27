@@ -74,9 +74,9 @@ backend and the use of the [Triton Backend
 API](../README.md#triton-backend-api) and the backend
 utilities. Before reading the source code, make sure you understand
 the concepts associated with Triton backend abstractions
-[TRITONBACKEND_Backend](../README.md#tritonbackend-backend),
-[TRITONBACKEND_Model](../README.md#tritonbackend-model), and
-[TRITONBACKEND_ModelInstance](../README.md#tritonbackend-modelinstance).
+[TRITONBACKEND_Backend](../README.md#tritonbackend_backend),
+[TRITONBACKEND_Model](../README.md#tritonbackend_model), and
+[TRITONBACKEND_ModelInstance](../README.md#tritonbackend_modelinstance).
 
 The *minimal* backend does not do any interesting operation, it simply
 copies a single input tensor to a single output tensor, but it does
@@ -231,9 +231,9 @@ backend and the use of the [Triton Backend
 API](../README.md#triton-backend-api) and the backend
 utilities. Before reading the source code, make sure you understand
 the concepts associated with Triton backend abstractions
-[TRITONBACKEND_Backend](../README.md#tritonbackend-backend),
-[TRITONBACKEND_Model](../README.md#tritonbackend-model), and
-[TRITONBACKEND_ModelInstance](../README.md#tritonbackend-modelinstance).
+[TRITONBACKEND_Backend](../README.md#tritonbackend_backend),
+[TRITONBACKEND_Model](../README.md#tritonbackend_model), and
+[TRITONBACKEND_ModelInstance](../README.md#tritonbackend_modelinstance).
 
 The *recommended* backend improves the [*minimal*
 backend](#minimal-triton-backend) to include the following features
