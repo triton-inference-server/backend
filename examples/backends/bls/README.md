@@ -32,7 +32,7 @@ The [*BLS*](../bls) backend demonstrates using in-process C-API to
 execute inferences within the backend. This backend serves as an example to
 backend developers for implementing their own custom pipeline in C++.
 For Python use cases, please refer to 
-[Business Logic Scripting](https://github.com/triton-inference-server/python_backend#business-logic-scripting)
+[Business Logic Scripting](https://github.com/triton-inference-server/python_backend/blob/main/README.md#business-logic-scripting)
 section in Python backend.
 
 The source code for the *bls* backend is contained in
@@ -42,8 +42,7 @@ The source code for the *bls* backend is contained in
 implementation. The content of this file is not BLS specific. It only includes
 the required Triton backend functions that is standard for any backend
 implementation. The BLS logic is set off in the
-[`TRITONBACKEND_ModelInstanceExecute`](./src/backend.cc#L316).
-function.
+`TRITONBACKEND_ModelInstanceExecute` with lines `bls_executor.Execute(requests[r], &responses[r]);`.
 
 * [bls.h](./src/bls.h) is where the BLS (class `BLSExecutor`) of
 this example is located. You can refer to this file to see how to interact with
@@ -70,9 +69,9 @@ construct the final inference response object using these tensors.
 There are some self-imposed limitations that were made for the simplicity of
 this example:
 1. This backend does not support batching.
-1. This backend does not support decoupled models.
-1. This backend does not support GPU tensors.
-1. The model configuraion should be strictly set as the comments described in
+2. This backend does not support decoupled models.
+3. This backend does not support GPU tensors.
+4. The model configuraion should be strictly set as the comments described in
 [backend.cc](./src/backend.cc).
 
 You can implement your custom backend that is not limited to the limitations
