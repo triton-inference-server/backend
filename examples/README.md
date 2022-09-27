@@ -47,10 +47,10 @@ multiple responses per request.
 [*stateful*](https://github.com/triton-inference-server/stateful_backend)
 backend shows an example of how a backend can manage model state
 tensors on the server-side for the [sequence
-batcher](https://github.com/triton-inference-server/server/blob/main/docs/model_configuration.md#sequence-batcher)
+batcher](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/model_configuration.md#sequence-batcher)
 to avoid transferring state tensors between client and server. Triton
 also implements [Implicit State
-Management](https://github.com/triton-inference-server/server/blob/main/docs/architecture.md#implicit-state-management)
+Management](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/architecture.md#implicit-state-management)
 which allows backends to behave in a stateless manner and leave the
 state management to Triton.
 
@@ -160,10 +160,10 @@ I1215 23:46:00.250284 68 server.cc:589]
 
 The models are identical except that the *batching* model enabled the
 [dynamic
-batcher](https://github.com/triton-inference-server/server/blob/main/docs/model_configuration.md#dynamic-batcher)
+batcher](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/model_configuration.md#dynamic-batcher)
 and supports batch sizes up to 8. Note that the *batching* model sets
 the [batch
-delay](https://github.com/triton-inference-server/server/blob/main/docs/model_configuration.md#delayed-batching)
+delay](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/model_configuration.md#delayed-batching)
 to 5 seconds so that the example client described below can
 demonstrate how the *minimal* backend receives a batch of requests.
 
@@ -361,7 +361,7 @@ $ curl localhost:8002/metrics
 
 The output will be metric values in Prometheus data format. The
 [metrics
-documentation](https://github.com/triton-inference-server/server/blob/main/docs/metrics.md)
+documentation](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/metrics.md)
 gives a description of these metric values.
 
 ```
@@ -400,7 +400,7 @@ enhance the capabilities of your backend.
 #### Automatically Model Configuration Generation
 
 [Automatic model configuration
-generation](https://github.com/triton-inference-server/server/blob/main/docs/model_configuration.md#auto-generated-model-configuration)
+generation](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/model_configuration.md#auto-generated-model-configuration)
 is enabled by the backend implementing the appropriate logic (for
 example, in a function called AutoCompleteConfig) during
 TRITONBACKEND_ModelInitialize. For the *recommended* backend you would
