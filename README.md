@@ -135,7 +135,7 @@ backends](#backends).
 Yes. See [Backend Shared Library](#backend-shared-library) for general
 information about how the shared library implementing a backend is
 managed by Triton, and [Triton with Unsupported and Custom
-Backends](https://github.com/triton-inference-server/server/blob/main/docs/compose.md#triton-with-unsupported-and-custom-backends)
+Backends](https://github.com/triton-inference-server/server/blob/main/docs/customization_guide/compose.md#triton-with-unsupported-and-custom-backends)
 for documentation on how to add your backend to the released Triton
 Docker image. For a standard install the globally available backends
 are in /opt/tritonserver/backends.
@@ -190,7 +190,7 @@ to override the default.
 Typically you will install your backend into the global backend
 directory. For example, if using Triton Docker images you can follow
 the instructions in [Triton with Unsupported and Custom
-Backends](https://github.com/triton-inference-server/server/blob/main/docs/compose.md#triton-with-unsupported-and-custom-backends). Continuing
+Backends](https://github.com/triton-inference-server/server/blob/main/docs/customization_guide/compose.md#triton-with-unsupported-and-custom-backends). Continuing
 the example of a backend names "mybackend", you would install into the
 Triton image as:
 
@@ -508,7 +508,7 @@ what can be acheived from decoupled API.
 Study documentation of these TRTIONBACKEND_* functions in
 [tritonbackend.h](https://github.com/triton-inference-server/core/blob/main/include/triton/core/tritonbackend.h)
 for more details on these APIs. Read
-[Decoupled Backends and Models](https://github.com/triton-inference-server/server/blob/main/docs/decoupled_models.md)
+[Decoupled Backends and Models](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/decoupled_models.md)
 for more details on how to host a decoupled model.
 
 ## Build the Backend Utilities

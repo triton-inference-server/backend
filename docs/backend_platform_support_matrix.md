@@ -79,7 +79,7 @@ Following backends are currently supported on Jetson Jetpack:
 | Python[^1]   |  :x: GPU <br/> :heavy_check_mark: CPU    |
 
 
-Look at the [Triton Inference Server Support for Jetson and JetPack](https://github.com/triton-inference-server/server/blob/main/docs/jetson.md).
+Look at the [Triton Inference Server Support for Jetson and JetPack](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/jetson.md).
 
 
 ## AWS Inferentia
