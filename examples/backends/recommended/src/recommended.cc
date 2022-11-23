@@ -554,7 +554,8 @@ TRITONBACKEND_ModelInstanceExecute(
   // backend or 'collector' can create and manage it. In this backend,
   // there is not a specific buffer into which the batch should be
   // created, so use ProcessTensor arguments that cause collector to
-  // manage it.
+  // manage it. ProcessTensor does NOT support TRITONSERVER_TYPE_BYTES
+  // data type.
 
   BackendInputCollector collector(
       requests, request_count, &responses, model_state->TritonMemoryManager(),
@@ -636,6 +637,8 @@ TRITONBACKEND_ModelInstanceExecute(
   // contiguous 'output_buffer', the backend must "scatter" them out
   // to the individual response output tensors.  The backend utilities
   // provide a "responder" to facilitate this scattering process.
+  // BackendOutputResponder does NOT support TRITONSERVER_TYPE_BYTES
+  // data type.
 
   // The 'responders's ProcessTensor function will copy the portion of
   // 'output_buffer' corresonding to each request's output into the
