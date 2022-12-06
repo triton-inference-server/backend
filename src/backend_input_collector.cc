@@ -472,7 +472,7 @@ BackendInputCollector::SetInputTensor(
     return cuda_copy;
   }
   // [FIXME] support other direction if prove to be faster, all kernel
-  // handling code in this class asssumes the destination buffer is on device
+  // handling code in this class assumes the destination buffer is on device
   // If the request buffer and the destination buffer are accessible by all
   // GPUs (i.e. pinned, device), initiate the copy via copy CUDA kernel.
   // We only do this check for the
