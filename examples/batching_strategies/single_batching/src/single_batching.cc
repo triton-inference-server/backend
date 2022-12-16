@@ -66,7 +66,7 @@ TRITONBACKEND_ModelBatchIncludeRequest(
   return nullptr;  // success
 }
 
-/// Callback to be invoked when Triton has begun the formation a batch.
+/// Callback to be invoked when Triton has begun forming a batch.
 /// \param model The backend model for which Triton is forming a batch.
 /// \param userp The placeholder for backend to store and retrieve information
 /// about this pending batch.
@@ -79,7 +79,7 @@ TRITONBACKEND_ModelBatchInitialize(TRITONBACKEND_Model* model, void** userp)
   return nullptr;  // success
 }
 
-/// Callback to be invoked when Triton has completed the formation a batch.
+/// Callback to be invoked when Triton has completed forming a batch.
 /// \param userp The placeholder for backend to store and retrieve information
 /// about this pending batch.
 /// \return a TRITONSERVER_Error indicating success or failure.
