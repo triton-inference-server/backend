@@ -56,7 +56,7 @@ TRITONBACKEND_ModelBatchIncludeRequest(
   // Check if the batch is empty.
   // If so, include this request. Otherwise, do not.
   bool* empty = static_cast<bool*>(userp);
-  if (empty) {
+  if (*empty) {
     *should_include = true;
     *empty = false;
   } else {
