@@ -75,7 +75,7 @@ TRITONSERVER_Error*
 TRITONBACKEND_ModelBatchInitialize(TRITONBACKEND_Model* model, void** userp)
 {
   // Userp will point to a boolean indicating whether the batch is empty.
-  *userp = static_cast<void*>(new bool(true));
+  *userp = new bool(true);
   return nullptr;  // success
 }
 
