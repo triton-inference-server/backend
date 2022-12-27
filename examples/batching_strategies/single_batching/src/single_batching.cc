@@ -72,7 +72,8 @@ TRITONBACKEND_ModelBatchIncludeRequest(
 /// about this pending batch.
 /// \return a TRITONSERVER_Error indicating success or failure.
 TRITONSERVER_Error*
-TRITONBACKEND_ModelBatchInitialize(TRITONBACKEND_Model* model, void** userp)
+TRITONBACKEND_ModelBatchInitialize(
+    TRITONBACKEND_Model* model, void** userp, void** cache_userp)
 {
   // Userp will point to a boolean indicating whether the batch is empty.
   *userp = new bool(true);
@@ -87,7 +88,6 @@ TRITONSERVER_Error*
 TRITONBACKEND_ModelBatchFinalize(void* userp)
 {
   delete static_cast<bool*>(userp);
-
   return nullptr;  // success
 }
 

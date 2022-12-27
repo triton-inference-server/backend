@@ -108,12 +108,43 @@ TRITONBACKEND_ModelBatchIncludeRequest(
 /// \param model The backend model for which Triton is forming a batch.
 /// \param userp The placeholder for backend to store and retrieve information
 /// about this pending batch.
+/// \param cache_userp The read-only placeholder for backend to retrieve
+// information about the batching strategy for this model.
 /// \return a TRITONSERVER_Error indicating success or failure.
 TRITONSERVER_Error*
-TRITONBACKEND_ModelBatchInitialize(TRITONBACKEND_Model* model, void** userp)
+TRITONBACKEND_ModelBatchInitialize(
+    TRITONBACKEND_Model* model, void** userp, void** cache_userp)
 {
   // Userp will point to an unsigned integer representing the remaining volume
   // in bytes for this batch.
+
+  *userp = new unsigned int(*static_cast<unsigned int*>(*cache_userp));
+  return nullptr;  // success
+}
+
+/// Callback to be invoked when Triton has finished forming a batch.
+/// \param userp The placeholder for backend to store and retrieve information
+/// about this pending batch.
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error*
+TRITONBACKEND_ModelBatchFinalize(void* userp)
+{
+  delete static_cast<unsigned int*>(userp);
+  return nullptr;  // success
+}
+
+/// Callback to be invoked when Triton loads model.
+/// This will hold a cached user pointer that can be read during custom
+/// batching. \param model The backend model for which Triton is forming a
+/// batch. \param cache_userp The placeholder for backend to store and retrieve
+/// information about the batching strategy for this model. \return a
+/// TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error*
+TRITONBACKEND_ModelBatchCacheInitialize(
+    TRITONBACKEND_Model* model, void** cache_userp)
+{
+  // Cache_userp will point to an unsigned integer representing the maximum
+  // volume in bytes for each batch.
 
   // Read the user-specified bytes from the model config.
   TRITONSERVER_Message* config_message;
@@ -162,21 +193,17 @@ TRITONBACKEND_ModelBatchInitialize(TRITONBACKEND_Model* model, void** userp)
             .c_str());
   }
 
-  *userp = new unsigned int(max_volume_bytes);
-
-  return nullptr;  // success
+  *cache_userp = new unsigned int(max_volume_bytes);
 }
 
-/// Callback to be invoked when Triton has finished forming a batch.
-/// \param userp The placeholder for backend to store and retrieve information
-/// about this pending batch.
-/// \return a TRITONSERVER_Error indicating success or failure.
+/// Callback to be invoked when Triton unloads model.
+/// \param cache_userp The placeholder for backend to store and retrieve
+/// information about the batching strategy for this model. \return a
+/// TRITONSERVER_Error indicating success or failure.
 TRITONSERVER_Error*
-TRITONBACKEND_ModelBatchFinalize(void* userp)
+TRITONBACKEND_ModelBatchCacheFinalize(void* cache_userp)
 {
-  delete static_cast<unsigned int*>(userp);
-
-  return nullptr;  // success
+  delete static_cast<unsigned int*>(cache_userp);
 }
 
 }  // extern "C"
