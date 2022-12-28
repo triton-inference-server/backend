@@ -194,6 +194,7 @@ TRITONBACKEND_ModelBatchCacheInitialize(
   }
 
   *cache_userp = new unsigned int(max_volume_bytes);
+  return nullptr;  // success
 }
 
 /// Callback to be invoked when Triton unloads model.
@@ -204,6 +205,7 @@ TRITONSERVER_Error*
 TRITONBACKEND_ModelBatchCacheFinalize(void* cache_userp)
 {
   delete static_cast<unsigned int*>(cache_userp);
+  return nullptr;  // success
 }
 
 }  // extern "C"
