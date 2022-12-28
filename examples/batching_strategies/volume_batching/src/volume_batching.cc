@@ -198,8 +198,8 @@ TRITONBACKEND_ModelBatchCacheInitialize(
 
 /// Callback to be invoked when Triton unloads model.
 /// \param cache_userp The placeholder for backend to store and retrieve
-/// information about the batching strategy for this model. \return a
-/// TRITONSERVER_Error indicating success or failure.
+/// information about the batching strategy for this model.
+/// \return a TRITONSERVER_Error indicating success or failure.
 TRITONSERVER_Error*
 TRITONBACKEND_ModelBatchCacheFinalize(void* cache_userp)
 {
