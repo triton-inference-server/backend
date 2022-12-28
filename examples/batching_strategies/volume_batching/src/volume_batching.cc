@@ -113,12 +113,11 @@ TRITONBACKEND_ModelBatchIncludeRequest(
 /// \return a TRITONSERVER_Error indicating success or failure.
 TRITONSERVER_Error*
 TRITONBACKEND_ModelBatchInitialize(
-    TRITONBACKEND_Model* model, void** userp, void** cache_userp)
+    TRITONBACKEND_Model* model, void** userp, const void* cache_userp)
 {
   // Userp will point to an unsigned integer representing the remaining volume
   // in bytes for this batch.
-
-  *userp = new unsigned int(*static_cast<unsigned int*>(*cache_userp));
+  *userp = new unsigned int(*static_cast<const unsigned int*>(cache_userp));
   return nullptr;  // success
 }
 
