@@ -132,12 +132,14 @@ TRITONBACKEND_ModelBatchFinalize(void* userp)
   return nullptr;  // success
 }
 
-/// Callback to be invoked when Triton loads model.
+/// Callback to be invoked when Triton loads the model.
 /// This will hold a cached user pointer that can be read during custom
-/// batching. \param model The backend model for which Triton is forming a
-/// batch. \param cache_userp The placeholder for backend to store and retrieve
-/// information about the batching strategy for this model. \return a
-/// TRITONSERVER_Error indicating success or failure.
+/// batching.
+/// \param model The backend model for which Triton is forming a
+/// batch.
+/// \param cache_userp The placeholder for thebackend to store and
+/// retrieve information about the batching strategy for this model.
+/// \return a TRITONSERVER_Error indicating success or failure.
 TRITONSERVER_Error*
 TRITONBACKEND_ModelBatchCacheInitialize(
     TRITONBACKEND_Model* model, void** cache_userp)
@@ -196,7 +198,7 @@ TRITONBACKEND_ModelBatchCacheInitialize(
   return nullptr;  // success
 }
 
-/// Callback to be invoked when Triton unloads model.
+/// Callback to be invoked when Triton unloads the model.
 /// \param cache_userp The placeholder for backend to store and retrieve
 /// information about the batching strategy for this model.
 /// \return a TRITONSERVER_Error indicating success or failure.
