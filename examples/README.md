@@ -394,7 +394,7 @@ Please see the [documentation](backends/bls/README.md) of *BLS* Backend.
 
 ### Custom Batching
 
-When using the dynamic batcher, Triton allows you to set custom batching rules on top of the default dynamic batcher behavior by passing in a library that implements the custom batching API. Two example batching libraries are located in the [batching_strategies directory](batching_strategies).
+When using the dynamic batcher, Triton allows you to set custom batching rules on top of the specified dynamic batcher behavior by passing in a library that implements the custom batching API. Two example batching libraries are located in the [batching_strategies directory](batching_strategies).
 
 For this tutorial, you can use the [volume_batching](batching_strategies/volume_batching) example to set up a maximum byte volume per request. To do so, first build the volume batching library and install it in a local directory using the following commands:
 ```
