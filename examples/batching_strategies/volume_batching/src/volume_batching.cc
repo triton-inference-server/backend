@@ -1,4 +1,4 @@
-// Copyright 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -46,7 +46,6 @@ namespace triton { namespace core { namespace volume_batching {
 extern "C" {
 
 /// Check whether a request should be added to the pending model batch.
-/// \param model The backend model for which Triton is forming a batch.
 /// \param request The request to be added to the pending batch.
 /// \param userp The placeholder for backend to store and retrieve information
 /// about this pending batch. When the callback returns, this should reflect
@@ -56,8 +55,7 @@ extern "C" {
 /// \return a TRITONSERVER_Error indicating success or failure.
 TRITONSERVER_Error*
 TRITONBACKEND_ModelBatchIncludeRequest(
-    TRITONBACKEND_Model* model, TRITONBACKEND_Request* request, void* userp,
-    bool* should_include)
+    TRITONBACKEND_Request* request, void* userp, bool* should_include)
 {
   // Default should_include to false in case function returns error.
   *should_include = false;
@@ -105,15 +103,47 @@ TRITONBACKEND_ModelBatchIncludeRequest(
 }
 
 /// Callback to be invoked when Triton has begun forming a batch.
-/// \param model The backend model for which Triton is forming a batch.
+/// \param batcher The read-only placeholder for backend to retrieve
+// information about the batching strategy for this model.
 /// \param userp The placeholder for backend to store and retrieve information
 /// about this pending batch.
 /// \return a TRITONSERVER_Error indicating success or failure.
 TRITONSERVER_Error*
-TRITONBACKEND_ModelBatchInitialize(TRITONBACKEND_Model* model, void** userp)
+TRITONBACKEND_ModelBatchInitialize(
+    const TRITONBACKEND_Batcher* batcher, void** userp)
 {
   // Userp will point to an unsigned integer representing the remaining volume
   // in bytes for this batch.
+  *userp = new unsigned int(*reinterpret_cast<const unsigned int*>(batcher));
+  return nullptr;  // success
+}
+
+/// Callback to be invoked when Triton has finishing forming a batch.
+/// \param userp The placeholder for backend to store and retrieve information
+/// about this pending batch.
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error*
+TRITONBACKEND_ModelBatchFinalize(void* userp)
+{
+  delete static_cast<unsigned int*>(userp);
+  return nullptr;  // success
+}
+
+/// Create a new batcher for use with custom batching. This is called during
+/// model loading. The batcher will point to a user-defined data structure that
+/// holds read-only data used for custom batching.
+///
+/// \param batcher User-defined placeholder for backend to store and
+/// retrieve information about the batching strategy for this model.
+/// return a TRITONSERVER_Error indicating success or failure.
+/// \param model The backend model for which Triton is forming a batch.
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error*
+TRITONBACKEND_ModelBatcherInitialize(
+    TRITONBACKEND_Batcher** batcher, TRITONBACKEND_Model* model)
+{
+  // Batcher will point to an unsigned integer representing the maximum
+  // volume in bytes for each batch.
 
   // Read the user-specified bytes from the model config.
   TRITONSERVER_Message* config_message;
@@ -162,20 +192,20 @@ TRITONBACKEND_ModelBatchInitialize(TRITONBACKEND_Model* model, void** userp)
             .c_str());
   }
 
-  *userp = new unsigned int(max_volume_bytes);
-
+  *batcher = reinterpret_cast<TRITONBACKEND_Batcher*>(
+      new unsigned int(max_volume_bytes));
   return nullptr;  // success
 }
 
-/// Callback to be invoked when Triton has finished forming a batch.
-/// \param userp The placeholder for backend to store and retrieve information
-/// about this pending batch.
+/// Free memory associated with batcher. This is called during model unloading.
+///
+/// \param batcher User-defined placeholder for backend to store and
+/// retrieve information about the batching strategy for this model.
 /// \return a TRITONSERVER_Error indicating success or failure.
 TRITONSERVER_Error*
-TRITONBACKEND_ModelBatchFinalize(void* userp)
+TRITONBACKEND_ModelBatcherFinalize(TRITONBACKEND_Batcher* batcher)
 {
-  delete static_cast<unsigned int*>(userp);
-
+  delete reinterpret_cast<unsigned int*>(batcher);
   return nullptr;  // success
 }
 
