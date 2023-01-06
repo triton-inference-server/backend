@@ -40,12 +40,13 @@ namespace triton { namespace core { namespace single_batching {
 extern "C" {
 
 /// Check whether a request should be added to the pending model batch.
+///
 /// \param request The request to be added to the pending batch.
 /// \param userp The placeholder for backend to store and retrieve information
 /// about this pending batch. When the callback returns, this should reflect
 /// the latest batch information.
-/// \param should_include The pointer to be updated on whether the request was
-/// included in the batch.
+/// \param should_include The pointer to be updated on whether the request
+/// should be included in the batch.
 /// \return a TRITONSERVER_Error indicating success or failure.
 TRITONSERVER_Error*
 TRITONBACKEND_ModelBatchIncludeRequest(
@@ -65,6 +66,7 @@ TRITONBACKEND_ModelBatchIncludeRequest(
 }
 
 /// Callback to be invoked when Triton has begun forming a batch.
+///
 /// \param batcher The read-only placeholder for backend to retrieve
 // information about the batching strategy for this model.
 /// \param userp The placeholder for backend to store and retrieve information
@@ -80,6 +82,7 @@ TRITONBACKEND_ModelBatchInitialize(
 }
 
 /// Callback to be invoked when Triton has finishing forming a batch.
+///
 /// \param userp The placeholder for backend to store and retrieve information
 /// about this pending batch.
 /// \return a TRITONSERVER_Error indicating success or failure.
