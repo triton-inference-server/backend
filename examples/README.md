@@ -1,5 +1,5 @@
 <!--
-# Copyright 2021-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2021-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -390,7 +390,44 @@ $ curl localhost:8000/v2/models/batching/stats
 
 ### *BLS* Triton Backend
 
-Please see the [doucumentation](backends/bls/README.md) of *BLS* Backend.
+Please see the [documentation](backends/bls/README.md) of *BLS* Backend.
+
+### Custom Batching
+
+When using the dynamic batcher, Triton allows you to set custom batching rules. 
+These rules are added on top of the specified dynamic batcher behavior. 
+To set them, you pass in a library that implements the custom batching API. 
+Two example batching libraries are located in the [batching_strategies directory](batching_strategies).
+
+For this tutorial, you can use the [volume_batching](batching_strategies/volume_batching) example 
+to set up a maximum byte volume per request. To build the library and install in a local directory, use the following commands:
+```
+$ cd batch_strategies/volume_batching
+$ mkdir build
+$ cd build
+$ cmake -DCMAKE_INSTALL_PREFIX:PATH=`pwd`/install ..
+$ make install
+```
+
+Next, move the library to the desired location. 
+You can pass the file location via the model configuration. 
+If not specified, Triton will look for a library called `batchstrategy.so` in the model version, 
+model, and backend directories, in that order. For ease, we'll pass it via the model configuration. 
+Select a model to use this strategy with. Then, update the model configuration to have these fields:
+
+```
+  dynamic_batching { }
+  parameters: { key: "TRITON_BATCH_STRATEGY_PATH", value: {string_value: "/path/to/libtriton_volumebatching.so"}}
+  parameters { key: "MAX_BATCH_VOLUME_BYTES" value: {string_value: "96"}}
+```
+
+You can update the path to the filepath of your library. 
+You can also update the value of `MAX_BATCH_VOLUME_BYTES` to the maximum volume per batch for your 
+use case. After starting Triton, you should see the scheduler apply a volume constraint per batch 
+on top of default batching behavior for your model. This can be made more visible by setting a 
+[max queue delay](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/model_configuration.md#delayed-batching) 
+to give the scheduler more time for each batch to be completed. For example, you could set the 
+delay to 100,000 microseconds.
 
 ### Enhancements
 
