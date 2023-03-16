@@ -65,6 +65,7 @@ FetchContent_MakeAvailable(repo-common repo-core)
 # CUDA
 #
 if(${TRITON_ENABLE_GPU})
+  set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
   find_package(CUDAToolkit REQUIRED)
   find_package(CUDA REQUIRED)
   message(STATUS "Using CUDA ${CUDA_VERSION}")
@@ -189,7 +190,7 @@ if(${TRITON_ENABLE_GPU})
     PUBLIC
       CUDA::cudart
     PRIVATE
-    kernel_library_new
+      kernel_library_new
   )
 endif() # TRITON_ENABLE_GPU
 
