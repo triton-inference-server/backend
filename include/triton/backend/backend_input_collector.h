@@ -67,7 +67,10 @@ class BackendInputCollector {
         responses_(responses), memory_manager_(memory_manager),
         pinned_enabled_(pinned_enabled),
         use_async_cpu_copy_(triton::common::AsyncWorkQueue::WorkerCount() > 1),
-        stream_(stream), event_(event), buffer_ready_event_(buffer_ready_event),
+        stream_(stream),
+#ifdef TRITON_ENABLE_GPU
+        event_(event), buffer_ready_event_(buffer_ready_event),
+#endif  // TRITON_ENABLE_GPU
         kernel_buffer_threshold_(kernel_buffer_threshold),
         pending_pinned_byte_size_(0), pending_pinned_offset_(0),
         pending_copy_kernel_buffer_byte_size_(0),
@@ -232,8 +235,10 @@ class BackendInputCollector {
   const bool pinned_enabled_;
   const bool use_async_cpu_copy_;
   cudaStream_t stream_;
+#ifdef TRITON_ENABLE_GPU
   cudaEvent_t event_;
   cudaEvent_t buffer_ready_event_;
+#endif  // TRITON_ENABLE_GPU
   const size_t kernel_buffer_threshold_;
 
   size_t pending_pinned_byte_size_;
