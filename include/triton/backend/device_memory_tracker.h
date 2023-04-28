@@ -64,68 +64,136 @@ namespace triton { namespace backend {
 /// arguments, and must implement TRITONBACKEND_ModelMemoryUsage.
 ///
 /// On TRITONBACKEND_Initialize
-///  - Call DeviceMemoryTracker::InitTrace
+///  - Call DeviceMemoryTracker::Init
 ///
 /// On TRITONBACKEND_GetBackendAttribute
 ///  - Call TRITONBACKEND_BackendAttributeSetEnableMemoryTracker with value
-///    returned from DeviceMemoryTracker::InitTrace
+///    returned from DeviceMemoryTracker::Init
 ///
 /// If true, call DeviceMemoryTracker::TrackThreadMemoryUsage and
 /// DeviceMemoryTracker::UntrackThreadMemoryUsage accordingly to track memory
 /// allocation in the scope between the function, the memory usage should be
-/// stored in ScopedMemoryUsage object that has the same lifetime as
+/// stored in MemoryUsage object that has the same lifetime as
 /// TRITONBACKEND_Model object.
 ///
 /// On TRITONBACKEND_ModelMemoryUsage
-///  - Call ScopedMemoryUsage::SerializeToBufferAttributes to set the value
+///  - Call MemoryUsage::SerializeToBufferAttributes to set the value
 ///    to be returned.
+
+extern "C" {
+
+typedef struct TRITONBACKEND_CuptiTracker_t {
+  // C struct require extra implementation for dynamic array, for simplicity,
+  // the following assumptions are made to pre-allocate the array with max
+  // possible length:
+  //  - system / pinned memory allocation should only be on deviceId 0
+  //  - CUDA allocation will only be on visible CUDA devices
+  int64_t* system_byte_size_;
+  int64_t* pinned_byte_size_;
+  int64_t* cuda_byte_size_;
+  uint32_t system_array_len_;
+  uint32_t pinned_array_len_;
+  uint32_t cuda_array_len_;
+
+  // only set to false if somehow the CUPTI activity occurs on index out of
+  // range. In that case, user should invalidate the whole tracker.
+  bool good_record_;
+} TRITONBACKEND_CuptiTracker;
+
+}
+
 class DeviceMemoryTracker {
  public:
-  // [WIP] convert to C struct to avoid ABI compatibility
-  struct ScopedMemoryUsage {
-    ~ScopedMemoryUsage()
+  struct MemoryUsage {
+    MemoryUsage()
     {
+      cuda_byte_size_.resize(CudaDeviceCount(), 0);
+
+      cupti_tracker_.system_byte_size_ = system_byte_size_.data();
+      cupti_tracker_.pinned_byte_size_ = pinned_byte_size_.data();
+      cupti_tracker_.cuda_byte_size_ = cuda_byte_size_.data();
+      cupti_tracker_.system_array_len_ = system_byte_size_.size();
+      cupti_tracker_.pinned_array_len_ = pinned_byte_size_.size();
+      cupti_tracker_.cuda_array_len_ = cuda_byte_size_.size();
+      cupti_tracker_.good_record_ = true;
+    }
+
+    ~MemoryUsage()
+    {
+      // Make sure all C struct reference are dropped before clearing.
       if (tracked_) {
-        UntrackThreadMemoryUsage(this);
+        UntrackThreadMemoryUsage();
       }
     }
 
-    // [WIP] convert to TritonBuff
-    // std::vector<BufferAttributes> SerializeToBufferAttributes()
-    // {
-    //   std::vector<BufferAttributes> res;
-    //   for (const auto& usage : system_byte_size_) {
-    //     res.emplace_back(
-    //         usage.second, TRITONSERVER_MEMORY_CPU, usage.first, nullptr);
-    //   }
-    //   for (const auto& usage : pinned_byte_size_) {
-    //     res.emplace_back(
-    //         usage.second, TRITONSERVER_MEMORY_CPU_PINNED, usage.first, nullptr);
-    //   }
-    //   for (const auto& usage : cuda_byte_size_) {
-    //     res.emplace_back(
-    //         usage.second, TRITONSERVER_MEMORY_GPU, usage.first, nullptr);
-    //   }
-    //   return res;
-    // }
+    // Disable copy and assign to better manage C struct lifecycle
+    MemoryUsage(const MemoryUsage&) = delete;
+    void operator=(const MemoryUsage&) = delete;
 
-    std::map<int64_t, size_t> system_byte_size_;
-    std::map<int64_t, size_t> pinned_byte_size_;
-    std::map<int64_t, size_t> cuda_byte_size_;
+    TRITONSERVER_Error* SerializeToBufferAttributes(
+      TRITONSERVER_BufferAttributes** usage, int32_t* usage_size)
+    {
+      int32_t usage_idx = 0;
+
+      // Define lambda to convert an vector of memory usage of the same type of
+      // device into buffer attributes and set in 'usage'
+      auto set_attributes_for_device_fn = [&](const std::vector<int64_t>& devices, const TRITONSERVER_MemoryType mem_type) {
+        for (size_t idx=0; idx < devices.size(); ++idx) {
+          // skip if no allocation
+          if (devices[idx] == 0) {
+            continue;
+          }
+          // there is space in usage array 
+          if (usage_idx < *usage_size) {
+            auto entry = usage[usage_idx];
+
+            RETURN_IF_ERROR(TRITONSERVER_BufferAttributesSetMemoryType(entry, mem_type));
+            RETURN_IF_ERROR(TRITONSERVER_BufferAttributesSetMemoryTypeId(entry, idx));
+            RETURN_IF_ERROR(TRITONSERVER_BufferAttributesSetByteSize(entry, devices[idx]));
+
+            ++usage_idx;
+          } else {
+            *usage_size = -1;
+            return TRITONSERVER_ErrorNew(TRITONSERVER_ERROR_INVALID_ARG, "More entries needed to store memory usage");
+          }
+        }
+        return nullptr;  // success
+      };
+
+      RETURN_IF_ERROR(set_attributes_for_device_fn(system_byte_size_, TRITONSERVER_MEMORY_CPU));
+      RETURN_IF_ERROR(set_attributes_for_device_fn(pinned_byte_size_, TRITONSERVER_MEMORY_CPU_PINNED));
+      RETURN_IF_ERROR(set_attributes_for_device_fn(cuda_byte_size_, TRITONSERVER_MEMORY_GPU));
+
+      *usage_size = usage_idx;
+      return nullptr;
+    }
+
     // Byte size of allocated memory tracked,
     // 'system_byte_size_' is likely to be empty as system memory allocation
     // is not controlled by CUDA driver. But keeping it for completeness.
+    std::vector<int64_t> system_byte_size_{0};
+    std::vector<int64_t> pinned_byte_size_{0};
+    std::vector<int64_t> cuda_byte_size_{0};
     bool tracked_{false};
+
+    TRITONBACKEND_CuptiTracker cupti_tracker_;
   };
-  static bool InitTrace();
+
+  static bool Init();
+
+  static int CudaDeviceCount();
 
   // The memory usage will be tracked and modified until it's untracked, 'usage'
   // must be valid and not to be modified externally until untrack is called.
   // Currently can distinguish activity by correlation id which is thread
   // specific, which implies that there will be mssing records if tracking
   // region switching threads to handle other activities.
-  static void TrackThreadMemoryUsage(ScopedMemoryUsage* usage);
-  static void UntrackThreadMemoryUsage(ScopedMemoryUsage* usage);
+  static void TrackThreadMemoryUsage(MemoryUsage* usage);
+  
+  // Note that CUPTI always pop from the top of the thread-wise stack, must be
+  // careful on the untrack order if there is need to use multiple MemoryUsage
+  // objects.
+  static void UntrackThreadMemoryUsage();
 
   static void TrackActivity(CUpti_Activity* record)
   {
@@ -139,12 +207,16 @@ class DeviceMemoryTracker {
   }
 
  private:
+  DeviceMemoryTracker();
+
   void TrackActivityInternal(CUpti_Activity* record);
 
-  static std::unique_ptr<DeviceMemoryTracker> tracker_;
   std::mutex mtx_;
   std::unordered_map<uint32_t, uintptr_t> activity_to_memory_usage_;
-  CUpti_SubscriberHandle subscriber_;
+  CUpti_SubscriberHandle subscriber_{nullptr};
+  int device_cnt_{0};
+
+  static std::unique_ptr<DeviceMemoryTracker> tracker_;
 };
 
 }}  // namespace triton::backend

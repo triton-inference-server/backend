@@ -27,15 +27,17 @@
 #include "triton/backend/device_memory_tracker.h"
 
 #include <iostream>
+#include <stdexcept>
 #include "triton/common/logging.h"
 #include "triton/core/tritonserver.h"
 
-namespace triton { namespace backend { namespace tensorrt {
+namespace triton { namespace backend {
 
 std::unique_ptr<DeviceMemoryTracker> DeviceMemoryTracker::tracker_{nullptr};
 // Boilerplate from CUPTI examples
 namespace {
 
+// [WIP] figure out recover policy at different location of calling CUPTI
 #define CUPTI_CALL(call)                                      \
   do {                                                        \
     CUptiResult _status = call;                               \
@@ -100,35 +102,60 @@ bufferCompleted(
 
 }  // namespace
 
+DeviceMemoryTracker::DeviceMemoryTracker()
+{
+  int device_cnt;
+  cudaError_t cuerr = cudaGetDeviceCount(&device_cnt_);
+  if ((cuerr == cudaErrorNoDevice) || (cuerr == cudaErrorInsufficientDriver)) {
+    device_cnt_ = 0;
+  } else if (cuerr != cudaSuccess) {
+    throw std::runtime_error("Unexpected failure on getting CUDA device count.");
+  }
+
+  // Use 'cuptiSubscribe' to check if the cupti has been initialized
+  // elsewhere. Due to cupti limitation, there can only be one cupti client
+  // within the process, so in the case of per-backend memory tracking, we
+  // have to make the assumption that the other cupti client is using the same
+  // memory tracker implementation so that the backend may use the cupti
+  // configuration that is external to the backend without issue.
+  auto cupti_res = cuptiSubscribe(&subscriber_, nullptr, nullptr);
+  switch (cupti_res)
+  {
+  case CUPTI_SUCCESS : {
+    CUPTI_CALL(
+        cuptiActivityRegisterCallbacks(bufferRequested, bufferCompleted));
+    CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_RUNTIME));
+    CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MEMORY2));
+    CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION));
+    break;
+  }
+  case CUPTI_ERROR_MULTIPLE_SUBSCRIBERS_NOT_SUPPORTED: {
+    std::cerr << "CUPTI has been initialized elsewhere, assuming the implementation is the same" << std::endl;
+    break;
+  }
+  default:
+    // other error, should propagate and disable memory tracking for the backend
+    throw std::runtime_error("Unexpected failure on configuring CUPTI.");
+  }
+}
+
+int
+DeviceMemoryTracker::CudaDeviceCount()
+{
+  if (tracker_) {
+    return tracker_->device_cnt_;
+  }
+  throw std::runtime_error("DeviceMeoryTracker::Init() must be called before using any DeviceMeoryTracker features.");
+}
+
 bool
-DeviceMemoryTracker::InitTrace()
+DeviceMemoryTracker::Init()
 {
   if (tracker_ == nullptr) {
-    tracker_.reset(new DeviceMemoryTracker());
-    // Use 'cuptiSubscribe' to check if the cupti has been initialized
-    // elsewhere. Due to cupti limitation, there can only be one cupti client
-    // within the process, so in the case of per-backend memory tracking, we
-    // have to make the assumption that the other cupti client is using the same
-    // memory tracker implementation so that the backend may use the cupti
-    // configuration that is external to the backend without issue.
-    auto cupti_res = cuptiSubscribe(&tracker_->subscriber_, nullptr, nullptr);
-    switch (cupti_res)
-    {
-    case CUPTI_SUCCESS : {
-      CUPTI_CALL(
-          cuptiActivityRegisterCallbacks(bufferRequested, bufferCompleted));
-      CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_RUNTIME));
-      CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MEMORY2));
-      CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION));
-      break;
-    }
-    case CUPTI_ERROR_MULTIPLE_SUBSCRIBERS_NOT_SUPPORTED: {
-      std::cerr << "CUPTI has been initialized elsewhere, assuming the implementation is the same" << std::endl;
-      break;
-    }
-    default:
-      // other error, should propagate and disable memory tracking for the backend
-      std::cerr << "********** Unexpected cupti error" << std::endl;
+    try {
+      tracker_.reset(new DeviceMemoryTracker());
+    } catch (const std::runtime_error& ex) {
+      // Fail initialization 
       return false;
     }
   }
@@ -136,28 +163,28 @@ DeviceMemoryTracker::InitTrace()
 }
 
 void
-DeviceMemoryTracker::TrackThreadMemoryUsage(ScopedMemoryUsage* usage)
+DeviceMemoryTracker::TrackThreadMemoryUsage(MemoryUsage* usage)
 {
-  if (tracker_ == nullptr) {
-    InitTrace();
+  if (tracker_) {
+    CUPTI_CALL(cuptiActivityPushExternalCorrelationId(
+        CUPTI_EXTERNAL_CORRELATION_KIND_UNKNOWN,
+        reinterpret_cast<uint64_t>(&usage->cupti_tracker_)));
+    usage->tracked_ = true;
   }
-  CUPTI_CALL(cuptiActivityPushExternalCorrelationId(
-      CUPTI_EXTERNAL_CORRELATION_KIND_UNKNOWN,
-      reinterpret_cast<uint64_t>(usage)));
-  usage->tracked_ = true;
+  throw std::runtime_error("DeviceMeoryTracker::Init() must be called before using any DeviceMeoryTracker features.");
 }
 
 void
-DeviceMemoryTracker::UntrackThreadMemoryUsage(ScopedMemoryUsage* usage)
+DeviceMemoryTracker::UntrackThreadMemoryUsage()
 {
-  uint64_t id;
-  if (tracker_ == nullptr) {
-    InitTrace();
+  if (tracker_) {
+    uint64_t id;
+    CUPTI_CALL(cuptiActivityPopExternalCorrelationId(
+        CUPTI_EXTERNAL_CORRELATION_KIND_UNKNOWN, &id));
+    CUPTI_CALL(cuptiActivityFlushAll(0));
+    usage->tracked_ = false;
   }
-  CUPTI_CALL(cuptiActivityPopExternalCorrelationId(
-      CUPTI_EXTERNAL_CORRELATION_KIND_UNKNOWN, &id));
-  CUPTI_CALL(cuptiActivityFlushAll(0));
-  usage->tracked_ = false;
+  throw std::runtime_error("DeviceMeoryTracker::Init() must be called before using any DeviceMeoryTracker features.");
 }
 
 void
@@ -166,19 +193,18 @@ DeviceMemoryTracker::TrackActivityInternal(CUpti_Activity* record)
   switch (record->kind) {
     case CUPTI_ACTIVITY_KIND_MEMORY2: {
       CUpti_ActivityMemory3* memory_record = (CUpti_ActivityMemory3*)record;
-      ScopedMemoryUsage* usage = nullptr;
+      TRITONBACKEND_CuptiTracker* usage = nullptr;
       {
         std::lock_guard<std::mutex> lk(mtx_);
         auto it = activity_to_memory_usage_.find(memory_record->correlationId);
         if (it != activity_to_memory_usage_.end()) {
-          usage = reinterpret_cast<ScopedMemoryUsage*>(it->second);
+          usage = reinterpret_cast<TRITONBACKEND_CuptiTracker*>(it->second);
           activity_to_memory_usage_.erase(it);
         }
       }
-      // Ignore memory record that is not associated with a ScopedMemoryUsage
+      // Ignore memory record that is not associated with a TRITONBACKEND_CuptiTracker
       // object
       if (usage != nullptr) {
-        std::cerr << "*** Track activity in TRT backend" << std::endl;
         const bool is_allocation =
             (memory_record->memoryOperationType ==
              CUPTI_ACTIVITY_MEMORY_OPERATION_TYPE_ALLOCATION);
@@ -188,6 +214,10 @@ DeviceMemoryTracker::TrackActivityInternal(CUpti_Activity* record)
         if (is_allocation || is_release) {
           switch (memory_record->memoryKind) {
             case CUPTI_ACTIVITY_MEMORY_KIND_DEVICE: {
+              if (memory_record->deviceId >= usage->cuda_array_len_) {
+                usage->good_record_ = false;
+                break;
+              }
               if (is_allocation) {
                 usage->cuda_byte_size_[memory_record->deviceId] +=
                     memory_record->bytes;
@@ -195,8 +225,13 @@ DeviceMemoryTracker::TrackActivityInternal(CUpti_Activity* record)
                 usage->cuda_byte_size_[memory_record->deviceId] -=
                     memory_record->bytes;
               }
-            } break;
+              break;
+            }
             case CUPTI_ACTIVITY_MEMORY_KIND_PINNED: {
+              if (memory_record->deviceId >= usage->pinned_array_len_) {
+                usage->good_record_ = false;
+                break;
+              }
               if (is_allocation) {
                 usage->pinned_byte_size_[memory_record->deviceId] +=
                     memory_record->bytes;
@@ -207,6 +242,10 @@ DeviceMemoryTracker::TrackActivityInternal(CUpti_Activity* record)
               break;
             }
             case CUPTI_ACTIVITY_MEMORY_KIND_PAGEABLE: {
+              if (memory_record->deviceId >= usage->system_array_len_) {
+                usage->good_record_ = false;
+                break;
+              }
               if (is_allocation) {
                 usage->system_byte_size_[memory_record->deviceId] +=
                     memory_record->bytes;
@@ -219,6 +258,7 @@ DeviceMemoryTracker::TrackActivityInternal(CUpti_Activity* record)
             default:
               LOG_WARNING << "Unrecognized type of memory is allocated, kind "
                           << memory_record->memoryKind;
+              usage->good_record_ = false;
               break;
           }
         }
@@ -244,4 +284,4 @@ DeviceMemoryTracker::TrackActivityInternal(CUpti_Activity* record)
   }
 }
 
-}}}
+}}
