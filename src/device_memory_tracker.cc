@@ -175,7 +175,7 @@ DeviceMemoryTracker::TrackThreadMemoryUsage(MemoryUsage* usage)
 }
 
 void
-DeviceMemoryTracker::UntrackThreadMemoryUsage()
+DeviceMemoryTracker::UntrackThreadMemoryUsage(MemoryUsage* usage)
 {
   if (tracker_) {
     uint64_t id;

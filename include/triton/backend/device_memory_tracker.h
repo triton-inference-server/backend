@@ -122,13 +122,24 @@ class DeviceMemoryTracker {
     {
       // Make sure all C struct reference are dropped before clearing.
       if (tracked_) {
-        UntrackThreadMemoryUsage();
+        UntrackThreadMemoryUsage(usage_);
       }
     }
 
     // Disable copy and assign to better manage C struct lifecycle
     MemoryUsage(const MemoryUsage&) = delete;
     void operator=(const MemoryUsage&) = delete;
+
+    // merge record from another MemoryUsage object
+    MemoryUsage& operator+=(const MemoryUsage& rhs)
+    {
+      std::transform(rhs.system_byte_size_.begin(), rhs.system_byte_size_.end(), system_byte_size_.begin(),
+      std::plus<int64_T>());
+      std::transform(rhs.pinned_byte_size_.begin(), rhs.pinned_byte_size_.end(), pinned_byte_size_.begin(),
+      std::plus<int64_T>());
+      std::transform(rhs.cuda_byte_size_.begin(), rhs.cuda_byte_size_.end(), cuda_byte_size_.begin(),
+      std::plus<int64_T>());
+    }
 
     TRITONSERVER_Error* SerializeToBufferAttributes(
       TRITONSERVER_BufferAttributes** usage, int32_t* usage_size)
@@ -179,6 +190,19 @@ class DeviceMemoryTracker {
     TRITONBACKEND_CuptiTracker cupti_tracker_;
   };
 
+  // Simple scope guard to make sure memory usage is untracked without coupling
+  // with MemoryUsage lifecycle
+  struct ScopeGuard {
+    ScopeGuard(MemoryUsage* usage) : usage_(usage) {}
+    ~ScopeGuard() {
+      if (usage_ && usage_->tracked_) {
+        UntrackThreadMemoryUsage(usage_);
+      }
+    }
+    MemoryUsage* usage_{nullptr};
+  };
+  
+
   static bool Init();
 
   static int CudaDeviceCount();
@@ -189,15 +213,39 @@ class DeviceMemoryTracker {
   // specific, which implies that there will be mssing records if tracking
   // region switching threads to handle other activities.
   static void TrackThreadMemoryUsage(MemoryUsage* usage);
-  
+
   // Note that CUPTI always pop from the top of the thread-wise stack, must be
   // careful on the untrack order if there is need to use multiple MemoryUsage
   // objects.
-  static void UntrackThreadMemoryUsage();
+  static void UntrackThreadMemoryUsage(MemoryUsage* usage);
 
   static void TrackActivity(CUpti_Activity* record)
   {
     tracker_->TrackActivityInternal(record);
+  }
+
+  static bool EnableFromBackendConfig(const triton::common::TritonJson::Value& backend_config)
+  {
+    triton::common::TritonJson::Value cmdline;
+    if (backend_config.Find("cmdline", &cmdline)) {
+      triton::common::TritonJson::Value value;
+      std::string value_str;
+      if (cmdline.Find("triton-backend-memory-tracker", &value)) {
+        bool lvalue = false;
+        auto err = value.AsString(&value_str);
+        if (err != nullptr) {
+          LOG_IF_ERROR(err, "Error parsing backend config: ");
+          return false;
+        }
+        err = ParseBoolValue(value_str, &lvalue);
+        if (err != nullptr) {
+          LOG_IF_ERROR(err, "Error parsing backend config: ");
+          return false;
+        }
+        return lvalue;
+      }
+    }
+    return false;
   }
 
   ~DeviceMemoryTracker() {
