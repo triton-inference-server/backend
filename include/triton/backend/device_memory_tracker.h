@@ -29,7 +29,10 @@
 #include <memory>
 #include <mutex>
 #include <unordered_map>
+
+#ifdef TRITON_ENABLE_GPU
 #include <cupti.h>
+#endif
 
 static_assert(
     sizeof(uint64_t) >= sizeof(uintptr_t),
@@ -203,6 +206,7 @@ class DeviceMemoryTracker {
   };
   
 
+#ifdef TRITON_ENABLE_GPU
   static bool Init();
 
   static int CudaDeviceCount();
@@ -265,6 +269,13 @@ class DeviceMemoryTracker {
   int device_cnt_{0};
 
   static std::unique_ptr<DeviceMemoryTracker> tracker_;
+#else // no-ops
+  static bool Init() { return false; }
+  static int CudaDeviceCount() {return 0; }
+  static void TrackThreadMemoryUsage(MemoryUsage* usage) {}
+  static void UntrackThreadMemoryUsage(MemoryUsage* usage) {}
+  static bool EnableFromBackendConfig(const triton::common::TritonJson::Value& backend_config) { return false; }
+#endif  // TRITON_ENABLE_GPU
 };
 
 }}  // namespace triton::backend

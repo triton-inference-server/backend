@@ -92,6 +92,7 @@ set(SRC_FILES
 
 if(${TRITON_ENABLE_GPU})
   set(SRC_FILES ${SRC_FILES} "src/kernel.h")
+  set(SRC_FILES ${SRC_FILES} "src/device_memory_tracker.cc")
 endif() # TRITON_ENABLE_GPU
 
 add_library(
@@ -189,6 +190,7 @@ if(${TRITON_ENABLE_GPU})
     triton-backend-utils
     PUBLIC
       CUDA::cudart
+      CUDA::cupti
     PRIVATE
       kernel_library_new
   )
