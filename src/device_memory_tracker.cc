@@ -104,7 +104,6 @@ bufferCompleted(
 
 DeviceMemoryTracker::DeviceMemoryTracker()
 {
-  int device_cnt;
   cudaError_t cuerr = cudaGetDeviceCount(&device_cnt_);
   if ((cuerr == cudaErrorNoDevice) || (cuerr == cudaErrorInsufficientDriver)) {
     device_cnt_ = 0;

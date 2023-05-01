@@ -29,6 +29,9 @@
 #include <memory>
 #include <mutex>
 #include <unordered_map>
+#include <vector>
+#include "triton/core/tritonserver.h"
+#include "triton/common/triton_json.h"
 
 #ifdef TRITON_ENABLE_GPU
 #include <cupti.h>
@@ -137,11 +140,12 @@ class DeviceMemoryTracker {
     MemoryUsage& operator+=(const MemoryUsage& rhs)
     {
       std::transform(rhs.system_byte_size_.begin(), rhs.system_byte_size_.end(), system_byte_size_.begin(),
-      std::plus<int64_T>());
+      std::plus<int64_t>());
       std::transform(rhs.pinned_byte_size_.begin(), rhs.pinned_byte_size_.end(), pinned_byte_size_.begin(),
-      std::plus<int64_T>());
+      std::plus<int64_t>());
       std::transform(rhs.cuda_byte_size_.begin(), rhs.cuda_byte_size_.end(), cuda_byte_size_.begin(),
-      std::plus<int64_T>());
+      std::plus<int64_t>());
+      return *this;
     }
 
     TRITONSERVER_Error* SerializeToBufferAttributes(
