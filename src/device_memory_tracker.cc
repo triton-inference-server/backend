@@ -169,8 +169,9 @@ DeviceMemoryTracker::TrackThreadMemoryUsage(MemoryUsage* usage)
         CUPTI_EXTERNAL_CORRELATION_KIND_UNKNOWN,
         reinterpret_cast<uint64_t>(&usage->cupti_tracker_)));
     usage->tracked_ = true;
+  } else {
+    throw std::runtime_error("DeviceMeoryTracker::Init() must be called before using any DeviceMeoryTracker features.");
   }
-  throw std::runtime_error("DeviceMeoryTracker::Init() must be called before using any DeviceMeoryTracker features.");
 }
 
 void
@@ -182,8 +183,9 @@ DeviceMemoryTracker::UntrackThreadMemoryUsage(MemoryUsage* usage)
         CUPTI_EXTERNAL_CORRELATION_KIND_UNKNOWN, &id));
     CUPTI_CALL(cuptiActivityFlushAll(0));
     usage->tracked_ = false;
+  } else {
+    throw std::runtime_error("DeviceMeoryTracker::Init() must be called before using any DeviceMeoryTracker features.");
   }
-  throw std::runtime_error("DeviceMeoryTracker::Init() must be called before using any DeviceMeoryTracker features.");
 }
 
 void
