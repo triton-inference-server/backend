@@ -144,7 +144,7 @@ DeviceMemoryTracker::CudaDeviceCount()
   if (tracker_) {
     return tracker_->device_cnt_;
   }
-  throw std::runtime_error("DeviceMeoryTracker::Init() must be called before using any DeviceMeoryTracker features.");
+  return 0;
 }
 
 bool

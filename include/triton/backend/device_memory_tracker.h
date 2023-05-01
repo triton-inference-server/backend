@@ -30,8 +30,10 @@
 #include <mutex>
 #include <unordered_map>
 #include <vector>
+#include <algorithm>
+#include <functional>
 #include "triton/core/tritonserver.h"
-#include "triton/common/triton_json.h"
+#include "triton/backend/backend_common.h"
 
 #ifdef TRITON_ENABLE_GPU
 #include <cupti.h>
@@ -128,7 +130,7 @@ class DeviceMemoryTracker {
     {
       // Make sure all C struct reference are dropped before clearing.
       if (tracked_) {
-        UntrackThreadMemoryUsage(usage_);
+        UntrackThreadMemoryUsage(this);
       }
     }
 
@@ -139,11 +141,11 @@ class DeviceMemoryTracker {
     // merge record from another MemoryUsage object
     MemoryUsage& operator+=(const MemoryUsage& rhs)
     {
-      std::transform(rhs.system_byte_size_.begin(), rhs.system_byte_size_.end(), system_byte_size_.begin(),
+      std::transform(rhs.system_byte_size_.begin(), rhs.system_byte_size_.end(), system_byte_size_.begin(), system_byte_size_.begin(),
       std::plus<int64_t>());
-      std::transform(rhs.pinned_byte_size_.begin(), rhs.pinned_byte_size_.end(), pinned_byte_size_.begin(),
+      std::transform(rhs.pinned_byte_size_.begin(), rhs.pinned_byte_size_.end(), pinned_byte_size_.begin(), pinned_byte_size_.begin(),
       std::plus<int64_t>());
-      std::transform(rhs.cuda_byte_size_.begin(), rhs.cuda_byte_size_.end(), cuda_byte_size_.begin(),
+      std::transform(rhs.cuda_byte_size_.begin(), rhs.cuda_byte_size_.end(), cuda_byte_size_.begin(), cuda_byte_size_.begin(),
       std::plus<int64_t>());
       return *this;
     }
@@ -155,7 +157,7 @@ class DeviceMemoryTracker {
 
       // Define lambda to convert an vector of memory usage of the same type of
       // device into buffer attributes and set in 'usage'
-      auto set_attributes_for_device_fn = [&](const std::vector<int64_t>& devices, const TRITONSERVER_MemoryType mem_type) {
+      auto set_attributes_for_device_fn = [&](const std::vector<int64_t>& devices, const TRITONSERVER_MemoryType mem_type) -> TRITONSERVER_Error* {
         for (size_t idx=0; idx < devices.size(); ++idx) {
           // skip if no allocation
           if (devices[idx] == 0) {
@@ -232,7 +234,7 @@ class DeviceMemoryTracker {
     tracker_->TrackActivityInternal(record);
   }
 
-  static bool EnableFromBackendConfig(const triton::common::TritonJson::Value& backend_config)
+  static bool EnableFromBackendConfig(triton::common::TritonJson::Value& backend_config)
   {
     triton::common::TritonJson::Value cmdline;
     if (backend_config.Find("cmdline", &cmdline)) {
