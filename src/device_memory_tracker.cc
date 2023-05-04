@@ -144,7 +144,7 @@ DeviceMemoryTracker::CudaDeviceCount()
   if (tracker_) {
     return tracker_->device_cnt_;
   }
-  return 0;
+  throw std::runtime_error("DeviceMeoryTracker::Init() must be called before using any DeviceMeoryTracker features.");
 }
 
 bool
@@ -164,6 +164,9 @@ DeviceMemoryTracker::Init()
 void
 DeviceMemoryTracker::TrackThreadMemoryUsage(MemoryUsage* usage)
 {
+  if (!usage) {
+    return;
+  }
   if (tracker_) {
     CUPTI_CALL(cuptiActivityPushExternalCorrelationId(
         CUPTI_EXTERNAL_CORRELATION_KIND_UNKNOWN,
@@ -177,11 +180,14 @@ DeviceMemoryTracker::TrackThreadMemoryUsage(MemoryUsage* usage)
 void
 DeviceMemoryTracker::UntrackThreadMemoryUsage(MemoryUsage* usage)
 {
+  if (!usage) {
+    return;
+  }
   if (tracker_) {
-    uint64_t id;
+    CUPTI_CALL(cuptiActivityFlushAll(0));
+    uint64_t id = 0;
     CUPTI_CALL(cuptiActivityPopExternalCorrelationId(
         CUPTI_EXTERNAL_CORRELATION_KIND_UNKNOWN, &id));
-    CUPTI_CALL(cuptiActivityFlushAll(0));
     usage->tracked_ = false;
   } else {
     throw std::runtime_error("DeviceMeoryTracker::Init() must be called before using any DeviceMeoryTracker features.");
@@ -203,72 +209,43 @@ DeviceMemoryTracker::TrackActivityInternal(CUpti_Activity* record)
           activity_to_memory_usage_.erase(it);
         }
       }
+      const bool is_allocation =
+          (memory_record->memoryOperationType ==
+            CUPTI_ACTIVITY_MEMORY_OPERATION_TYPE_ALLOCATION);
+      const bool is_release =
+          (memory_record->memoryOperationType ==
+            CUPTI_ACTIVITY_MEMORY_OPERATION_TYPE_RELEASE);
       // Ignore memory record that is not associated with a TRITONBACKEND_CuptiTracker
-      // object
-      if (usage != nullptr) {
-        const bool is_allocation =
-            (memory_record->memoryOperationType ==
-             CUPTI_ACTIVITY_MEMORY_OPERATION_TYPE_ALLOCATION);
-        const bool is_release =
-            (memory_record->memoryOperationType ==
-             CUPTI_ACTIVITY_MEMORY_OPERATION_TYPE_RELEASE);
-        if (is_allocation || is_release) {
-          switch (memory_record->memoryKind) {
-            case CUPTI_ACTIVITY_MEMORY_KIND_DEVICE: {
-              if (memory_record->deviceId >= usage->cuda_array_len_) {
-                usage->good_record_ = false;
-                break;
-              }
-              if (is_allocation) {
-                usage->cuda_byte_size_[memory_record->deviceId] +=
-                    memory_record->bytes;
-              } else {
-                usage->cuda_byte_size_[memory_record->deviceId] -=
-                    memory_record->bytes;
-              }
-              break;
-            }
-            case CUPTI_ACTIVITY_MEMORY_KIND_PINNED: {
-              if (memory_record->deviceId >= usage->pinned_array_len_) {
-                usage->good_record_ = false;
-                break;
-              }
-              if (is_allocation) {
-                usage->pinned_byte_size_[memory_record->deviceId] +=
-                    memory_record->bytes;
-              } else {
-                usage->pinned_byte_size_[memory_record->deviceId] -=
-                    memory_record->bytes;
-              }
-              break;
-            }
-            case CUPTI_ACTIVITY_MEMORY_KIND_PAGEABLE: {
-              if (memory_record->deviceId >= usage->system_array_len_) {
-                usage->good_record_ = false;
-                break;
-              }
-              if (is_allocation) {
-                usage->system_byte_size_[memory_record->deviceId] +=
-                    memory_record->bytes;
-              } else {
-                usage->system_byte_size_[memory_record->deviceId] -=
-                    memory_record->bytes;
-              }
-              break;
-            }
-            default:
-              LOG_WARNING << "Unrecognized type of memory is allocated, kind "
-                          << memory_record->memoryKind;
-              usage->good_record_ = false;
-              break;
-          }
+      // object or not related to allocations
+      if (usage == nullptr) || (!usage->valid_) || (!is_allocation && !is_release) {
+        break;
+      }
+
+      switch (memory_record->memoryKind) {
+        case CUPTI_ACTIVITY_MEMORY_KIND_DEVICE: {
+          usage->valid_ = UpdateMemoryTypeUsage(memory_record, is_allocation, usage->cuda_memory_usage_byte_, usage->cuda_array_len_);
+          break;
         }
+        case CUPTI_ACTIVITY_MEMORY_KIND_PINNED: {
+          usage->valid_ = UpdateMemoryTypeUsage(memory_record, is_allocation, usage->pinned_memory_usage_byte_, usage->pinned_array_len_);
+          break;
+        }
+        case CUPTI_ACTIVITY_MEMORY_KIND_PAGEABLE: {
+          usage->valid_ = UpdateMemoryTypeUsage(memory_record, is_allocation, usage->system_memory_usage_byte_, usage->system_array_len_);
+          break;
+        }
+        default:
+          LOG_WARNING << "Unrecognized type of memory is allocated, kind "
+                      << memory_record->memoryKind;
+          usage->valid_ = false;
+          break;
       }
       break;
     }
     case CUPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION: {
       CUpti_ActivityExternalCorrelation* corr =
           (CUpti_ActivityExternalCorrelation*)record;
+      if (corr->)
       std::lock_guard<std::mutex> lk(mtx_);
       activity_to_memory_usage_[corr->correlationId] =
           reinterpret_cast<uintptr_t>(corr->externalId);
@@ -283,6 +260,22 @@ DeviceMemoryTracker::TrackActivityInternal(CUpti_Activity* record)
       LOG_ERROR << "Unexpected capture of cupti record, kind: " << record->kind;
       break;
   }
+}
+
+inline bool
+DeviceMemoryTracker::UpdateMemoryTypeUsage(CUpti_ActivityMemory3* memory_record, const bool is_allocation, int64_t* memory_usage, uint32_t usage_len)
+{
+  if (memory_record->deviceId >= usage_len) {
+    return false;
+  }
+  if (is_allocation) {
+    memory_usage[memory_record->deviceId] +=
+        memory_record->bytes;
+  } else {
+    memory_usage[memory_record->deviceId] -=
+        memory_record->bytes;
+  }
+  return true;
 }
 
 }}
