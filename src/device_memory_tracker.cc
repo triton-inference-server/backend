@@ -28,7 +28,6 @@
 
 #include <iostream>
 #include <stdexcept>
-#include "triton/common/logging.h"
 #include "triton/core/tritonserver.h"
 
 namespace triton { namespace backend {
@@ -217,7 +216,7 @@ DeviceMemoryTracker::TrackActivityInternal(CUpti_Activity* record)
             CUPTI_ACTIVITY_MEMORY_OPERATION_TYPE_RELEASE);
       // Ignore memory record that is not associated with a TRITONBACKEND_CuptiTracker
       // object or not related to allocations
-      if (usage == nullptr) || (!usage->valid_) || (!is_allocation && !is_release) {
+      if ((usage == nullptr) || (!usage->valid_) || (!is_allocation && !is_release)) {
         break;
       }
 
@@ -245,10 +244,11 @@ DeviceMemoryTracker::TrackActivityInternal(CUpti_Activity* record)
     case CUPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION: {
       CUpti_ActivityExternalCorrelation* corr =
           (CUpti_ActivityExternalCorrelation*)record;
-      if (corr->)
-      std::lock_guard<std::mutex> lk(mtx_);
-      activity_to_memory_usage_[corr->correlationId] =
-          reinterpret_cast<uintptr_t>(corr->externalId);
+      if (CUPTI_EXTERNAL_CORRELATION_KIND_UNKNOWN == corr->externalKind) {
+        std::lock_guard<std::mutex> lk(mtx_);
+        activity_to_memory_usage_[corr->correlationId] =
+            reinterpret_cast<uintptr_t>(corr->externalId);
+      }
       break;
     }
     case CUPTI_ACTIVITY_KIND_RUNTIME: {

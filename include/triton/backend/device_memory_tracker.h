@@ -32,6 +32,7 @@
 #include <vector>
 #include <algorithm>
 #include <functional>
+#include "triton/common/logging.h"
 #include "triton/core/tritonserver.h"
 #include "triton/backend/backend_common.h"
 
@@ -113,7 +114,7 @@ class DeviceMemoryTracker {
   struct MemoryUsage {
     MemoryUsage()
     {
-      cuda_memory_usage_byte__.resize(CudaDeviceCount(), 0);
+      cuda_memory_usage_byte_.resize(CudaDeviceCount(), 0);
 
       cupti_tracker_.system_memory_usage_byte_ = system_memory_usage_byte_.data();
       cupti_tracker_.pinned_memory_usage_byte_ = pinned_memory_usage_byte_.data();
@@ -132,7 +133,7 @@ class DeviceMemoryTracker {
       }
       for (auto& ba : buffer_attributes_) {
         if (ba) {
-          LOG_IF_ERROR(TRITONSERVER_BufferAttributesDelete(ba));
+          LOG_IF_ERROR(TRITONSERVER_BufferAttributesDelete(ba), "Releasing buffer attributes in MemoryUsage object");
         }
       }
     }
