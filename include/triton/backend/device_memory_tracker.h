@@ -62,9 +62,9 @@ namespace triton { namespace backend {
 /// implemented similar profiler with CUPTI. Therefore, before enabling this
 /// memory tracker utilities, you should make sure that there is no other CUPTI
 /// client in the process. This tracker is implemented with the assumption that
-/// all other possible CUPTI clients are using the same implementation so that
-/// as long as all backends are compiled with this memory tracker and they may
-/// interact with CUPTI initialized externally to the backend without issues.
+/// all other CUPTI clients are using the same implementation so that
+/// as long as all backends are compiled with this memory tracker, they may
+/// interact with an externally-initialized CUPTI to the backend without issues.
 ///
 /// Typical usage:
 ///
@@ -75,9 +75,10 @@ namespace triton { namespace backend {
 /// On TRITONBACKEND_Initialize
 ///  - Call DeviceMemoryTracker::Init
 ///
-/// If returns true, DeviceMemoryTracker::TrackThreadMemoryUsage and
+/// If DeviceMemoryTracker::Init returns true,
+/// DeviceMemoryTracker::TrackThreadMemoryUsage and
 /// DeviceMemoryTracker::UntrackThreadMemoryUsage can be called accordingly to
-/// track memory allocation in the scope between the function, the memory usage
+/// track memory allocation in the scope between the two calls. The memory usage
 /// will be recorded in MemoryUsage object and may be reported through
 /// TRITONBACKEND_ModelReportMemoryUsage or
 /// TRITONBACKEND_ModelInstanceReportMemoryUsage based on the entity of the

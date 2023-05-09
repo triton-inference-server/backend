@@ -37,15 +37,25 @@ std::unique_ptr<DeviceMemoryTracker> DeviceMemoryTracker::tracker_{nullptr};
 namespace {
 
 // [WIP] figure out recover policy at different location of calling CUPTI
-#define CUPTI_CALL(call)                                      \
+#define LOG_IF_CUPTI_ERR(call)                                \
   do {                                                        \
     CUptiResult _status = call;                               \
     if (_status != CUPTI_SUCCESS) {                           \
       const char* errstr;                                     \
       cuptiGetResultString(_status, &errstr);                 \
       LOG_ERROR << #call << " failed with error: " << errstr; \
-      exit(EXIT_FAILURE);                                     \
     }                                                         \
+  } while (0)
+
+#define THROW_IF_CUPTI_ERR(call)                                             \
+  do {                                                                       \
+    CUptiResult _status = call;                                              \
+    if (_status != CUPTI_SUCCESS) {                                          \
+      const char* errstr;                                                    \
+      cuptiGetResultString(_status, &errstr);                                \
+      throw std::runtime_error(std::string(#call) + " failed with error: " + \
+        errstr);                                                             \
+    }                                                                        \
   } while (0)
 
 #define BUF_SIZE (32 * 1024)
@@ -64,7 +74,7 @@ bufferRequested(uint8_t** buffer, size_t* size, size_t* maxNumRecords)
     *buffer = ALIGN_BUFFER(bfr, ALIGN_SIZE);
     *maxNumRecords = 0;
   } else {
-    LOG_ERROR << "Failed to allocate buffer for CUPIT: out of memory";
+    LOG_ERROR << "Failed to allocate buffer for CUPTI: out of memory";
   }
 }
 
@@ -84,13 +94,13 @@ bufferCompleted(
       } else if (status == CUPTI_ERROR_MAX_LIMIT_REACHED)
         break;
       else {
-        CUPTI_CALL(status);
+        LOG_IF_CUPTI_ERR(status);
       }
     } while (1);
 
     // report any records dropped from the queue
-    size_t dropped;
-    CUPTI_CALL(cuptiActivityGetNumDroppedRecords(ctx, streamId, &dropped));
+    size_t dropped = 0;
+    LOG_IF_CUPTI_ERR(cuptiActivityGetNumDroppedRecords(ctx, streamId, &dropped));
     if (dropped != 0) {
       LOG_WARNING << "Dropped " << dropped << " activity records";
     }
@@ -120,20 +130,23 @@ DeviceMemoryTracker::DeviceMemoryTracker()
   switch (cupti_res)
   {
   case CUPTI_SUCCESS : {
-    CUPTI_CALL(
+    THROW_IF_CUPTI_ERR(
         cuptiActivityRegisterCallbacks(bufferRequested, bufferCompleted));
-    CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_RUNTIME));
-    CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MEMORY2));
-    CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION));
+    THROW_IF_CUPTI_ERR(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_RUNTIME));
+    THROW_IF_CUPTI_ERR(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MEMORY2));
+    THROW_IF_CUPTI_ERR(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION));
     break;
   }
   case CUPTI_ERROR_MULTIPLE_SUBSCRIBERS_NOT_SUPPORTED: {
-    std::cerr << "CUPTI has been initialized elsewhere, assuming the implementation is the same" << std::endl;
+    LOG_WARNING << "CUPTI has been initialized elsewhere, assuming the implementation is the same";
     break;
   }
-  default:
+  default: {
     // other error, should propagate and disable memory tracking for the backend
-    throw std::runtime_error("Unexpected failure on configuring CUPTI.");
+    const char* errstr;\
+    cuptiGetResultString(cupti_res, &errstr);
+    throw std::runtime_error(std::string("Unexpected failure on configuring CUPTI: ") + errstr);
+  }
   }
 }
 
@@ -143,7 +156,7 @@ DeviceMemoryTracker::CudaDeviceCount()
   if (tracker_) {
     return tracker_->device_cnt_;
   }
-  throw std::runtime_error("DeviceMeoryTracker::Init() must be called before using any DeviceMeoryTracker features.");
+  throw std::runtime_error("DeviceMemoryTracker::Init() must be called before using any DeviceMemoryTracker features.");
 }
 
 bool
@@ -154,6 +167,7 @@ DeviceMemoryTracker::Init()
       tracker_.reset(new DeviceMemoryTracker());
     } catch (const std::runtime_error& ex) {
       // Fail initialization 
+      LOG_ERROR << ex.what();
       return false;
     }
   }
@@ -167,12 +181,12 @@ DeviceMemoryTracker::TrackThreadMemoryUsage(MemoryUsage* usage)
     return;
   }
   if (tracker_) {
-    CUPTI_CALL(cuptiActivityPushExternalCorrelationId(
+    THROW_IF_CUPTI_ERR(cuptiActivityPushExternalCorrelationId(
         CUPTI_EXTERNAL_CORRELATION_KIND_UNKNOWN,
         reinterpret_cast<uint64_t>(&usage->cupti_tracker_)));
     usage->tracked_ = true;
   } else {
-    throw std::runtime_error("DeviceMeoryTracker::Init() must be called before using any DeviceMeoryTracker features.");
+    throw std::runtime_error("DeviceMemoryTracker::Init() must be called before using any DeviceMemoryTracker features.");
   }
 }
 
@@ -183,13 +197,13 @@ DeviceMemoryTracker::UntrackThreadMemoryUsage(MemoryUsage* usage)
     return;
   }
   if (tracker_) {
-    CUPTI_CALL(cuptiActivityFlushAll(0));
+    THROW_IF_CUPTI_ERR(cuptiActivityFlushAll(0));
     uint64_t id = 0;
-    CUPTI_CALL(cuptiActivityPopExternalCorrelationId(
+    THROW_IF_CUPTI_ERR(cuptiActivityPopExternalCorrelationId(
         CUPTI_EXTERNAL_CORRELATION_KIND_UNKNOWN, &id));
     usage->tracked_ = false;
   } else {
-    throw std::runtime_error("DeviceMeoryTracker::Init() must be called before using any DeviceMeoryTracker features.");
+    throw std::runtime_error("DeviceMemoryTracker::Init() must be called before using any DeviceMemoryTracker features.");
   }
 }
 
