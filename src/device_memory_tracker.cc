@@ -36,7 +36,6 @@ std::unique_ptr<DeviceMemoryTracker> DeviceMemoryTracker::tracker_{nullptr};
 // Boilerplate from CUPTI examples
 namespace {
 
-// [WIP] figure out recover policy at different location of calling CUPTI
 #define LOG_IF_CUPTI_ERR(call)                                \
   do {                                                        \
     CUptiResult _status = call;                               \
@@ -143,7 +142,7 @@ DeviceMemoryTracker::DeviceMemoryTracker()
   }
   default: {
     // other error, should propagate and disable memory tracking for the backend
-    const char* errstr;\
+    const char* errstr;
     cuptiGetResultString(cupti_res, &errstr);
     throw std::runtime_error(std::string("Unexpected failure on configuring CUPTI: ") + errstr);
   }
