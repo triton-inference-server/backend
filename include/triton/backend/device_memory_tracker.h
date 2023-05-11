@@ -227,6 +227,7 @@ class DeviceMemoryTracker {
 
 #ifdef TRITON_ENABLE_GPU
   static bool Init();
+  static void Fini();
 
   static int CudaDeviceCount();
 
@@ -268,15 +269,13 @@ class DeviceMemoryTracker {
     return false;
   }
 
-  ~DeviceMemoryTracker() {
-    if (subscriber_) {
-      cuptiUnsubscribe(subscriber_);
-    }
-  }
+  ~DeviceMemoryTracker();
 
   static void TrackActivity(CUpti_Activity* record)
   {
-    tracker_->TrackActivityInternal(record);
+    if (tracker_) {
+      tracker_->TrackActivityInternal(record);
+    }
   }
 
  private:
@@ -293,6 +292,7 @@ class DeviceMemoryTracker {
   static std::unique_ptr<DeviceMemoryTracker> tracker_;
 #else // no-ops
   static bool Init() { return false; }
+  static void Fini() {}
   static int CudaDeviceCount() {return 0; }
   static void TrackThreadMemoryUsage(MemoryUsage* usage) {}
   static void UntrackThreadMemoryUsage(MemoryUsage* usage) {}

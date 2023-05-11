@@ -150,6 +150,12 @@ DeviceMemoryTracker::DeviceMemoryTracker()
   }
 }
 
+DeviceMemoryTracker::~DeviceMemoryTracker() {
+  if (subscriber_) {
+    cuptiUnsubscribe(subscriber_);
+  }
+}
+
 int
 DeviceMemoryTracker::CudaDeviceCount()
 {
@@ -172,6 +178,12 @@ DeviceMemoryTracker::Init()
     }
   }
   return true;
+}
+
+void
+DeviceMemoryTracker::Fini()
+{
+  tracker_.reset();
 }
 
 void
