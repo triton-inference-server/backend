@@ -45,7 +45,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 if(TRITON_ENABLE_MEMORY_TRACKER AND NOT TRITON_ENABLE_GPU)
-message(FATAL_ERROR "TRITON_ENABLE_MEMORY_TRACKER=ON requires TRITON_ENABLE_GPU=ON")
+  message(FATAL_ERROR "TRITON_ENABLE_MEMORY_TRACKER=ON requires TRITON_ENABLE_GPU=ON")
 endif()
 
 #
@@ -72,6 +72,7 @@ FetchContent_MakeAvailable(repo-common repo-core)
 #
 if(${TRITON_ENABLE_GPU})
   set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
+  find_package(CUDAToolkit REQUIRED)
   find_package(CUDA REQUIRED)
   message(STATUS "Using CUDA ${CUDA_VERSION}")
   set(CUDA_NVCC_FLAGS -std=c++11)
@@ -101,7 +102,7 @@ if(${TRITON_ENABLE_GPU})
     set(SRC_FILES ${SRC_FILES} "src/device_memory_tracker.cc")
   endif() # TRITON_ENABLE_MEMORY_TRACKER
 endif() # TRITON_ENABLE_GPU
-  
+
 add_library(
   triton-backend-utils
   ${SRC_FILES}
