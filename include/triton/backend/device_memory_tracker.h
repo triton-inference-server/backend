@@ -48,9 +48,10 @@ static_assert(
 namespace triton { namespace backend {
 
 /// DeviceMemoryTracker is a backend utility provided to track the memory
-/// allocated for a particular model and associated model instance. This utility
-/// is often used for backend that set
-/// TRITONBACKEND_BackendAttributeSetEnableMemoryTracker to true, which provides
+/// allocated for a particular model and associated model instances.
+/// This utility is often used for backend to report memory usage through
+/// TRITONBACKEND_ModelReportMemoryUsage and
+/// TRITONBACKEND_ModelInstanceReportMemoryUsage, which provides
 /// additional information to Triton for making decision on model scaling and
 /// deployment.
 ///
