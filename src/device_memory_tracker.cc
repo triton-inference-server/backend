@@ -272,7 +272,7 @@ DeviceMemoryTracker::TrackActivityInternal(CUpti_Activity* record)
       if (CUPTI_EXTERNAL_CORRELATION_KIND_UNKNOWN == corr->externalKind) {
         std::lock_guard<std::mutex> lk(mtx_);
         activity_to_memory_usage_[corr->correlationId] =
-            reinterpret_cast<uintptr_t>(corr->externalId);
+            static_cast<uintptr_t>(corr->externalId);
       }
       break;
     }
