@@ -34,12 +34,19 @@ project(tritonbackend LANGUAGES C CXX)
 option(TRITON_ENABLE_GPU "Enable GPU support in backend utilities" ON)
 option(TRITON_ENABLE_MALI_GPU "Enable Arm MALI GPU support in backend utilities" OFF)
 option(TRITON_ENABLE_STATS "Include statistics collections in backend utilities" ON)
+# Default OFF unless backend explicitly request to use provided implementation
+option(TRITON_ENABLE_MEMORY_TRACKER "Include device memory tracker in backend utilities" OFF)
 
 set(TRITON_COMMON_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/common repo")
 set(TRITON_CORE_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/core repo")
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
+endif()
+
+if(TRITON_ENABLE_MEMORY_TRACKER AND NOT TRITON_ENABLE_GPU)
+  message(WARNING "TRITON_ENABLE_MEMORY_TRACKER=ON requires TRITON_ENABLE_GPU=ON, TRITON_ENABLE_MEMORY_TRACKER will be disable")
+  set(TRITON_ENABLE_MEMORY_TRACKER OFF CACHE BOOL "Device memory tracker disabled" FORCE)
 endif()
 
 #
@@ -92,6 +99,9 @@ set(SRC_FILES
 
 if(${TRITON_ENABLE_GPU})
   set(SRC_FILES ${SRC_FILES} "src/kernel.h")
+  if(${TRITON_ENABLE_MEMORY_TRACKER})
+    set(SRC_FILES ${SRC_FILES} "src/device_memory_tracker.cc")
+  endif() # TRITON_ENABLE_MEMORY_TRACKER
 endif() # TRITON_ENABLE_GPU
 
 add_library(
@@ -146,10 +156,16 @@ target_compile_options(
 
 # TRITON_ENABLE_GPU exposed in header so set PUBLIC
 if(${TRITON_ENABLE_GPU})
-target_compile_definitions(
-  triton-backend-utils
-  PUBLIC TRITON_ENABLE_GPU=1
-)
+  target_compile_definitions(
+    triton-backend-utils
+    PUBLIC TRITON_ENABLE_GPU=1
+  )
+  if(${TRITON_ENABLE_MEMORY_TRACKER})
+    target_compile_definitions(
+      triton-backend-utils
+      PUBLIC TRITON_ENABLE_MEMORY_TRACKER=1
+    )
+  endif() # TRITON_ENABLE_MEMORY_TRACKER
 endif() # TRITON_ENABLE_GPU
 
 # TRITON_ENABLE_MALI_GPU exposed in header so set PUBLIC
@@ -192,6 +208,13 @@ if(${TRITON_ENABLE_GPU})
     PRIVATE
       kernel_library_new
   )
+  if(${TRITON_ENABLE_MEMORY_TRACKER})
+    target_link_libraries(
+      triton-backend-utils
+      PUBLIC
+        CUDA::cupti
+    )
+  endif() # TRITON_ENABLE_MEMORY_TRACKER
 endif() # TRITON_ENABLE_GPU
 
 #
