@@ -912,6 +912,14 @@ CreateCudaStream(
     }
   }
 
+    // nocheckin
+  std::stringstream ss;
+  ss << "Creating stream with contents: stream: " << static_cast<void*>(stream) << ", flags: " << std::to_string(cudaStreamDefault)
+      << ", priority: " << std::to_strin(cuda_stream_priority);
+  LOG_MESSAGE(
+    TRITONSERVER_LOG_INFO,
+    (ss.str().c_str()));
+
   if (cuerr == cudaSuccess) {
     cuerr = cudaStreamCreateWithPriority(
         stream, cudaStreamDefault, cuda_stream_priority);
