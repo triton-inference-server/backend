@@ -488,7 +488,7 @@ the following steps:
 
 The decoupled API is powerful and supports various special cases:
 
-* If the backend should not send any response for the request,
+* If the backend should not send any more responses for the request,
   TRITONBACKEND_ResponseFactorySendFlags can be used to send
   TRITONSERVER_RESPONSE_COMPLETE_FINAL using the `ResponseFactory`.
 
@@ -506,10 +506,10 @@ The decoupled API is powerful and supports various special cases:
 
 
 The [repeat example](examples/README.md) demonstrates full power of
-what can be acheived from decoupled API.
+what can be achieved from decoupled API.
 
 
-Study documentation of these TRTIONBACKEND_* functions in
+Study documentation of these TRITONBACKEND_* functions in
 [tritonbackend.h](https://github.com/triton-inference-server/core/blob/main/include/triton/core/tritonbackend.h)
 for more details on these APIs. Read
 [Decoupled Backends and Models](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/decoupled_models.md)
