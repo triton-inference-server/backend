@@ -27,6 +27,7 @@
 import json
 import triton_python_backend_utils as pb_utils
 
+
 # This model calculates the sum and difference of the INPUT0 and INPUT1 and put
 # the results in OUTPUT0 and OUTPUT1 respectively. For more information
 # regarding how this model.py was written, please refer to Python Backend.

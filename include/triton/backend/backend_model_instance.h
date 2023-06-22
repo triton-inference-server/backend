@@ -26,6 +26,7 @@
 #pragma once
 
 #include <string>
+
 #include "triton/core/tritonbackend.h"
 
 #ifdef TRITON_ENABLE_GPU

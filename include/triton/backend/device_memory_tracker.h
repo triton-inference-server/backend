@@ -25,16 +25,17 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
+#include <algorithm>
+#include <functional>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
 #include <vector>
-#include <algorithm>
-#include <functional>
+
+#include "triton/backend/backend_common.h"
 #include "triton/common/logging.h"
 #include "triton/core/tritonserver.h"
-#include "triton/backend/backend_common.h"
 
 #if defined(TRITON_ENABLE_GPU) && defined(TRITON_ENABLE_MEMORY_TRACKER)
 #include <cupti.h>
@@ -108,7 +109,6 @@ typedef struct TRITONBACKEND_CuptiTracker_t {
   // range. In that case, user should invalidate the whole tracker.
   bool valid_;
 } TRITONBACKEND_CuptiTracker;
-
 }
 
 class DeviceMemoryTracker {
@@ -118,8 +118,10 @@ class DeviceMemoryTracker {
     {
       cuda_memory_usage_byte_.resize(CudaDeviceCount(), 0);
 
-      cupti_tracker_.system_memory_usage_byte_ = system_memory_usage_byte_.data();
-      cupti_tracker_.pinned_memory_usage_byte_ = pinned_memory_usage_byte_.data();
+      cupti_tracker_.system_memory_usage_byte_ =
+          system_memory_usage_byte_.data();
+      cupti_tracker_.pinned_memory_usage_byte_ =
+          pinned_memory_usage_byte_.data();
       cupti_tracker_.cuda_memory_usage_byte_ = cuda_memory_usage_byte_.data();
       cupti_tracker_.system_array_len_ = system_memory_usage_byte_.size();
       cupti_tracker_.pinned_array_len_ = pinned_memory_usage_byte_.size();
@@ -135,7 +137,9 @@ class DeviceMemoryTracker {
       }
       for (auto& ba : buffer_attributes_) {
         if (ba) {
-          LOG_IF_ERROR(TRITONSERVER_BufferAttributesDelete(ba), "Releasing buffer attributes in MemoryUsage object");
+          LOG_IF_ERROR(
+              TRITONSERVER_BufferAttributesDelete(ba),
+              "Releasing buffer attributes in MemoryUsage object");
         }
       }
     }
@@ -147,12 +151,20 @@ class DeviceMemoryTracker {
     // merge record from another MemoryUsage object
     MemoryUsage& operator+=(const MemoryUsage& rhs)
     {
-      std::transform(rhs.system_memory_usage_byte_.begin(), rhs.system_memory_usage_byte_.end(), system_memory_usage_byte_.begin(), system_memory_usage_byte_.begin(),
-      std::plus<int64_t>());
-      std::transform(rhs.pinned_memory_usage_byte_.begin(), rhs.pinned_memory_usage_byte_.end(), pinned_memory_usage_byte_.begin(), pinned_memory_usage_byte_.begin(),
-      std::plus<int64_t>());
-      std::transform(rhs.cuda_memory_usage_byte_.begin(), rhs.cuda_memory_usage_byte_.end(), cuda_memory_usage_byte_.begin(), cuda_memory_usage_byte_.begin(),
-      std::plus<int64_t>());
+      std::transform(
+          rhs.system_memory_usage_byte_.begin(),
+          rhs.system_memory_usage_byte_.end(),
+          system_memory_usage_byte_.begin(), system_memory_usage_byte_.begin(),
+          std::plus<int64_t>());
+      std::transform(
+          rhs.pinned_memory_usage_byte_.begin(),
+          rhs.pinned_memory_usage_byte_.end(),
+          pinned_memory_usage_byte_.begin(), pinned_memory_usage_byte_.begin(),
+          std::plus<int64_t>());
+      std::transform(
+          rhs.cuda_memory_usage_byte_.begin(),
+          rhs.cuda_memory_usage_byte_.end(), cuda_memory_usage_byte_.begin(),
+          cuda_memory_usage_byte_.begin(), std::plus<int64_t>());
       return *this;
     }
 
@@ -160,17 +172,20 @@ class DeviceMemoryTracker {
     // the buffer attributes object are owned by the MemoryUsage object.
     // Empty usage will be returned if the MemoryUsage object is invalid.
     TRITONSERVER_Error* SerializeToBufferAttributes(
-      TRITONSERVER_BufferAttributes*** usage, uint32_t* usage_size)
+        TRITONSERVER_BufferAttributes*** usage, uint32_t* usage_size)
     {
       if (!cupti_tracker_.valid_) {
-        return TRITONSERVER_ErrorNew(TRITONSERVER_ERROR_INTERNAL, "MemoryUsage record is invalid.");
+        return TRITONSERVER_ErrorNew(
+            TRITONSERVER_ERROR_INTERNAL, "MemoryUsage record is invalid.");
       }
       uint32_t usage_idx = 0;
 
       // Define lambda to convert an vector of memory usage of the same type of
       // device into buffer attributes and set in 'usage'
-      auto set_attributes_for_device_fn = [&](const std::vector<int64_t>& devices, const TRITONSERVER_MemoryType mem_type) -> TRITONSERVER_Error* {
-        for (size_t idx=0; idx < devices.size(); ++idx) {
+      auto set_attributes_for_device_fn =
+          [&](const std::vector<int64_t>& devices,
+              const TRITONSERVER_MemoryType mem_type) -> TRITONSERVER_Error* {
+        for (size_t idx = 0; idx < devices.size(); ++idx) {
           // skip if no allocation
           if (devices[idx] == 0) {
             continue;
@@ -178,22 +193,29 @@ class DeviceMemoryTracker {
           // there is space in usage array
           if (usage_idx >= buffer_attributes_.size()) {
             buffer_attributes_.emplace_back(nullptr);
-            RETURN_IF_ERROR(TRITONSERVER_BufferAttributesNew(&buffer_attributes_.back()));
+            RETURN_IF_ERROR(
+                TRITONSERVER_BufferAttributesNew(&buffer_attributes_.back()));
           }
           auto entry = buffer_attributes_[usage_idx];
 
-          RETURN_IF_ERROR(TRITONSERVER_BufferAttributesSetMemoryType(entry, mem_type));
-          RETURN_IF_ERROR(TRITONSERVER_BufferAttributesSetMemoryTypeId(entry, idx));
-          RETURN_IF_ERROR(TRITONSERVER_BufferAttributesSetByteSize(entry, devices[idx]));
+          RETURN_IF_ERROR(
+              TRITONSERVER_BufferAttributesSetMemoryType(entry, mem_type));
+          RETURN_IF_ERROR(
+              TRITONSERVER_BufferAttributesSetMemoryTypeId(entry, idx));
+          RETURN_IF_ERROR(
+              TRITONSERVER_BufferAttributesSetByteSize(entry, devices[idx]));
 
           ++usage_idx;
         }
         return nullptr;  // success
       };
 
-      RETURN_IF_ERROR(set_attributes_for_device_fn(system_memory_usage_byte_, TRITONSERVER_MEMORY_CPU));
-      RETURN_IF_ERROR(set_attributes_for_device_fn(pinned_memory_usage_byte_, TRITONSERVER_MEMORY_CPU_PINNED));
-      RETURN_IF_ERROR(set_attributes_for_device_fn(cuda_memory_usage_byte_, TRITONSERVER_MEMORY_GPU));
+      RETURN_IF_ERROR(set_attributes_for_device_fn(
+          system_memory_usage_byte_, TRITONSERVER_MEMORY_CPU));
+      RETURN_IF_ERROR(set_attributes_for_device_fn(
+          pinned_memory_usage_byte_, TRITONSERVER_MEMORY_CPU_PINNED));
+      RETURN_IF_ERROR(set_attributes_for_device_fn(
+          cuda_memory_usage_byte_, TRITONSERVER_MEMORY_GPU));
 
       *usage_size = usage_idx;
       *usage = buffer_attributes_.data();
@@ -201,8 +223,9 @@ class DeviceMemoryTracker {
     }
 
     // Byte size of allocated memory tracked,
-    // 'system_memory_usage_byte_' is likely to be empty as system memory allocation
-    // is not controlled by CUDA driver. But keeping it for completeness.
+    // 'system_memory_usage_byte_' is likely to be empty as system memory
+    // allocation is not controlled by CUDA driver. But keeping it for
+    // completeness.
     std::vector<int64_t> system_memory_usage_byte_{0};
     std::vector<int64_t> pinned_memory_usage_byte_{0};
     std::vector<int64_t> cuda_memory_usage_byte_{0};
@@ -217,14 +240,15 @@ class DeviceMemoryTracker {
   // with MemoryUsage lifecycle
   struct ScopeGuard {
     ScopeGuard(MemoryUsage* usage) : usage_(usage) {}
-    ~ScopeGuard() {
+    ~ScopeGuard()
+    {
       if (usage_ && usage_->tracked_) {
         UntrackThreadMemoryUsage(usage_);
       }
     }
     MemoryUsage* usage_{nullptr};
   };
-  
+
 
 #if defined(TRITON_ENABLE_GPU) && defined(TRITON_ENABLE_MEMORY_TRACKER)
   static bool Init();
@@ -246,7 +270,8 @@ class DeviceMemoryTracker {
   // This function takes no affect if 'usage' is nullptr.
   static void UntrackThreadMemoryUsage(MemoryUsage* usage);
 
-  static bool EnableFromBackendConfig(triton::common::TritonJson::Value& backend_config)
+  static bool EnableFromBackendConfig(
+      triton::common::TritonJson::Value& backend_config)
   {
     triton::common::TritonJson::Value cmdline;
     if (backend_config.Find("cmdline", &cmdline)) {
@@ -283,7 +308,9 @@ class DeviceMemoryTracker {
   DeviceMemoryTracker();
 
   void TrackActivityInternal(CUpti_Activity* record);
-  bool UpdateMemoryTypeUsage(CUpti_ActivityMemory3* memory_record, const bool is_allocation, int64_t* memory_usage, uint32_t usage_len);
+  bool UpdateMemoryTypeUsage(
+      CUpti_ActivityMemory3* memory_record, const bool is_allocation,
+      int64_t* memory_usage, uint32_t usage_len);
 
   std::mutex mtx_;
   std::unordered_map<uint32_t, uintptr_t> activity_to_memory_usage_;
@@ -291,13 +318,17 @@ class DeviceMemoryTracker {
   int device_cnt_{0};
 
   static std::unique_ptr<DeviceMemoryTracker> tracker_;
-#else // no-ops
+#else   // no-ops
   static bool Init() { return false; }
   static void Fini() {}
-  static int CudaDeviceCount() {return 0; }
+  static int CudaDeviceCount() { return 0; }
   static void TrackThreadMemoryUsage(MemoryUsage* usage) {}
   static void UntrackThreadMemoryUsage(MemoryUsage* usage) {}
-  static bool EnableFromBackendConfig(const triton::common::TritonJson::Value& backend_config) { return false; }
+  static bool EnableFromBackendConfig(
+      const triton::common::TritonJson::Value& backend_config)
+  {
+    return false;
+  }
 #endif  // TRITON_ENABLE_GPU && TRITON_ENABLE_MEMORY_TRACKER
 };
 
