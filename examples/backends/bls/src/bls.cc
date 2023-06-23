@@ -212,8 +212,8 @@ BLSExecutor::ConstructFinalResponse(
 {
   // Prepare two TRITONSERVER_InferenceResponse* objects for 'addsub_python' and
   // 'addsub_tf' repectively.
-  std::vector<TRITONSERVER_InferenceResponse*> completed_responses = {nullptr,
-                                                                      nullptr};
+  std::vector<TRITONSERVER_InferenceResponse*> completed_responses = {
+      nullptr, nullptr};
 
   const char* output_name;
   TRITONSERVER_DataType output_datatype;

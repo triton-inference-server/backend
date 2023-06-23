@@ -28,6 +28,7 @@
 
 #include <iostream>
 #include <stdexcept>
+
 #include "triton/core/tritonserver.h"
 
 namespace triton { namespace backend {
@@ -46,15 +47,15 @@ namespace {
     }                                                         \
   } while (0)
 
-#define THROW_IF_CUPTI_ERR(call)                                             \
-  do {                                                                       \
-    CUptiResult _status = call;                                              \
-    if (_status != CUPTI_SUCCESS) {                                          \
-      const char* errstr;                                                    \
-      cuptiGetResultString(_status, &errstr);                                \
-      throw std::runtime_error(std::string(#call) + " failed with error: " + \
-        errstr);                                                             \
-    }                                                                        \
+#define THROW_IF_CUPTI_ERR(call)                                 \
+  do {                                                           \
+    CUptiResult _status = call;                                  \
+    if (_status != CUPTI_SUCCESS) {                              \
+      const char* errstr;                                        \
+      cuptiGetResultString(_status, &errstr);                    \
+      throw std::runtime_error(                                  \
+          std::string(#call) + " failed with error: " + errstr); \
+    }                                                            \
   } while (0)
 
 #define BUF_SIZE (32 * 1024)
@@ -99,7 +100,8 @@ bufferCompleted(
 
     // report any records dropped from the queue
     size_t dropped = 0;
-    LOG_IF_CUPTI_ERR(cuptiActivityGetNumDroppedRecords(ctx, streamId, &dropped));
+    LOG_IF_CUPTI_ERR(
+        cuptiActivityGetNumDroppedRecords(ctx, streamId, &dropped));
     if (dropped != 0) {
       LOG_WARNING << "Dropped " << dropped << " activity records";
     }
@@ -116,7 +118,8 @@ DeviceMemoryTracker::DeviceMemoryTracker()
   if ((cuerr == cudaErrorNoDevice) || (cuerr == cudaErrorInsufficientDriver)) {
     device_cnt_ = 0;
   } else if (cuerr != cudaSuccess) {
-    throw std::runtime_error("Unexpected failure on getting CUDA device count.");
+    throw std::runtime_error(
+        "Unexpected failure on getting CUDA device count.");
   }
 
   // Use 'cuptiSubscribe' to check if the cupti has been initialized
@@ -126,30 +129,34 @@ DeviceMemoryTracker::DeviceMemoryTracker()
   // memory tracker implementation so that the backend may use the cupti
   // configuration that is external to the backend without issue.
   auto cupti_res = cuptiSubscribe(&subscriber_, nullptr, nullptr);
-  switch (cupti_res)
-  {
-  case CUPTI_SUCCESS : {
-    THROW_IF_CUPTI_ERR(
-        cuptiActivityRegisterCallbacks(bufferRequested, bufferCompleted));
-    THROW_IF_CUPTI_ERR(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_RUNTIME));
-    THROW_IF_CUPTI_ERR(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MEMORY2));
-    THROW_IF_CUPTI_ERR(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION));
-    break;
-  }
-  case CUPTI_ERROR_MULTIPLE_SUBSCRIBERS_NOT_SUPPORTED: {
-    LOG_WARNING << "CUPTI has been initialized elsewhere, assuming the implementation is the same";
-    break;
-  }
-  default: {
-    // other error, should propagate and disable memory tracking for the backend
-    const char* errstr;
-    cuptiGetResultString(cupti_res, &errstr);
-    throw std::runtime_error(std::string("Unexpected failure on configuring CUPTI: ") + errstr);
-  }
+  switch (cupti_res) {
+    case CUPTI_SUCCESS: {
+      THROW_IF_CUPTI_ERR(
+          cuptiActivityRegisterCallbacks(bufferRequested, bufferCompleted));
+      THROW_IF_CUPTI_ERR(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_RUNTIME));
+      THROW_IF_CUPTI_ERR(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_MEMORY2));
+      THROW_IF_CUPTI_ERR(
+          cuptiActivityEnable(CUPTI_ACTIVITY_KIND_EXTERNAL_CORRELATION));
+      break;
+    }
+    case CUPTI_ERROR_MULTIPLE_SUBSCRIBERS_NOT_SUPPORTED: {
+      LOG_WARNING << "CUPTI has been initialized elsewhere, assuming the "
+                     "implementation is the same";
+      break;
+    }
+    default: {
+      // other error, should propagate and disable memory tracking for the
+      // backend
+      const char* errstr;
+      cuptiGetResultString(cupti_res, &errstr);
+      throw std::runtime_error(
+          std::string("Unexpected failure on configuring CUPTI: ") + errstr);
+    }
   }
 }
 
-DeviceMemoryTracker::~DeviceMemoryTracker() {
+DeviceMemoryTracker::~DeviceMemoryTracker()
+{
   if (subscriber_) {
     cuptiUnsubscribe(subscriber_);
   }
@@ -161,7 +168,9 @@ DeviceMemoryTracker::CudaDeviceCount()
   if (tracker_) {
     return tracker_->device_cnt_;
   }
-  throw std::runtime_error("DeviceMemoryTracker::Init() must be called before using any DeviceMemoryTracker features.");
+  throw std::runtime_error(
+      "DeviceMemoryTracker::Init() must be called before using any "
+      "DeviceMemoryTracker features.");
 }
 
 bool
@@ -170,8 +179,9 @@ DeviceMemoryTracker::Init()
   if (tracker_ == nullptr) {
     try {
       tracker_.reset(new DeviceMemoryTracker());
-    } catch (const std::runtime_error& ex) {
-      // Fail initialization 
+    }
+    catch (const std::runtime_error& ex) {
+      // Fail initialization
       LOG_ERROR << ex.what();
       return false;
     }
@@ -197,7 +207,9 @@ DeviceMemoryTracker::TrackThreadMemoryUsage(MemoryUsage* usage)
         reinterpret_cast<uint64_t>(&usage->cupti_tracker_)));
     usage->tracked_ = true;
   } else {
-    throw std::runtime_error("DeviceMemoryTracker::Init() must be called before using any DeviceMemoryTracker features.");
+    throw std::runtime_error(
+        "DeviceMemoryTracker::Init() must be called before using any "
+        "DeviceMemoryTracker features.");
   }
 }
 
@@ -214,7 +226,9 @@ DeviceMemoryTracker::UntrackThreadMemoryUsage(MemoryUsage* usage)
         CUPTI_EXTERNAL_CORRELATION_KIND_UNKNOWN, &id));
     usage->tracked_ = false;
   } else {
-    throw std::runtime_error("DeviceMemoryTracker::Init() must be called before using any DeviceMemoryTracker features.");
+    throw std::runtime_error(
+        "DeviceMemoryTracker::Init() must be called before using any "
+        "DeviceMemoryTracker features.");
   }
 }
 
@@ -235,27 +249,34 @@ DeviceMemoryTracker::TrackActivityInternal(CUpti_Activity* record)
       }
       const bool is_allocation =
           (memory_record->memoryOperationType ==
-            CUPTI_ACTIVITY_MEMORY_OPERATION_TYPE_ALLOCATION);
+           CUPTI_ACTIVITY_MEMORY_OPERATION_TYPE_ALLOCATION);
       const bool is_release =
           (memory_record->memoryOperationType ==
-            CUPTI_ACTIVITY_MEMORY_OPERATION_TYPE_RELEASE);
-      // Ignore memory record that is not associated with a TRITONBACKEND_CuptiTracker
-      // object or not related to allocations
-      if ((usage == nullptr) || (!usage->valid_) || (!is_allocation && !is_release)) {
+           CUPTI_ACTIVITY_MEMORY_OPERATION_TYPE_RELEASE);
+      // Ignore memory record that is not associated with a
+      // TRITONBACKEND_CuptiTracker object or not related to allocations
+      if ((usage == nullptr) || (!usage->valid_) ||
+          (!is_allocation && !is_release)) {
         break;
       }
 
       switch (memory_record->memoryKind) {
         case CUPTI_ACTIVITY_MEMORY_KIND_DEVICE: {
-          usage->valid_ = UpdateMemoryTypeUsage(memory_record, is_allocation, usage->cuda_memory_usage_byte_, usage->cuda_array_len_);
+          usage->valid_ = UpdateMemoryTypeUsage(
+              memory_record, is_allocation, usage->cuda_memory_usage_byte_,
+              usage->cuda_array_len_);
           break;
         }
         case CUPTI_ACTIVITY_MEMORY_KIND_PINNED: {
-          usage->valid_ = UpdateMemoryTypeUsage(memory_record, is_allocation, usage->pinned_memory_usage_byte_, usage->pinned_array_len_);
+          usage->valid_ = UpdateMemoryTypeUsage(
+              memory_record, is_allocation, usage->pinned_memory_usage_byte_,
+              usage->pinned_array_len_);
           break;
         }
         case CUPTI_ACTIVITY_MEMORY_KIND_PAGEABLE: {
-          usage->valid_ = UpdateMemoryTypeUsage(memory_record, is_allocation, usage->system_memory_usage_byte_, usage->system_array_len_);
+          usage->valid_ = UpdateMemoryTypeUsage(
+              memory_record, is_allocation, usage->system_memory_usage_byte_,
+              usage->system_array_len_);
           break;
         }
         default:
@@ -288,19 +309,19 @@ DeviceMemoryTracker::TrackActivityInternal(CUpti_Activity* record)
 }
 
 inline bool
-DeviceMemoryTracker::UpdateMemoryTypeUsage(CUpti_ActivityMemory3* memory_record, const bool is_allocation, int64_t* memory_usage, uint32_t usage_len)
+DeviceMemoryTracker::UpdateMemoryTypeUsage(
+    CUpti_ActivityMemory3* memory_record, const bool is_allocation,
+    int64_t* memory_usage, uint32_t usage_len)
 {
   if (memory_record->deviceId >= usage_len) {
     return false;
   }
   if (is_allocation) {
-    memory_usage[memory_record->deviceId] +=
-        memory_record->bytes;
+    memory_usage[memory_record->deviceId] += memory_record->bytes;
   } else {
-    memory_usage[memory_record->deviceId] -=
-        memory_record->bytes;
+    memory_usage[memory_record->deviceId] -= memory_record->bytes;
   }
   return true;
 }
 
-}}
+}}  // namespace triton::backend
