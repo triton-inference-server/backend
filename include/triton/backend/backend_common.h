@@ -504,7 +504,7 @@ TRITONSERVER_Error* CopyBuffer(
     const bool copy_on_stream = false);
 
 /// Does a file or directory exist?
-/// \param path The path to check for existance.
+/// \param path The path to check for existence.
 /// \param exists Returns true if file/dir exists
 /// \return a TRITONSERVER_Error indicating success or failure.
 TRITONSERVER_Error* FileExists(const std::string& path, bool* exists);

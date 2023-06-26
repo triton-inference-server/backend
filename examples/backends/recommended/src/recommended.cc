@@ -529,7 +529,7 @@ TRITONBACKEND_ModelInstanceExecute(
   // processing of a request, an appropriate error response is sent
   // and the corresponding TRITONBACKEND_Response object within
   // 'responses' is set to nullptr to indicate that the
-  // request/response has already been handled and no futher processing
+  // request/response has already been handled and no further processing
   // should be performed for that request. Even if all responses fail,
   // the backend still allows execution to flow to the end of the
   // function so that statistics are correctly reported by the calls
@@ -641,7 +641,7 @@ TRITONBACKEND_ModelInstanceExecute(
   // data type.
 
   // The 'responders's ProcessTensor function will copy the portion of
-  // 'output_buffer' corresonding to each request's output into the
+  // 'output_buffer' corresponding to each request's output into the
   // response for that request.
 
   BackendOutputResponder responder(

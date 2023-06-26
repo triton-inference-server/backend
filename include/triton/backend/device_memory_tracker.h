@@ -259,7 +259,7 @@ class DeviceMemoryTracker {
   // The memory usage will be tracked and modified until it's untracked, 'usage'
   // must be valid and not to be modified externally until untrack is called.
   // Currently can distinguish activity by correlation id which is thread
-  // specific, which implies that there will be mssing records if tracking
+  // specific, which implies that there will be missing records if tracking
   // region switching threads to handle other activities.
   // This function takes no affect if 'usage' is nullptr.
   static void TrackThreadMemoryUsage(MemoryUsage* usage);

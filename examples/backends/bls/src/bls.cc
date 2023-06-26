@@ -211,7 +211,7 @@ BLSExecutor::ConstructFinalResponse(
     std::vector<std::future<TRITONSERVER_InferenceResponse*>> futures)
 {
   // Prepare two TRITONSERVER_InferenceResponse* objects for 'addsub_python' and
-  // 'addsub_tf' repectively.
+  // 'addsub_tf' respectively.
   std::vector<TRITONSERVER_InferenceResponse*> completed_responses = {
       nullptr, nullptr};
 

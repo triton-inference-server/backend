@@ -169,7 +169,7 @@ BackendModel::SetModelConfig()
 
   // Triton core can normalize the missing config settings
   // in the above call. We must retrieve the updated model
-  // configration from the core.
+  // configuration from the core.
   RETURN_IF_ERROR(ParseModelConfig());
 
   return nullptr;
