@@ -31,7 +31,7 @@
 The [*BLS*](../bls) backend demonstrates using in-process C-API to
 execute inferences within the backend. This backend serves as an example to
 backend developers for implementing their own custom pipeline in C++.
-For Python use cases, please refer to 
+For Python use cases, please refer to
 [Business Logic Scripting](https://github.com/triton-inference-server/python_backend/blob/main/README.md#business-logic-scripting)
 section in Python backend.
 
@@ -71,7 +71,7 @@ this example:
 1. This backend does not support batching.
 2. This backend does not support decoupled models.
 3. This backend does not support GPU tensors.
-4. The model configuraion should be strictly set as the comments described in
+4. The model configuration should be strictly set as the comments described in
 [backend.cc](./src/backend.cc).
 
 You can implement your custom backend that is not limited to the limitations
@@ -81,7 +81,7 @@ mentioned above.
 
 [backends/bls/CMakeLists.txt](CMakeLists.txt)
 shows the recommended build and install script for a Triton
-backend. Building and installing is the same as decribed in [Building
+backend. Building and installing is the same as described in [Building
 the *Minimal* Backend](../../README.md#building-the-minimal-backend).
 
 ## Running Triton with the *BLS* Backend
@@ -103,7 +103,7 @@ the *bls_fp32*, *addsub_python* and *addsub_tf* models from the bls_models repos
 loaded correctly.
 
 ```
-I0616 09:34:47.767433 19214 server.cc:629] 
+I0616 09:34:47.767433 19214 server.cc:629]
 +---------------+---------+--------+
 | Model         | Version | Status |
 +---------------+---------+--------+

@@ -88,7 +88,7 @@ endif() # TRITON_ENABLE_GPU
 #
 # Backend library containing useful source and utilities
 #
-set(SRC_FILES 
+set(SRC_FILES
   "src/backend_common.cc"
   "src/backend_input_collector.cc"
   "src/backend_memory.cc"

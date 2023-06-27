@@ -299,7 +299,7 @@ DeviceMemoryTracker::TrackActivityInternal(CUpti_Activity* record)
     }
     case CUPTI_ACTIVITY_KIND_RUNTIME: {
       // DO NOTHING, runtime API will be captured and reported to properly
-      // initalize records for CUPTI_ACTIVITY_KIND_MEMORY2.
+      // initialize records for CUPTI_ACTIVITY_KIND_MEMORY2.
       break;
     }
     default:

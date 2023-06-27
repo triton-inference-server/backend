@@ -279,7 +279,7 @@ TRITONBACKEND_ModelInstanceExecute(
   // processing of a request, an appropriate error response is sent
   // and the corresponding TRITONBACKEND_Response object within
   // 'responses' is set to nullptr to indicate that the
-  // request/response has already been handled and no futher processing
+  // request/response has already been handled and no further processing
   // should be performed for that request. Even if all responses fail,
   // the backend still allows execution to flow to the end of the
   // function. RESPOND_AND_SET_NULL_IF_ERROR, and
@@ -341,7 +341,7 @@ TRITONBACKEND_ModelInstanceExecute(
   }
 
   // 'input_buffer' contains the batched "IN0" tensor. The backend can
-  // implement whatever logic is necesary to produce "OUT0". This
+  // implement whatever logic is necessary to produce "OUT0". This
   // backend simply returns the IN0 value in OUT0 so no actual
   // computation is needed.
 
@@ -382,7 +382,7 @@ TRITONBACKEND_ModelInstanceExecute(
   // a "responder" to facilitate this scattering process.
 
   // The 'responders's ProcessTensor function will copy the portion of
-  // 'output_buffer' corresonding to each request's output into the
+  // 'output_buffer' corresponding to each request's output into the
   // response for that request.
 
   BackendOutputResponder responder(

@@ -98,7 +98,7 @@ BackendOutputResponder::ProcessTensor(
                   std::string(
                       GetRequestId(request) +
                       "failed to split the output tensor '" + output_name +
-                      "' in responses: expected batch size of atleast " +
+                      "' in responses: expected batch size of at least " +
                       std::to_string(batch_size_offset + shape[0]) +
                       " in model output, got " +
                       std::to_string(batchn_batch_size))
@@ -207,7 +207,7 @@ BackendOutputResponder::ProcessStateTensor(
                       GetRequestId(request) +
                       "failed to split the output state tensor '" +
                       output_state_name +
-                      "' in responses: expected batch size of atleast " +
+                      "' in responses: expected batch size of at least " +
                       std::to_string(batch_size_offset + shape[0]) +
                       " in model output, got " +
                       std::to_string(batchn_batch_size))
