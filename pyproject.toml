@@ -35,7 +35,13 @@ builtin = "clear"
 # disable warnings about binary files and wrong encoding
 quiet-level = 3
 
+[tools.flake8]
+max-line-length = 88
+select = ['C', 'E', 'F', 'W', 'B', 'B950']
+extend-ignore = ['E203', 'E501']
+
 [tool.isort]
+profile = "black"
 use_parentheses = true
 multi_line_output = 3
 include_trailing_comma = true
