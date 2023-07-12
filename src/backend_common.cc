@@ -664,10 +664,6 @@ CopyBuffer(
     void* dst, cudaStream_t cuda_stream, bool* cuda_used,
     const bool copy_on_stream)
 {
-  LOG_MESSAGE(
-      TRITONSERVER_LOG_INFO,
-      (std::string("Buffer is NULL? ") + std::to_string(src == nullptr))
-          .c_str());
   *cuda_used = false;
 
   if (byte_size > 0) {
