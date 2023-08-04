@@ -70,10 +70,6 @@ namespace triton { namespace backend {
 ///
 /// Typical usage:
 ///
-/// The backend must implement TRITONBACKEND_GetBackendAttribute which will
-/// call TRITONBACKEND_BackendAttributeSetEnableMemoryTracker with proper
-/// arguments, and must implement TRITONBACKEND_ModelMemoryUsage.
-///
 /// On TRITONBACKEND_Initialize
 ///  - Call DeviceMemoryTracker::Init
 ///

@@ -310,6 +310,31 @@ a successful request. See [Inference Requests and
 Responses](#inference-requests-and-responses) for more information
 about request-response lifecycle.
 
+#### TRITONBACKEND_BackendAttribute
+
+A `TRITONBACKEND_BackendAttribute` allows a backend to set certain attributes which
+are queried by Triton to inform certain feature support, preferred configurations, and
+other types of backend-specific behavior.
+
+When initializing a backend, Triton will query the `TRITONBACKEND_GetBackendAttribute` function
+if implemented by the backend. This function is optional to implement, but is generally used to call
+the related `TRITONBACKEND_BackendAttribute` APIs for setting backend-specific attributes.
+
+Some of the relevant BackendAttribute setter APIs are listed below:
+- `TRITONBACKEND_BackendSetExecutionPolicy`
+- `TRITONBACKEND_BackendAttributeAddPreferredInstanceGroup`
+    - Defines a priority list of instance groups to prefer for this backend if a model config doesn't explicitly define any instance groups.
+- `TRITONBACKEND_BackendAttributeSetParallelModelInstanceLoading`
+    - Defines whether the backend can safely handle concurrent calls to `TRITONBACKEND_ModelInstanceInitialize` or not.
+    - Loading model instances in parallel can improve server startup times for large instance counts.
+    - By default, this attribute is set to false, meaning that parallel instance loading is disabled for all backends unless explicitly enabled.
+    - The following official backends currently support loading model instances in parallel:
+        - Python
+        - ONNXRuntime
+
+The full list of `TRITONBACKEND_BackendAttribute` related APIs are defined in
+[tritonbackend.h](https://github.com/triton-inference-server/core/blob/main/include/triton/core/tritonbackend.h).
+
 ### Backend Lifecycles
 
 A backend must carefully manage the lifecycle of the backend itself,
