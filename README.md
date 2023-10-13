@@ -66,7 +66,7 @@ Triton release.
 
 **TensorRT**: The TensorRT backend is used to execute TensorRT
 models. The
-[server](https://github.com/triton-inference-server/tensorrt_backend)
+[tensorrt_backend](https://github.com/triton-inference-server/tensorrt_backend)
 repo contains the source for the backend.
 
 **ONNX Runtime**: The ONNX Runtime backend is used to execute ONNX
@@ -113,6 +113,14 @@ backend is used to execute a variety of tree-based ML models, including
 XGBoost models, LightGBM models, Scikit-Learn random forest models, and cuML
 random forest models. The
 [fil_backend](https://github.com/triton-inference-server/fil_backend) repo
+contains the documentation and source for the backend.
+
+**vLLM**: The vLLM backend is designed to run
+[supported models](https://vllm.readthedocs.io/en/latest/models/supported_models.html)
+on a [vLLM engine](https://github.com/vllm-project/vllm/blob/main/vllm/engine/async_llm_engine.py).
+This backend depends on [python_backend](https://github.com/triton-inference-server/python_backend) 
+to load and serve models. The 
+[vllm_backend](https://github.com/triton-inference-server/vllm_backend) repo 
 contains the documentation and source for the backend.
 
 **Important Note!** Not all the above backends are supported on every platform

@@ -53,7 +53,7 @@ each backend on different platforms.
 | Python[^1]   |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |
 | DALI         |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  | :heavy_check_mark: GPU[^2] <br/> :heavy_check_mark: CPU[^2] |
 | FIL          |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |  Unsupported  |
-
+| vLLM         |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |  Unsupported  |
 
 
 ## Windows 10
