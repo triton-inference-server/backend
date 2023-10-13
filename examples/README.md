@@ -54,13 +54,13 @@ Management](https://github.com/triton-inference-server/server/blob/main/docs/use
 which allows backends to behave in a stateless manner and leave the
 state management to Triton.
 
-Triton also provides an option to create python based backends. These 
-backends should implement a model architecture agnostic 
+Triton also provides an option to create python based backends. These
+backends should implement a model architecture agnostic
 [python script](https://github.com/triton-inference-server/python_backend#usage),
-which could be re-used as a backend by multiple models. The 
+which could be re-used as a backend by multiple models. The
 [vLLM backend](https://github.com/triton-inference-server/vllm_backend)
 is an example of a python based backend, which provides a common python
-script to serve models, defined in a `json` file.  
+script to serve models, defined in a `json` file.
 
 ## Tutorial
 

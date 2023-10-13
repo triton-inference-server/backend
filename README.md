@@ -118,9 +118,9 @@ contains the documentation and source for the backend.
 **vLLM**: The vLLM backend is designed to run
 [supported models](https://vllm.readthedocs.io/en/latest/models/supported_models.html)
 on a [vLLM engine](https://github.com/vllm-project/vllm/blob/main/vllm/engine/async_llm_engine.py).
-This backend depends on [python_backend](https://github.com/triton-inference-server/python_backend) 
-to load and serve models. The 
-[vllm_backend](https://github.com/triton-inference-server/vllm_backend) repo 
+This backend depends on [python_backend](https://github.com/triton-inference-server/python_backend)
+to load and serve models. The
+[vllm_backend](https://github.com/triton-inference-server/vllm_backend) repo
 contains the documentation and source for the backend.
 
 **Important Note!** Not all the above backends are supported on every platform
