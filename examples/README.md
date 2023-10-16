@@ -54,9 +54,11 @@ Management](https://github.com/triton-inference-server/server/blob/main/docs/use
 which allows backends to behave in a stateless manner and leave the
 state management to Triton.
 
+## Python Based Backends
+
 Triton also provides an option to create python based backends. These
 backends should implement the
-[`TrtionPythonModel` interface](https://github.com/triton-inference-server/python_backend#usage),
+[`TritonPythonModel` interface](https://github.com/triton-inference-server/python_backend#usage),
 which could be re-used as a backend by multiple models.
 While the only obligatory function is `execute`,
 you may find it helpful to enhance your implementation by adding ` initialize`,
