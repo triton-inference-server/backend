@@ -56,11 +56,11 @@ state management to Triton.
 
 ## Python Based Backends
 
-Triton also provides an option to create python based backends. These
-backends should implement the
+Triton also provides an option to create python-based backends. These
+backends implement the
 [`TritonPythonModel` interface](https://github.com/triton-inference-server/python_backend#usage),
-which could be re-used as a backend by multiple models.
-While the only obligatory function is `execute`,
+which is re-used to serve multiple models.
+While the only required function is `execute`,
 you may find it helpful to enhance your implementation by adding ` initialize`,
 `finalize`, and any other helper functions. For examples, please refer to
 the [vLLM backend](https://github.com/triton-inference-server/vllm_backend),
