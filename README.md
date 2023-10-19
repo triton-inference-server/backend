@@ -583,7 +583,7 @@ These backends should implement the
 [`TritonPythonModel` interface](https://github.com/triton-inference-server/python_backend#usage),
 which could be re-used as a backend by multiple models.
 While the only required function is `execute`,
-you may find it helpful to enhance your implementation by adding ` initialize`,
+you may find it helpful to enhance your implementation by adding `initialize`,
 `finalize`, and any other helper functions. For examples, please refer to
 the [vLLM backend](https://github.com/triton-inference-server/vllm_backend),
 which provides a common python script to serve models supported by vLLM.

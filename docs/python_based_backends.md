@@ -36,16 +36,15 @@ and requires the following artifacts being present:
 and `triton_python_backend_utils.py`.
 
 ## Usage
-To implement and use a Python based backend, make sure to follow these steps.
+To implement and use a Python-based backend, make sure to follow these steps.
 * Implement the
 [`TritonPythonModel` interface](https://github.com/triton-inference-server/python_backend#usage),
 which could be re-used as a backend by multiple models.
 This script should be named `model.py`.
-* Create a folder for your backend under
-the backends directory (ex: /opt/tritonserver/backends)
-with the corresponding backend name, containing the `model.py`.
-For example, for a backend named `my_python_based_backend`,
-Triton would expect to find the full path
+* Create a folder for your custom backend under the backends directory
+(ex: /opt/tritonserver/backends) with the corresponding backend name,
+containing the `model.py`. For example, for a backend named
+`my_python_based_backend`, Triton would expect to find the full path
 `/opt/tritonserver/backends/my_python_based_backend/model.py`.
 * Make sure that `libtriton_python.so`, `triton_python_backend_stub`,
 and `triton_python_backend_utils.py` are present either under
@@ -93,7 +92,7 @@ Triton makes sure to use common `model.py` from the backend's repository,
 and not look for it in the model repository.
 
 While the only required function is `execute`, it is typically helpful
-to enhance your implementation by adding ` initialize`, `finalize`,
+to enhance your implementation by adding `initialize`, `finalize`,
 and any other helper functions. Users are also encouraged to make use of the
 [`auto_complete_config`](https://github.com/triton-inference-server/python_backend#auto_complete_config)
 function to define standardized input and output properties upfront.
