@@ -26,9 +26,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 
-# Python Based Backends
+# Python-based Backends
 
-Python based backend is a special type of Triton's backends, which does
+Python-based backend is a special type of Triton's backends, which does
 not require any C++ code. However, this type of backends depends on
 [Python backend](https://github.com/triton-inference-server/python_backend)
 and requires the following artifacts being present:
