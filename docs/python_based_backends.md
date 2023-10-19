@@ -49,7 +49,11 @@ containing the `model.py`. For example, for a backend named
 * Make sure that `libtriton_python.so`, `triton_python_backend_stub`,
 and `triton_python_backend_utils.py` are present either under
 `/opt/tritonserver/backends/my_python_based_backend/` or
-`/opt/tritonserver/backends/python/`.
+`/opt/tritonserver/backends/python/`. When both locations contain
+mentioned artifacts, custom backend's artifacts will take priority over Python
+backend's artifacts. This way, if custom backends needs to use a different
+Python version than what is shipped by default, it can easily be done. Please,
+refer to [customization](#customization) section for more details.
 * Specify `my_python_based_backend` as a backend in `config.pbtxt`
 for any model, that should use this backend.
 
@@ -74,6 +78,26 @@ I1013 21:52:45.756456 18668 server.cc:619]
 |                         |                                                             | :"6.000000","default-max-batch-size":"4"}}                                                                          |
 +-------------------------+-------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 ```
+
+## Customization
+
+Python backend shipped in the NVIDIA GPU Cloud containers uses Python 3.10.
+Python backend is able to use the libraries that exist in the
+current Python environment. These libraries can be installed in a virtualenv,
+conda environment, or the global system Python, and
+will only be used if the Python version matches the Python version
+of the Python backend's stub executable (`triton_python_backend_stub`).
+For example, if you install a set of libraries in a Python 3.9 environment
+and your Python backend stub is compiled with Python 3.10 these libraries
+will *NOT* be available. You would need to
+[compile](https://github.com/triton-inference-server/python_backend#building-custom-python-backend-stub)
+the stub executable with Python 3.9.
+
+If you want to create a tar file that contains all your Python dependencies
+or you want to use different Python environments for each Python model
+you need to create a
+[Custom Execution Environment](https://github.com/triton-inference-server/python_backend#creating-custom-execution-environments)
+in Python backend.
 
 ## Background
 
