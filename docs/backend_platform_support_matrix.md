@@ -38,7 +38,7 @@ GPU in this document refers to Nvidia GPU. See
 [GPU, Driver, and CUDA Support Matrix](https://docs.nvidia.com/deeplearning/frameworks/support-matrix/index.html)
 to learn more about supported GPUs.
 
-## Ubuntu 20.04
+## Ubuntu 22.04
 
 The table below describes target device(s) supported for inference by
 each backend on different platforms.
