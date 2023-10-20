@@ -1,5 +1,5 @@
 <!--
-# Copyright 2021-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2021-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -66,7 +66,7 @@ Triton release.
 
 **TensorRT**: The TensorRT backend is used to execute TensorRT
 models. The
-[server](https://github.com/triton-inference-server/tensorrt_backend)
+[tensorrt_backend](https://github.com/triton-inference-server/tensorrt_backend)
 repo contains the source for the backend.
 
 **ONNX Runtime**: The ONNX Runtime backend is used to execute ONNX
@@ -113,6 +113,14 @@ backend is used to execute a variety of tree-based ML models, including
 XGBoost models, LightGBM models, Scikit-Learn random forest models, and cuML
 random forest models. The
 [fil_backend](https://github.com/triton-inference-server/fil_backend) repo
+contains the documentation and source for the backend.
+
+**vLLM**: The vLLM backend is designed to run
+[supported models](https://vllm.readthedocs.io/en/latest/models/supported_models.html)
+on a [vLLM engine](https://github.com/vllm-project/vllm/blob/main/vllm/engine/async_llm_engine.py).
+This backend depends on [python_backend](https://github.com/triton-inference-server/python_backend)
+to load and serve models. The
+[vllm_backend](https://github.com/triton-inference-server/vllm_backend) repo
 contains the documentation and source for the backend.
 
 **Important Note!** Not all the above backends are supported on every platform
@@ -567,3 +575,15 @@ but the listed CMake argument can be used to override.
 * triton-inference-server/core: -DTRITON_CORE_REPO_TAG=[tag]
 
 See the [CMakeLists.txt](CMakeLists.txt) file for other build options.
+
+## Python-based Backends
+
+Triton also provides an option to create [Python-based backends](docs/python_based_backends.md).
+These backends should implement the
+[`TritonPythonModel` interface](https://github.com/triton-inference-server/python_backend#usage),
+which could be re-used as a backend by multiple models.
+While the only required function is `execute`,
+you may find it helpful to enhance your implementation by adding `initialize`,
+`finalize`, and any other helper functions. For examples, please refer to
+the [vLLM backend](https://github.com/triton-inference-server/vllm_backend),
+which provides a common python script to serve models supported by vLLM.

@@ -1,5 +1,5 @@
 <!--
-# Copyright 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -38,7 +38,7 @@ GPU in this document refers to Nvidia GPU. See
 [GPU, Driver, and CUDA Support Matrix](https://docs.nvidia.com/deeplearning/frameworks/support-matrix/index.html)
 to learn more about supported GPUs.
 
-## Ubuntu 20.04
+## Ubuntu 22.04
 
 The table below describes target device(s) supported for inference by
 each backend on different platforms.
@@ -53,7 +53,7 @@ each backend on different platforms.
 | Python[^1]   |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |
 | DALI         |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  | :heavy_check_mark: GPU[^2] <br/> :heavy_check_mark: CPU[^2] |
 | FIL          |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |  Unsupported  |
-
+| vLLM         |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |  Unsupported  |
 
 
 ## Windows 10
