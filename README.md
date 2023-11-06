@@ -483,47 +483,47 @@ It is also possible for a backend to send multiple responses for a
 request or not send any responses for a request. A backend may also
 send responses out-of-order relative to the order that the request
 batches are executed. Such backends are called *decoupled* backends.
-The decoupled backends use one `ResponseFactory` object per request to keep
-creating and sending any number of responses for the request. For this
+The decoupled backends use one `ResponseFactory` object per request to
+create and send any number of responses for the request. For this
 kind of backend, executing a single inference request typically requires
 the following steps:
 
-* For each request input tensor use TRITONBACKEND_InputProperties to
+1. For each request input tensor, use TRITONBACKEND_InputProperties to
   get shape and datatype of the input as well as the buffer(s)
   containing the tensor contents.
 
-* Create a `ResponseFactory` object for the request using
+2. Create a `ResponseFactory` object for the request using
   TRITONBACKEND_ResponseFactoryNew.
 
-  1. Create a response from the `ResponseFactory` object using
-  TRITONBACKEND_ResponseNewFromFactory. As long as you have
-  `ResponseFactory` object you can continue creating responses.
+3. Create a response from the `ResponseFactory` object using
+  TRITONBACKEND_ResponseNewFromFactory. As long as you have the
+  `ResponseFactory` object, you can continue creating responses.
 
-  2. For each output tensor which the request expects to be returned, use
+4. For each output tensor which the request expects to be returned, use
   TRITONBACKEND_ResponseOutput to create the output tensor of the
   required datatype and shape. Use TRITONBACKEND_OutputBuffer to get a
   pointer to the buffer where the tensor's contents should be written.
 
-  3. Use the inputs to perform the inference computation that produces
+5. Use the inputs to perform the inference computation that produces
   the requested output tensor contents into the appropriate output
   buffers.
 
-  4. Optionally set parameters in the response.
+6. Optionally set parameters in the response.
 
-  5. Send the response using TRITONBACKEND_ResponseSend. If this is the
-     last request then use TRITONSERVER_ResponseCompleteFlag with
-     TRITONBACKEND_ResponseSend. Otherwise continue with Step 1 for
-     sending next request
+7. Send the response using TRITONBACKEND_ResponseSend.
 
-* Release the request using TRITONBACKEND_RequestRelease.
+8. If this is the last response, use TRITONBACKEND_ResponseFactorySendFlags 
+  to send the TRITONSERVER_RESPONSE_COMPLETE_FINAL flag using the
+  request's `ResponseFactory`. This lets Triton know to clean up memory 
+  associated with the request and lets the client know there will be no more
+  responses.
+
+9. If this is the last response, release the request using
+  TRITONBACKEND_RequestRelease.
 
 ###### Special Cases
 
 The decoupled API is powerful and supports various special cases:
-
-* If the backend should not send any more responses for the request,
-  TRITONBACKEND_ResponseFactorySendFlags can be used to send
-  TRITONSERVER_RESPONSE_COMPLETE_FINAL using the `ResponseFactory`.
 
 * The model can also send responses out-of-order in which it received
   requests.
