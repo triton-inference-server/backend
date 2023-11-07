@@ -517,8 +517,8 @@ the following steps:
 8. Use TRITONBACKEND_ResponseFactorySendFlags to send the
   TRITONSERVER_RESPONSE_COMPLETE_FINAL flag using the
   request's `ResponseFactory`. This lets Triton know to clean up memory 
-  associated with the request and lets the client know there will be no more
-  responses.
+  associated with the request. If the client opts in to receive the empty final
+  response, this also lets the client know there will be no more responses.
 
 9. Release the request using TRITONBACKEND_RequestRelease.
 
