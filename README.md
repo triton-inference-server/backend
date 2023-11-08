@@ -479,12 +479,15 @@ performance.
 
 ##### Decoupled Responses
 
-It is also possible for a backend to send multiple responses for a
-request or not send any responses for a request. A backend may also
+It is also possible for a backend to send one or more responses
+for a request. A backend may also
 send responses out-of-order relative to the order that the request
 batches are executed. Such backends are called *decoupled* backends.
+
 The decoupled backends use one `ResponseFactory` object per request to
-create and send any number of responses for the request. For this
+create and send any number of responses for the request. They must send at
+least one final response, even if it is empty and the client opts out of
+receiving this final response. For this
 kind of backend, executing a single inference request typically requires
 the following steps:
 
