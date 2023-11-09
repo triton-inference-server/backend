@@ -521,8 +521,7 @@ the following steps:
   with a TRITONSERVER_ResponseCompleteFlag or after all responses have been
   sent for a request using TRITONBACKEND_ResponseFactorySendFlags.
   TRITONSERVER_RESPONSE_COMPLETE_FINAL flag using the
-  request's `ResponseFactory`. This is required for every
-  request.
+  request's `ResponseFactory`. This is required for every request.
 
 9. Release the request using TRITONBACKEND_RequestRelease.
 
