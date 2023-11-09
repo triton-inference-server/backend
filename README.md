@@ -517,13 +517,13 @@ the following steps:
 
 8. Repeat steps 3-7 until there are no more responses.
 
-8. Send the last response for a request using either TRIONBACKEND_ResponseSend
+9. Send the last response for a request using either TRIONBACKEND_ResponseSend
   with a TRITONSERVER_ResponseCompleteFlag or after all responses have been
   sent for a request using TRITONBACKEND_ResponseFactorySendFlags.
   TRITONSERVER_RESPONSE_COMPLETE_FINAL flag using the
   request's `ResponseFactory`. This is required for every request.
 
-9. Release the request using TRITONBACKEND_RequestRelease.
+10. Release the request using TRITONBACKEND_RequestRelease.
 
 ###### Special Cases
 
