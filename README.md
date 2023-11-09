@@ -479,7 +479,7 @@ performance.
 
 ##### Decoupled Responses
 
-It is also possible for a backend to send one or more responses
+It is also possible for a backend to send multiple responses
 for a request. A backend may also
 send responses out-of-order relative to the order that the request
 batches are executed. Such backends are called *decoupled* backends.
@@ -520,7 +520,7 @@ the following steps:
 8. Use TRITONBACKEND_ResponseFactorySendFlags to send the
   TRITONSERVER_RESPONSE_COMPLETE_FINAL flag using the
   request's `ResponseFactory`. This is required for every
-  request, even if sending an empty response.
+  request.
 
 9. Release the request using TRITONBACKEND_RequestRelease.
 
