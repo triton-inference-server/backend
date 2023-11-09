@@ -487,7 +487,7 @@ batches are executed. Such backends are called *decoupled* backends.
 The decoupled backends use one `ResponseFactory` object per request to
 create and send any number of responses for the request. They must send at
 least one final response per request (even if it contains no output tensors).
-receiving this final response. For this
+For this
 kind of backend, executing a single inference request typically requires
 the following steps:
 
