@@ -486,9 +486,9 @@ batches are executed. Such backends are called *decoupled* backends.
 
 The decoupled backends use one `ResponseFactory` object per request to
 create and send any number of responses for the request. They must send at
-least one final response per request (even if it contains no output tensors).
-For this
-kind of backend, executing a single inference request typically requires
+least one final response per request (even if it is a flags-only response).
+You can send a flags-only response with TRITONBACKEND_ResponseFactorySendFlags.
+For this kind of backend, executing a single inference request typically requires
 the following steps:
 
 1. For each request input tensor, use TRITONBACKEND_InputProperties to
@@ -520,8 +520,7 @@ the following steps:
 9. Send the last response for a request using either TRIONBACKEND_ResponseSend
   with a TRITONSERVER_ResponseCompleteFlag or after all responses have been
   sent for a request using TRITONBACKEND_ResponseFactorySendFlags.
-  TRITONSERVER_RESPONSE_COMPLETE_FINAL flag using the
-  request's `ResponseFactory`. This is required for every request.
+   This is required for every request.
 
 10. Release the request using TRITONBACKEND_RequestRelease.
 
