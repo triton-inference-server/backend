@@ -40,6 +40,9 @@ option(TRITON_ENABLE_MEMORY_TRACKER "Include device memory tracker in backend ut
 set(TRITON_COMMON_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/common repo")
 set(TRITON_CORE_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/core repo")
 
+# C++ standard
+set(TRITON_MIN_CXX_STANDARD 17 CACHE STRING "The minimum C++ standard whose features are requested to build this target.")
+
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
@@ -76,7 +79,7 @@ if(${TRITON_ENABLE_GPU})
   find_package(CUDAToolkit REQUIRED)
   find_package(CUDA REQUIRED)
   message(STATUS "Using CUDA ${CUDA_VERSION}")
-  set(CUDA_NVCC_FLAGS -std=c++11)
+  set(CUDA_NVCC_FLAGS -std=c++${TRITON_MIN_CXX_STANDARD})
 
   if(CUDA_VERSION VERSION_GREATER "10.1" OR CUDA_VERSION VERSION_EQUAL "10.1")
     add_definitions(-DTRITON_ENABLE_CUDA_GRAPH=1)
@@ -145,7 +148,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
       "If the target system is not Windows 10, please update _WIN32_WINNT "
       "to corresponding value.")
 endif()
-target_compile_features(triton-backend-utils PRIVATE cxx_std_11)
+
 target_compile_options(
   triton-backend-utils
   PRIVATE
