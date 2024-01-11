@@ -1,5 +1,5 @@
 <!--
-# Copyright 2021-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2021-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -80,8 +80,8 @@ used to execute both TensorFlow 1 and TensorFlow 2 models. The
 [tensorflow_backend](https://github.com/triton-inference-server/tensorflow_backend)
 repo contains the documentation and source for the backend.
 
-**PyTorch**: The PyTorch backend is used to execute TorchScript
-models. The
+**PyTorch**: The PyTorch backend is used to execute PyTorch models in both
+TorchScript and PyTorch 2.0 formats. The
 [pytorch_backend](https://github.com/triton-inference-server/pytorch_backend)
 repo contains the documentation and source for the backend.
 
@@ -214,6 +214,15 @@ Triton image as:
         libtriton_mybackend.so
         ... # other files needed by mybackend
 ```
+
+Starting from 24.01, the default backend shared library name can be changed by
+providing the `runtime` setting in the model configuration. For example,
+
+```
+runtime: "my_backend_shared_library_name.so"
+```
+
+A model may choose a specific runtime implementation provided by the backend.
 
 ### Triton Backend API
 
