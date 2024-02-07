@@ -143,6 +143,12 @@ BackendMemory::Create(
     return TRITONSERVER_ErrorNew(TRITONSERVER_ERROR_UNAVAILABLE, msg.c_str());
   }
 
+  // If it succeeded we might have to clean up errors associated with
+  // attempts that failed
+  for (const auto& pr : errors) {
+    TRITONSERVER_ErrorDelete(pr.second);
+  }
+
   return nullptr;  // success
 }
 
