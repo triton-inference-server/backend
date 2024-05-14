@@ -78,6 +78,29 @@ namespace triton { namespace backend {
         ("failed to log message: "));                            \
   } while (false)
 
+#define LOG_JSON_MESSAGE(LEVEL, PREAMBLE, MSG)                                 \
+  do {                                                                         \
+    LOG_IF_ERROR(                                                              \
+        TRITONSERVER_LogJsonMessage(LEVEL, __FILE__, __LINE__, PREAMBLE, MSG), \
+        ("failed to log JSON message: "));                                     \
+  } while (false)
+
+#define LOG_JSON_VALUE(LEVEL, PREAMBLE, VALUE)                                \
+  do {                                                                        \
+    const char* error_message = "failed to log JSON message: ";               \
+    triton::common::TritonJson::WriteBuffer buffer;                           \
+    TRITONSERVER_Message* message;                                            \
+    LOG_IF_ERROR(VALUE.PrettyWrite(&buffer), (error_message));                \
+    LOG_IF_ERROR(                                                             \
+        TRITONSERVER_MessageNewFromSerializedJson(                            \
+            &message, buffer.Contents().c_str(), buffer.Contents().length()), \
+        error_message);                                                       \
+    LOG_IF_ERROR(                                                             \
+        TRITONSERVER_LogJsonMessage(                                          \
+            TRITONSERVER_LOG_INFO, __FILE__, __LINE__, PREAMBLE, message),    \
+        (error_message));                                                     \
+    LOG_IF_ERROR(TRITONSERVER_MessageDelete(message), (error_message));       \
+  } while (false)
 
 #define RETURN_ERROR_IF_FALSE(P, C, MSG)              \
   do {                                                \
