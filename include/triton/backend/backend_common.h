@@ -78,14 +78,15 @@ namespace triton { namespace backend {
         ("failed to log message: "));                            \
   } while (false)
 
-#define LOG_JSON_MESSAGE(LEVEL, PREAMBLE, MSG)                                 \
-  do {                                                                         \
-    LOG_IF_ERROR(                                                              \
-        TRITONSERVER_LogJsonMessage(LEVEL, __FILE__, __LINE__, PREAMBLE, MSG), \
-        ("failed to log JSON message: "));                                     \
+#define LOG_SERVER_MESSAGE(LEVEL, HEADING, MSG)       \
+  do {                                                \
+    LOG_IF_ERROR(                                     \
+        TRITONSERVER_LogServerMessage(                \
+            LEVEL, __FILE__, __LINE__, HEADING, MSG), \
+        ("failed to log message: "));                 \
   } while (false)
 
-#define LOG_JSON_VALUE(LEVEL, PREAMBLE, VALUE)                                \
+#define LOG_JSON_VALUE(LEVEL, HEADING, VALUE)                                 \
   do {                                                                        \
     const char* error_message = "failed to log JSON message: ";               \
     triton::common::TritonJson::WriteBuffer buffer;                           \
@@ -96,8 +97,8 @@ namespace triton { namespace backend {
             &message, buffer.Contents().c_str(), buffer.Contents().length()), \
         error_message);                                                       \
     LOG_IF_ERROR(                                                             \
-        TRITONSERVER_LogJsonMessage(                                          \
-            TRITONSERVER_LOG_INFO, __FILE__, __LINE__, PREAMBLE, message),    \
+        TRITONSERVER_LogServerMessage(                                        \
+            TRITONSERVER_LOG_INFO, __FILE__, __LINE__, HEADING, message),     \
         (error_message));                                                     \
     LOG_IF_ERROR(TRITONSERVER_MessageDelete(message), (error_message));       \
   } while (false)
