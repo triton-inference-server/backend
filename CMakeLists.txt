@@ -77,13 +77,11 @@ FetchContent_MakeAvailable(repo-common repo-core)
 # CUDA
 #
 if(${TRITON_ENABLE_GPU})
-  set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
   find_package(CUDAToolkit REQUIRED)
-  find_package(CUDA REQUIRED)
-  message(STATUS "Using CUDA ${CUDA_VERSION}")
-  set(CUDA_NVCC_FLAGS -std=c++${TRITON_MIN_CXX_STANDARD})
+  set(CMAKE_CUDA_RUNTIME_LIBRARY Shared)
+  message(STATUS "Using CUDA ${CUDAToolkit_VERSION}")
 
-  if(CUDA_VERSION VERSION_GREATER "10.1" OR CUDA_VERSION VERSION_EQUAL "10.1")
+  if(CUDAToolkit_VERSION VERSION_GREATER "10.1" OR CUDAToolkit_VERSION VERSION_EQUAL "10.1")
     add_definitions(-DTRITON_ENABLE_CUDA_GRAPH=1)
   else()
     message(WARNING "CUDA ${CUDA_VERSION} does not support CUDA graphs.")
@@ -115,21 +113,19 @@ add_library(
 )
 
 if(${TRITON_ENABLE_GPU})
-  set(HOST_COMPILER_FLAGS "")
-  if (WIN32)
-    set(HOST_COMPILER_FLAGS "/MD")
-  else()
-    set(HOST_COMPILER_FLAGS "-fPIC")
-  endif()
-
-  set(CUDA_LIBRARIES PUBLIC ${CUDA_LIBRARIES})
-  cuda_add_library(
+  add_library(
     kernel_library_new
     src/kernel.cu src/kernel.h
-    OPTIONS -arch compute_53
-    OPTIONS -code compute_53,sm_53,sm_60,sm_61,sm_62,sm_70,sm_72,sm_75
-    OPTIONS -Xcompiler ${HOST_COMPILER_FLAGS}
   )
+
+  enable_language(CUDA)
+  set_target_properties(kernel_library_new PROPERTIES LANGUAGE CUDA)
+  set_target_properties(kernel_library_new PROPERTIES CUDA_ARCHITECTURES "53;60;61;62;70;72;75")
+  set_target_properties(kernel_library_new PROPERTIES POSITION_INDEPENDENT_CODE ON)
+  set_target_properties(kernel_library_new PROPERTIES LINKER_LANGUAGE CUDA)
+  target_compile_features(kernel_library_new PUBLIC cxx_std_${TRITON_MIN_CXX_STANDARD})
+  set_target_properties(kernel_library_new PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+
 endif() # TRITON_ENABLE_GPU
 
 add_library(
