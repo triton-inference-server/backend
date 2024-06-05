@@ -37,6 +37,7 @@ option(TRITON_ENABLE_STATS "Include statistics collections in backend utilities"
 # Default OFF unless backend explicitly request to use provided implementation
 option(TRITON_ENABLE_MEMORY_TRACKER "Include device memory tracker in backend utilities" OFF)
 
+set(TRITON_REPO_ORGANIZATION "https://github.com/triton-inference-server" CACHE STRING "Git repository to pull from")
 set(TRITON_COMMON_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/common repo")
 set(TRITON_CORE_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/core repo")
 
