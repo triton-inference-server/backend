@@ -1,4 +1,4 @@
-// Copyright 2020-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -63,7 +63,7 @@ namespace triton { namespace backend {
     TRITONSERVER_Error* lie_err__ = (X);                                       \
     if (lie_err__ != nullptr) {                                                \
       IGNORE_ERROR(TRITONSERVER_LogMessage(                                    \
-          TRITONSERVER_LOG_INFO, __FILE__, __LINE__,                           \
+          TRITONSERVER_LOG_ERROR, __FILE__, __LINE__,                          \
           (std::string(MSG) + ": " + TRITONSERVER_ErrorCodeString(lie_err__) + \
            " - " + TRITONSERVER_ErrorMessage(lie_err__))                       \
               .c_str()));                                                      \
