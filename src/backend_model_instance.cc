@@ -30,6 +30,7 @@
 
 #include "triton/backend/backend_common.h"
 #include "triton/backend/backend_model.h"
+#include "triton/common/async_work_queue.h"
 
 namespace triton { namespace backend {
 
@@ -42,6 +43,9 @@ BackendModelInstance::BackendModelInstance(
     : backend_model_(backend_model),
       triton_model_instance_(triton_model_instance)
 {
+  std::cout << "[DEBUG][backend_model.cc] "
+               "triton::common::AsyncWorkQueue::WorkerCount(): "
+            << triton::common::AsyncWorkQueue::WorkerCount() << std::endl;
   const char* instance_name;
   THROW_IF_BACKEND_INSTANCE_ERROR(
       TRITONBACKEND_ModelInstanceName(triton_model_instance, &instance_name));

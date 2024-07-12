@@ -656,6 +656,8 @@ BackendInputCollector::FlushPendingPinned(
       auto& deferred_pinned = deferred_pinned_.back();
       // Mark finalized to avoid duplicated call to DeferredPinned::Finalized()
       // in BackendInputCollector::Finalize()
+      std::cout << "[DEBUG] triton::common::AsyncWorkQueue::WorkerCount(): "
+                << triton::common::AsyncWorkQueue::WorkerCount() << std::endl;
       deferred_pinned_.back().finalized_ = true;
       auto incomplete_count = new std::atomic<size_t>(std::min(
           deferred_pinned_.back().requests_.size(),
