@@ -1372,4 +1372,74 @@ GetRequestId(TRITONBACKEND_Request* request)
   return std::string("[request id: ") + request_id + "] ";
 }
 
+TRITONSERVER_Error*
+ValidateStringBuffer(
+    const char* buffer, size_t buffer_byte_size,
+    const size_t expected_element_cnt, const char* input_name,
+    size_t* element_idx,
+    const std::function<void(size_t, const char*, const uint32_t)>&
+        set_string_tensor_cb,
+    bool onnx_backend)
+{
+  *element_idx = 0;
+  size_t remaining_bytes = buffer_byte_size;
+
+  // Each string in 'buffer' is a 4-byte length followed by the string itself
+  // with no null-terminator.
+  while (remaining_bytes >= sizeof(uint32_t)) {
+    if (*element_idx >= expected_element_cnt) {
+      return TRITONSERVER_ErrorNew(
+          TRITONSERVER_ERROR_INVALID_ARG,
+          std::string(
+              "unexpected number of string elements " +
+              std::to_string(*element_idx + 1) + " for inference input '" +
+              input_name + "', expecting " +
+              std::to_string(expected_element_cnt))
+              .c_str());
+    }
+
+    const uint32_t len = *(reinterpret_cast<const uint32_t*>(buffer));
+    remaining_bytes -= sizeof(uint32_t);
+    // Special handling for ONNX runtime backend
+    if (onnx_backend) {
+      // Make first byte of size info 0, so that if there is string data
+      // in front of it, the data becomes valid C string.
+      *const_cast<char*>(buffer) = 0;
+    }
+    buffer += sizeof(uint32_t);
+
+    if (remaining_bytes < len) {
+      return TRITONSERVER_ErrorNew(
+          TRITONSERVER_ERROR_INVALID_ARG,
+          std::string(
+              "incomplete string data for inference input '" +
+              std::string(input_name) + "', expecting string of length " +
+              std::to_string(len) + " but only " +
+              std::to_string(remaining_bytes) + " bytes available")
+              .c_str());
+    }
+
+    set_string_tensor_cb(*element_idx, buffer, len);
+    buffer += len;
+    remaining_bytes -= len;
+    (*element_idx)++;
+  }
+
+  // Special handling for ONNX runtime backend
+  if (onnx_backend && remaining_bytes > 0) {
+    *const_cast<char*>(buffer) = 0;
+  }
+
+  if (*element_idx != expected_element_cnt) {
+    return TRITONSERVER_ErrorNew(
+        TRITONSERVER_ERROR_INTERNAL,
+        std::string(
+            "expected " + std::to_string(expected_element_cnt) +
+            " strings for inference input '" + input_name + "', got " +
+            std::to_string(*element_idx))
+            .c_str());
+  }
+  return nullptr;
+}
+
 }}  // namespace triton::backend
