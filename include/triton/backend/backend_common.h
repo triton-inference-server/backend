@@ -672,23 +672,17 @@ TRITONSERVER_Error* BufferAsTypedString(
 /// \return a formatted string for logging the request ID.
 std::string GetRequestId(TRITONBACKEND_Request* request);
 
-/// Validate the contiguous string buffer with correct format
+/// Validate the contiguous string buffer with correct format.
 /// <int32_len><bytes>...<int32_len><bytes>.
 /// @param buffer The pointer to the contiguous string buffer.
 /// @param buffer_byte_size The size of the buffer in bytes.
 /// @param expected_element_cnt The number of expected string elements.
 /// @param input_name The name of the input buffer.
-/// @param element_idx Returns the number of validated strings.
-/// @param set_string_tensor_cb Callback function which sets string input tensor
-/// depending on the backend platform.
-/// @param onnx_backend Whether the backend platform is ONNX runtime.
+/// @param str_list Returns pairs of address and length of parsed strings.
 /// @return a TRITONSERVER_Error indicating success or failure.
 TRITONSERVER_Error* ValidateStringBuffer(
     const char* buffer, size_t buffer_byte_size,
     const size_t expected_element_cnt, const char* input_name,
-    size_t* element_idx,
-    const std::function<void(size_t, const char*, const uint32_t)>&
-        set_string_tensor_cb,
-    bool onnx_backend = false);
+    std::vector<std::pair<const char*, const uint32_t>>* str_list);
 
 }}  // namespace triton::backend
