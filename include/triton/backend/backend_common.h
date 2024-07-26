@@ -672,14 +672,18 @@ TRITONSERVER_Error* BufferAsTypedString(
 /// \return a formatted string for logging the request ID.
 std::string GetRequestId(TRITONBACKEND_Request* request);
 
-/// Validate the contiguous string buffer with correct format and parse string elements into list of pairs of memory address and length. Note the returned list of pairs points to valid memory as long as memory pointed by buffer remains allocated.
-/// <int32_len><bytes>...<int32_len><bytes>.
-/// @param buffer The pointer to the contiguous string buffer.
-/// @param buffer_byte_size The size of the buffer in bytes.
-/// @param expected_element_cnt The number of expected string elements.
-/// @param input_name The name of the input buffer.
-/// @param str_list Returns pairs of address and length of parsed strings.
-/// @return a TRITONSERVER_Error indicating success or failure.
+/// Validate the contiguous string buffer with correct format
+/// <int32_len><bytes>...<int32_len><bytes> and parse string
+/// elements into list of pairs of memory address and length.
+/// Note the returned list of pairs points to valid memory as long
+/// as memory pointed by buffer remains allocated.
+///
+/// \param buffer The pointer to the contiguous string buffer.
+/// \param buffer_byte_size The size of the buffer in bytes.
+/// \param expected_element_cnt The number of expected string elements.
+/// \param input_name The name of the input buffer.
+/// \param str_list Returns pairs of address and length of parsed strings.
+/// \return a TRITONSERVER_Error indicating success or failure.
 TRITONSERVER_Error* ValidateStringBuffer(
     const char* buffer, size_t buffer_byte_size,
     const size_t expected_element_cnt, const char* input_name,
