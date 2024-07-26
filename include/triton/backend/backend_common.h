@@ -672,7 +672,7 @@ TRITONSERVER_Error* BufferAsTypedString(
 /// \return a formatted string for logging the request ID.
 std::string GetRequestId(TRITONBACKEND_Request* request);
 
-/// Validate the contiguous string buffer with correct format.
+/// Validate the contiguous string buffer with correct format and parse string elements into list of pairs of memory address and length. Note the returned list of pairs points to valid memory as long as memory pointed by buffer remains allocated.
 /// <int32_len><bytes>...<int32_len><bytes>.
 /// @param buffer The pointer to the contiguous string buffer.
 /// @param buffer_byte_size The size of the buffer in bytes.
