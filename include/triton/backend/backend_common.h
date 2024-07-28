@@ -28,7 +28,6 @@
 #include <chrono>
 #include <condition_variable>
 #include <deque>
-#include <functional>
 #include <iostream>
 #include <mutex>
 #include <set>
