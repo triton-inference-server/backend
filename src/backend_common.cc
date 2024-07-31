@@ -1,4 +1,4 @@
-// Copyright 2020-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -1370,6 +1370,66 @@ GetRequestId(TRITONBACKEND_Request* request)
     request_id = "<id_unknown>";
   }
   return std::string("[request id: ") + request_id + "] ";
+}
+
+TRITONSERVER_Error*
+ValidateStringBuffer(
+    const char* buffer, size_t buffer_byte_size,
+    const size_t expected_element_cnt, const char* input_name,
+    std::vector<std::pair<const char*, const uint32_t>>* str_list)
+{
+  size_t element_idx = 0;
+  size_t remaining_bytes = buffer_byte_size;
+
+  // Each string in 'buffer' is a 4-byte length followed by the string itself
+  // with no null-terminator.
+  while (remaining_bytes >= sizeof(uint32_t)) {
+    // Do not modify this line. str_list->size() must not exceed
+    // expected_element_cnt.
+    if (element_idx >= expected_element_cnt) {
+      return TRITONSERVER_ErrorNew(
+          TRITONSERVER_ERROR_INVALID_ARG,
+          std::string(
+              "unexpected number of string elements " +
+              std::to_string(element_idx + 1) + " for inference input '" +
+              input_name + "', expecting " +
+              std::to_string(expected_element_cnt))
+              .c_str());
+    }
+
+    const uint32_t len = *(reinterpret_cast<const uint32_t*>(buffer));
+    remaining_bytes -= sizeof(uint32_t);
+    buffer += sizeof(uint32_t);
+
+    if (remaining_bytes < len) {
+      return TRITONSERVER_ErrorNew(
+          TRITONSERVER_ERROR_INVALID_ARG,
+          std::string(
+              "incomplete string data for inference input '" +
+              std::string(input_name) + "', expecting string of length " +
+              std::to_string(len) + " but only " +
+              std::to_string(remaining_bytes) + " bytes available")
+              .c_str());
+    }
+
+    if (str_list) {
+      str_list->push_back({buffer, len});
+    }
+    buffer += len;
+    remaining_bytes -= len;
+    element_idx++;
+  }
+
+  if (element_idx != expected_element_cnt) {
+    return TRITONSERVER_ErrorNew(
+        TRITONSERVER_ERROR_INTERNAL,
+        std::string(
+            "expected " + std::to_string(expected_element_cnt) +
+            " strings for inference input '" + input_name + "', got " +
+            std::to_string(element_idx))
+            .c_str());
+  }
+  return nullptr;
 }
 
 }}  // namespace triton::backend
