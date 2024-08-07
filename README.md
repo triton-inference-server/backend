@@ -123,6 +123,14 @@ to load and serve models. The
 [vllm_backend](https://github.com/triton-inference-server/vllm_backend) repo
 contains the documentation and source for the backend.
 
+**TensorRT-LLM**: The TensorRT-LLM backend allows you to serve
+[TensorRT-LLM](https://github.com/NVIDIA/TensorRT-LLM) models with Triton Server.
+Check out the
+[Triton TRT-LLM user guide](https://github.com/triton-inference-server/server/blob/main/docs/getting_started/trtllm_user_guide.md)
+for more information. The
+[tensorrtllm_backend](https://github.com/triton-inference-server/tensorrtllm_backend)
+repo contains the documentation and source for the backend.
+
 **Important Note!** Not all the above backends are supported on every platform
 supported by Triton. Look at the
 [Backend-Platform Support Matrix](docs/backend_platform_support_matrix.md)
