@@ -1,5 +1,5 @@
 <!--
-# Copyright 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -54,6 +54,7 @@ each backend on different platforms.
 | DALI         |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  | :heavy_check_mark: GPU[^2] <br/> :heavy_check_mark: CPU[^2] |
 | FIL          |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |  Unsupported  |
 | vLLM         |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |  Unsupported  |
+| TensorRT-LLM |  :heavy_check_mark: GPU <br/> :x: CPU | :heavy_check_mark: GPU <br/> :x: CPU       |
 
 
 ## Windows 10
