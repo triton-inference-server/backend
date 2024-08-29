@@ -115,6 +115,14 @@ random forest models. The
 [fil_backend](https://github.com/triton-inference-server/fil_backend) repo
 contains the documentation and source for the backend.
 
+**TensorRT-LLM**: The TensorRT-LLM backend allows you to serve
+[TensorRT-LLM](https://github.com/NVIDIA/TensorRT-LLM) models with Triton Server.
+Check out the
+[Triton TRT-LLM user guide](https://github.com/triton-inference-server/server/blob/main/docs/getting_started/trtllm_user_guide.md)
+for more information. The
+[tensorrtllm_backend](https://github.com/triton-inference-server/tensorrtllm_backend)
+repo contains the documentation and source for the backend.
+
 **vLLM**: The vLLM backend is designed to run
 [supported models](https://vllm.readthedocs.io/en/latest/models/supported_models.html)
 on a [vLLM engine](https://github.com/vllm-project/vllm/blob/main/vllm/engine/async_llm_engine.py).
