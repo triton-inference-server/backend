@@ -504,6 +504,9 @@ TRITONSERVER_Error* CopyBuffer(
     void* dst, cudaStream_t cuda_stream, bool* cuda_used,
     const bool copy_on_stream = false);
 
+TRITONSERVER_Error* getOSValidPath(
+    const std::string& _path, std::string& retPath);
+
 /// Does a file or directory exist?
 /// \param path The path to check for existence.
 /// \param exists Returns true if file/dir exists

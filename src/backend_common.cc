@@ -781,21 +781,56 @@ GetDirectoryContents(const std::string& path, std::set<std::string>* contents)
   return nullptr;  // success
 }
 
+//! Converts incoming utf-8 path to an OS valid path
+//!
+//! On Linux there is not much to do but make sure correct slashes are used
+//! On Windows we need to take care of the long paths and handle them correctly
+//! to avoid legacy issues with MAX_PATH
+//!
+//! More details:
+//! https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation?tabs=registry
+//!
+TRITONSERVER_Error*
+getOSValidPath(const std::string& _path, std::string& retPath)
+{
+  std::string path(_path);
+#ifdef _WIN32
+  constexpr const char* kWindowsLongPathPrefix = "\\\\?\\";
+  // On Windows long paths must be marked correctly otherwise, due to backwards
+  // compatibility, all paths are limited to MAX_PATH length
+  if (path.size() >= MAX_PATH) {
+    // Must be prefixed with "\\?\" to be considered long path
+    if (path.substr(0, 4) != (kWindowsLongPathPrefix)) {
+      // Long path but not "tagged" correctly
+      path = (kWindowsLongPathPrefix) + path;
+    }
+  }
+  std::replace(path.begin(), path.end(), '/', '\\');
+#endif
+  retPath = path;
+  return nullptr;
+}
+
 TRITONSERVER_Error*
 FileExists(const std::string& path, bool* exists)
 {
-  *exists = (access(path.c_str(), F_OK) == 0);
+  std::string valid_path;
+  getOSValidPath(path, valid_path);
+  *exists = (access(valid_path.c_str(), F_OK) == 0);
   return nullptr;  // success
 }
 
 TRITONSERVER_Error*
 ReadTextFile(const std::string& path, std::string* contents)
 {
-  std::ifstream in(path, std::ios::in | std::ios::binary);
+  std::string valid_path;
+  getOSValidPath(path, valid_path);
+
+  std::ifstream in(valid_path, std::ios::in | std::ios::binary);
   if (!in) {
     return TRITONSERVER_ErrorNew(
         TRITONSERVER_ERROR_INTERNAL,
-        ("failed to open/read file '" + path + "': " + strerror(errno))
+        ("failed to open/read file '" + valid_path + "': " + strerror(errno))
             .c_str());
   }
 
@@ -812,12 +847,13 @@ TRITONSERVER_Error*
 IsDirectory(const std::string& path, bool* is_dir)
 {
   *is_dir = false;
-
+  std::string valid_path;
+  getOSValidPath(path, valid_path);
   struct stat st;
-  if (stat(path.c_str(), &st) != 0) {
+  if (stat(valid_path.c_str(), &st) != 0) {
     return TRITONSERVER_ErrorNew(
         TRITONSERVER_ERROR_INTERNAL,
-        (std::string("failed to stat file ") + path).c_str());
+        (std::string("failed to stat file ") + valid_path).c_str());
   }
 
   *is_dir = S_ISDIR(st.st_mode);
