@@ -1444,14 +1444,14 @@ GetOSValidPath(const std::string& path, std::string& ret_path)
 {
   std::string l_path(path);
 #ifdef _WIN32
-  constexpr const char* WindowsLongPathPrefix = "\\\\?\\";
+  constexpr const char* kWindowsLongPathPrefix = "\\\\?\\";
   // On Windows long paths must be marked correctly otherwise, due to backwards
   // compatibility, all paths are limited to MAX_PATH length
   if (l_path.size() >= MAX_PATH) {
     // Must be prefixed with "\\?\" to be considered long path
-    if (l_path.substr(0, 4) != (WindowsLongPathPrefix)) {
+    if (l_path.substr(0, 4) != (kWindowsLongPathPrefix)) {
       // Long path but not "tagged" correctly
-      l_path = (WindowsLongPathPrefix) + l_path;
+      l_path = (kWindowsLongPathPrefix) + l_path;
     }
   }
   std::replace(l_path.begin(), l_path.end(), '/', '\\');
