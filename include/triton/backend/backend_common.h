@@ -505,7 +505,7 @@ TRITONSERVER_Error* CopyBuffer(
     const bool copy_on_stream = false);
 
 TRITONSERVER_Error* getOSValidPath(
-    const std::string& _path, std::string& retPath);
+    const std::string& path, std::string& retPath);
 
 /// Does a file or directory exist?
 /// \param path The path to check for existence.
