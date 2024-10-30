@@ -504,6 +504,18 @@ TRITONSERVER_Error* CopyBuffer(
     void* dst, cudaStream_t cuda_stream, bool* cuda_used,
     const bool copy_on_stream = false);
 
+/// Converts incoming utf-8 path to an OS valid path
+///
+/// On Linux there is not much to do.
+/// On Windows we need to take care of the long paths and handle them correctly
+/// to avoid legacy issues with MAX_PATH
+///
+/// More details:
+/// https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation?tabs=registry
+///
+/// \param path The path to validate
+/// \param retPath The updated valid path as per the OS requirements
+/// \return a TRITONSERVER_Error indicating success or failure.
 TRITONSERVER_Error* getOSValidPath(
     const std::string& path, std::string& retPath);
 
