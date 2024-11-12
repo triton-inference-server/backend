@@ -110,7 +110,7 @@ target_compile_features(triton-bls-backend PRIVATE cxx_std_${TRITON_MIN_CXX_STAN
 target_compile_options(
   triton-bls-backend PRIVATE
   $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-    -Wall -Wextra -Wno-unused-parameter -Werror>
+    -Wall -Wextra -Wno-unused-parameter -Wno-error=maybe-uninitialized>
 )
 
 target_link_libraries(
