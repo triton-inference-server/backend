@@ -121,7 +121,7 @@ if(${TRITON_ENABLE_GPU})
 
   enable_language(CUDA)
   set_target_properties(kernel_library_new PROPERTIES LANGUAGE CUDA)
-  set_target_properties(kernel_library_new PROPERTIES CUDA_ARCHITECTURES "53;60-real;62-real;70-real;72-real;75-real;80-real;86-real;89-real;90-real;100-real")
+  set_target_properties(kernel_library_new PROPERTIES CUDA_ARCHITECTURES "53;60-real;62-real;70-real;72-real;75-real;80-real;86-real;89-real;90-real;100-real;120-real")
   set_target_properties(kernel_library_new PROPERTIES POSITION_INDEPENDENT_CODE ON)
   set_target_properties(kernel_library_new PROPERTIES LINKER_LANGUAGE CUDA)
   target_compile_features(kernel_library_new PUBLIC cxx_std_${TRITON_MIN_CXX_STANDARD})
