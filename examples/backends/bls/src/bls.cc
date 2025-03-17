@@ -127,7 +127,7 @@ BLSExecutor::Execute(
     TRITONBACKEND_Request* bls_request, TRITONBACKEND_Response** response)
 {
   // The names of the models that we will send internal requests on.
-  std::vector<std::string> model_names = {"addsub_python", "addsub_tf"};
+  std::vector<std::string> model_names = {"addsub_python"};
 
   // Check if both models are valid before executing request.
   try {
