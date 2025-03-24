@@ -1,5 +1,5 @@
 <!--
-# Copyright 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -61,9 +61,9 @@ the concepts associated with Triton backend abstractions
 [TRITONBACKEND_Model](../../../README.md#tritonbackend_model), and
 [TRITONBACKEND_ModelInstance](../../../README.md#tritonbackend_modelinstance).
 
-The *bls* backend will send two requests on the 'addsub_python' and 'addsub_tf'
+The *bls* backend will send two requests on the 'addsub_python' and 'addsub_onnx'
 models. After the inference requests are completed, this backend will extract
-OUTPUT0 from the 'addsub_python' and OUTPUT1 from the 'addsub_tf' model to
+OUTPUT0 from the 'addsub_python' and OUTPUT1 from the 'addsub_onnx' model to
 construct the final inference response object using these tensors.
 
 There are some self-imposed limitations that were made for the simplicity of
@@ -99,7 +99,7 @@ $ docker run --rm -it --net=host -v/path/to/model_repos/bls_models:/models trito
 ```
 
 The console output will show similar to the following indicating that
-the *bls_fp32*, *addsub_python* and *addsub_tf* models from the bls_models repository have
+the *bls_fp32*, *addsub_python* and *addsub_onnx* models from the bls_models repository have
 loaded correctly.
 
 ```
@@ -108,7 +108,7 @@ I0616 09:34:47.767433 19214 server.cc:629]
 | Model         | Version | Status |
 +---------------+---------+--------+
 | addsub_python | 1       | READY  |
-| addsub_tf     | 1       | READY  |
+| addsub_onnx     | 1       | READY  |
 | bls_fp32      | 1       | READY  |
 +---------------+---------+--------+
 ```

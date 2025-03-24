@@ -1,5 +1,5 @@
-name: "addsub_tf"
-platform: "tensorflow_savedmodel"
+name: "addsub_onnx"
+platform: "onnxruntime_onnx"
 max_batch_size: 0
 
 input [

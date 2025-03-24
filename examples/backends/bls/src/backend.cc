@@ -1,4 +1,4 @@
-// Copyright 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -32,11 +32,11 @@
 // Backend that demonstrates using in-process C-API to execute inferences
 // within the backend.
 //
-// Two particular models, 'addsub_python' and 'addsub_tf', must be loaded on
+// Two particular models, 'addsub_python' and 'addsub_onnx', must be loaded on
 // the server for a successful inference execution on this backend.
 //
 // The model configuration should be set as follows in order to be in line with
-// the 'addsub_python' and 'addsub_tf' models. This backend does not support
+// the 'addsub_python' and 'addsub_onnx' models. This backend does not support
 // batching. These limitations are only for this specific backend. You can
 // implement your custom BLS backend with less limitations.
 //
@@ -51,10 +51,10 @@
 //   - For each response, output 'OUTPUT1' must have shape [16] and
 //     datatype TYPE_FP32.
 //
-// This backend will send two requests on the 'addsub_python' and 'addsub_tf'
+// This backend will send two requests on the 'addsub_python' and 'addsub_onnx'
 // models. After the inference requests are completed, this backend
 // will extract OUTPUT0 from the 'addsub_python' and OUTPUT1 from the
-// 'addsub_tf' model to construct the final inference response object using
+// 'addsub_onnx' model to construct the final inference response object using
 // these tensors.
 
 namespace triton { namespace backend { namespace bls {
