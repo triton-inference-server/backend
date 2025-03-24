@@ -1,4 +1,4 @@
-// Copyright 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -40,7 +40,7 @@ BLSExecutor::PrepareInferenceRequest(
 {
   // Get request_id, correlation_id, and flags from the current request
   // for preparing a new inference request that we will send to 'addsub_python'
-  // or 'addsub_tf' model later.
+  // or 'addsub_onnx' model later.
   const char* request_id;
   uint64_t correlation_id;
   uint32_t flags;
@@ -127,7 +127,7 @@ BLSExecutor::Execute(
     TRITONBACKEND_Request* bls_request, TRITONBACKEND_Response** response)
 {
   // The names of the models that we will send internal requests on.
-  std::vector<std::string> model_names = {"addsub_python", "addsub_tf"};
+  std::vector<std::string> model_names = {"addsub_python", "addsub_onnx"};
 
   // Check if both models are valid before executing request.
   try {
@@ -174,7 +174,7 @@ BLSExecutor::Execute(
   TRITONSERVER_InferenceRequest* irequest = nullptr;
 
   // For each inference request, the backend sends two requests on the
-  // 'addsub_python' and 'addsub_tf' models.
+  // 'addsub_python' and 'addsub_onnx' models.
   try {
     for (size_t icount = 0; icount < 2; icount++) {
       // Initialize the inference request with required information.
@@ -211,7 +211,7 @@ BLSExecutor::ConstructFinalResponse(
     std::vector<std::future<TRITONSERVER_InferenceResponse*>> futures)
 {
   // Prepare two TRITONSERVER_InferenceResponse* objects for 'addsub_python' and
-  // 'addsub_tf' respectively.
+  // 'addsub_onnx' respectively.
   std::vector<TRITONSERVER_InferenceResponse*> completed_responses = {
       nullptr, nullptr};
 
@@ -245,7 +245,7 @@ BLSExecutor::ConstructFinalResponse(
     }
     // Retrieve outputs from 'completed_responses'.
     // Extract OUTPUT0 from the 'addsub_python' and OUTPUT1 from the
-    // 'addsub_tf' model to form the final inference response object.
+    // 'addsub_onnx' model to form the final inference response object.
     // Get all the information about the output tensor.
     RESPOND_AND_SET_NULL_IF_ERROR(
         response,
