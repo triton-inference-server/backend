@@ -72,6 +72,7 @@ BackendModel::BackendModel(
 TRITONSERVER_Error*
 BackendModel::ParseModelConfig()
 {
+  std::cerr<< "\n\n\n ********************************** BackendModel::ParseModelConfig() ****************************\n\n\n";
   TRITONSERVER_Message* config_message;
   RETURN_IF_ERROR(TRITONBACKEND_ModelConfig(
       triton_model_, 1 /* config_version */, &config_message));

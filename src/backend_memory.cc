@@ -37,6 +37,7 @@ BackendMemory::Create(
     TRITONBACKEND_MemoryManager* manager, const AllocationType alloc_type,
     const int64_t memory_type_id, const size_t byte_size, BackendMemory** mem)
 {
+  std::cout<< "\n\n\n ********************************** BackendMemory::Create() ****************************\n\n\n";
   *mem = nullptr;
 
   void* ptr = nullptr;
