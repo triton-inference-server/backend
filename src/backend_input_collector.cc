@@ -1088,15 +1088,15 @@ BackendInputCollector::SetBatchItemShape(
     size_t batch_1_size = sizeof(T) * (dims_count - 1);
 
     {
-      std::ostringstream __log;
-      __log << "-------------\n"
+      std::ostringstream my_log;
+      my_log << "-------------\n"
             << " dims_count: " << dims_count
             << " - batch_1_size: " << batch_1_size
             << " - buffer_byte_size: " << buffer_byte_size
             << " - (buffer_offset + (size_t)shape[0] * batch_1_size): "
             << (buffer_offset + (size_t)shape[0] * batch_1_size)
             << "\n-------------\n";
-      LOG_MESSAGE(TRITONSERVER_LOG_INFO, __log.str());
+      LOG_MESSAGE(TRITONSERVER_LOG_INFO, my_log.str());
     }
 
     if (buffer_offset + (size_t)shape[0] * batch_1_size > buffer_byte_size) {
