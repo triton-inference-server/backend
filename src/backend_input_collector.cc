@@ -1068,6 +1068,7 @@ BackendInputCollector::SetBatchItemShape(
     const std::string& source_input, char* buffer,
     const size_t buffer_byte_size)
 {
+  std::cout << "******************** BackendInputCollector::SetBatchItemShape() ********************" << std::endl;
   size_t buffer_offset = 0;
   for (size_t req_idx = 0; req_idx < request_count_; req_idx++) {
     TRITONBACKEND_Input* input;
@@ -1081,6 +1082,11 @@ BackendInputCollector::SetBatchItemShape(
     // Assuming first dimension is batch size and ragged input is only set
     // for batching enabled model.
     size_t batch_1_size = sizeof(T) * (dims_count - 1);
+    std::cout << "-------------\n dims_count: " << dims_count << std::endl;
+    std::cout << " batch_1_size: " << batch_1_size << std::endl;
+    std::cout << " buffer_byte_size: " << buffer_byte_size << std::endl;
+    std::cout << " (buffer_offset + (size_t)shape[0] * batch_1_size): "
+              << (buffer_offset + (size_t)shape[0] * batch_1_size) << std::endl;
     if (buffer_offset + (size_t)shape[0] * batch_1_size > buffer_byte_size) {
       return TRITONSERVER_ErrorNew(
           TRITONSERVER_ERROR_INVALID_ARG,
@@ -1102,6 +1108,7 @@ BackendInputCollector::SetBatchItemShape(
     }
     buffer_offset += batch_1_size * (size_t)shape[0];
   }
+  std::cout << "*************************************************************" << std::endl;
   return nullptr;  // success
 }
 
