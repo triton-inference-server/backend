@@ -42,7 +42,8 @@ BackendModelInstance::BackendModelInstance(
     : backend_model_(backend_model),
       triton_model_instance_(triton_model_instance)
 {
-  std::cerr<< "\n\n\n ********************************** BackendModelInstance::BackendModelInstance() ****************************\n\n\n";
+  LOG_MESSAGE(TRITONSERVER_LOG_INFO, std::string(
+    "\n\n\n ********************************** BackendModelInstance::BackendModelInstance() ****************************\n\n\n").c_str());
 
   const char* instance_name;
   THROW_IF_BACKEND_INSTANCE_ERROR(

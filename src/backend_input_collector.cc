@@ -1068,9 +1068,8 @@ BackendInputCollector::SetBatchItemShape(
     const std::string& source_input, char* buffer,
     const size_t buffer_byte_size)
 {
-  std::cerr << "******************** BackendInputCollector::SetBatchItemShape() ********************" << std::endl;
-  LOG_MESSAGE(
-    TRITONSERVER_LOG_VERBOSE,
+   LOG_MESSAGE(
+    TRITONSERVER_LOG_INFO,
     (std::string("******************** BackendInputCollector::SetBatchItemShape() ********************")
         .c_str()));
   
@@ -1087,22 +1086,18 @@ BackendInputCollector::SetBatchItemShape(
     // Assuming first dimension is batch size and ragged input is only set
     // for batching enabled model.
     size_t batch_1_size = sizeof(T) * (dims_count - 1);
-    LOG_MESSAGE(
-      TRITONSERVER_LOG_INFO,
-      (std::string("-------------\n dims_count: "))
-      .c_str());
 
-    std::cerr << " batch_1_size: " << batch_1_size << std::endl;
-    std::cerr << " buffer_byte_size: " << buffer_byte_size << std::endl;
-    std::cerr << " (buffer_offset + (size_t)shape[0] * batch_1_size): "
-              << (buffer_offset + (size_t)shape[0] * batch_1_size) << std::endl;
-      
-  LOG_MESSAGE(
-    TRITONSERVER_LOG_INFO,
-    (std::string("batch_1_size: ") + std::string(batch_1_size) + std::string(" - dims_count: ") + std::string(dims_count)
-     + std::string(" - (buffer_offset + (size_t)shape[0] * batch_1_size): ") + std::string((buffer_offset + (size_t)shape[0] * batch_1_size))
-     + std::string(" - buffer_byte_size: ") + std::string(buffer_byte_size))
-        .c_str());
+    {
+      std::ostringstream __log;
+      __log << "-------------\n"
+            << " dims_count: " << dims_count
+            << " - batch_1_size: " << batch_1_size
+            << " - buffer_byte_size: " << buffer_byte_size
+            << " - (buffer_offset + (size_t)shape[0] * batch_1_size): "
+            << (buffer_offset + (size_t)shape[0] * batch_1_size)
+            << "\n-------------\n";
+      LOG_MESSAGE(TRITONSERVER_LOG_INFO, __log.str());
+    }
 
     if (buffer_offset + (size_t)shape[0] * batch_1_size > buffer_byte_size) {
       return TRITONSERVER_ErrorNew(
@@ -1125,7 +1120,10 @@ BackendInputCollector::SetBatchItemShape(
     }
     buffer_offset += batch_1_size * (size_t)shape[0];
   }
-  std::cerr << "*************************************************************" << std::endl;
+  LOG_MESSAGE(
+    TRITONSERVER_LOG_INFO,
+    (std::string("****************************************")
+        .c_str()));
   return nullptr;  // success
 }
 
