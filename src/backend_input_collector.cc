@@ -25,7 +25,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "triton/backend/backend_input_collector.h"
-
+#include <sstream>
 #include <atomic>
 
 #include "triton/backend/backend_common.h"
