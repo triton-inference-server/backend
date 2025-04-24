@@ -1096,7 +1096,8 @@ BackendInputCollector::SetBatchItemShape(
             << " - (buffer_offset + (size_t)shape[0] * batch_1_size): "
             << (buffer_offset + (size_t)shape[0] * batch_1_size)
             << "\n-------------\n";
-      LOG_MESSAGE(TRITONSERVER_LOG_INFO, my_log.str());
+      const std::string msg_str = my_log.str();
+      LOG_MESSAGE(TRITONSERVER_LOG_INFO, msg_str.c_str());
     }
 
     if (buffer_offset + (size_t)shape[0] * batch_1_size > buffer_byte_size) {
