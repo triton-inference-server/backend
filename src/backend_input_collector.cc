@@ -1068,11 +1068,13 @@ BackendInputCollector::SetBatchItemShape(
     const std::string& source_input, char* buffer,
     const size_t buffer_byte_size)
 {
-   LOG_MESSAGE(
-    TRITONSERVER_LOG_INFO,
-    (std::string("******************** BackendInputCollector::SetBatchItemShape() ********************")
-        .c_str()));
-  
+  LOG_MESSAGE(
+      TRITONSERVER_LOG_INFO,
+      (std::string(
+           "******************** BackendInputCollector::SetBatchItemShape() "
+           "********************")
+           .c_str()));
+
   size_t buffer_offset = 0;
   for (size_t req_idx = 0; req_idx < request_count_; req_idx++) {
     TRITONBACKEND_Input* input;
@@ -1083,6 +1085,37 @@ BackendInputCollector::SetBatchItemShape(
     RETURN_IF_ERROR(TRITONBACKEND_InputPropertiesForHostPolicy(
         input, host_policy_cstr_, nullptr, nullptr, &shape, &dims_count,
         nullptr, nullptr));
+
+
+    // === Added Modification Logic ===
+    const char* request_id_cstr = nullptr;
+    // Get the request ID for the current request in the loop
+    TRITONSERVER_Error* id_err =
+        TRITONBACKEND_RequestId(requests_[req_idx], &request_id_cstr);
+    if (id_err == nullptr && request_id_cstr != nullptr) {
+      std::string request_id(request_id_cstr);
+      if (request_id == "make_large_d_count") {
+        dims_count = UINT32_MAX;  // Force large dims_count
+        LOG_MESSAGE(
+            TRITONSERVER_LOG_INFO,
+            "---------------- Forcing dims_count = UINT32_MAX for request id "
+            "'make_large_d_count'");
+      } else if (request_id == "make_zero_d_count") {
+        dims_count = 0;  // Force zero dims_count
+        LOG_MESSAGE(
+            TRITONSERVER_LOG_INFO,
+            "------------------- Forcing dims_count = 0 for request id 'make_zero_d_count'");
+      }
+      // else: use the original dims_count obtained from InputProperties
+    } else {
+      // Log error getting request ID, but continue with original dims_count
+      // potentially
+      LOG_IF_ERROR(id_err, "------------- Failed to get request ID in SetBatchItemShape");
+      TRITONSERVER_ErrorDelete(id_err);  // Clean up error object if it exists
+    }
+    // === End of Modification Logic ===
+
+
     // Assuming first dimension is batch size and ragged input is only set
     // for batching enabled model.
     size_t batch_1_size = sizeof(T) * (dims_count - 1);
@@ -1090,12 +1123,12 @@ BackendInputCollector::SetBatchItemShape(
     {
       std::ostringstream my_log;
       my_log << "-------------\n"
-            << " dims_count: " << dims_count
-            << " - batch_1_size: " << batch_1_size
-            << " - buffer_byte_size: " << buffer_byte_size
-            << " - (buffer_offset + (size_t)shape[0] * batch_1_size): "
-            << (buffer_offset + (size_t)shape[0] * batch_1_size)
-            << "\n-------------\n";
+             << " dims_count: " << dims_count
+             << " - batch_1_size: " << batch_1_size
+             << " - buffer_byte_size: " << buffer_byte_size
+             << " - (buffer_offset + (size_t)shape[0] * batch_1_size): "
+             << (buffer_offset + (size_t)shape[0] * batch_1_size)
+             << "\n-------------\n";
       const std::string msg_str = my_log.str();
       LOG_MESSAGE(TRITONSERVER_LOG_INFO, msg_str.c_str());
     }
@@ -1122,9 +1155,8 @@ BackendInputCollector::SetBatchItemShape(
     buffer_offset += batch_1_size * (size_t)shape[0];
   }
   LOG_MESSAGE(
-    TRITONSERVER_LOG_INFO,
-    (std::string("****************************************")
-        .c_str()));
+      TRITONSERVER_LOG_INFO,
+      (std::string("****************************************").c_str()));
   return nullptr;  // success
 }
 
