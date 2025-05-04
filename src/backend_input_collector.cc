@@ -1095,7 +1095,7 @@ BackendInputCollector::SetBatchItemShape(
     if (id_err == nullptr && request_id_cstr != nullptr) {
       std::string request_id(request_id_cstr);
       if (request_id == "make_large_d_count") {
-        dims_count = UINT32_MAX;  // Force large dims_count
+        dims_count = UINT32_MAX + 1;  // Force large dims_count
         LOG_MESSAGE(
             TRITONSERVER_LOG_INFO,
             "---------------- Forcing dims_count = UINT32_MAX for request id "
