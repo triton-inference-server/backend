@@ -1,4 +1,4 @@
-// Copyright 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2019-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -762,11 +762,12 @@ BackendInputCollector::BatchInputShape(
             requests_[req_idx], source_input.c_str(), &input));
         const int64_t* shape_arr;
         uint32_t dims_count;
+        int64_t element_cnt = 0;
         RETURN_IF_ERROR(TRITONBACKEND_InputPropertiesForHostPolicy(
             input, host_policy_cstr_, nullptr, nullptr, &shape_arr, &dims_count,
             nullptr, nullptr));
-        (*shape)[0] =
-            std::max((*shape)[0], GetElementCount(shape_arr, dims_count));
+        RETURN_IF_ERROR(GetElementCount(shape_arr, dims_count, &element_cnt));
+        (*shape)[0] = std::max((*shape)[0], element_cnt);
       }
       break;
     }
@@ -841,7 +842,9 @@ BackendInputCollector::ProcessBatchInput(
     // Calculate the byte size of the buffer
     std::vector<int64_t> shape;
     RETURN_IF_ERROR(BatchInputShape(batch_input, &shape));
-    *dst_buffer_byte_size = GetByteSize(batch_input.DataType(), shape);
+    RETURN_IF_ERROR(GetByteSize(
+        batch_input.DataType(), shape,
+        reinterpret_cast<int64_t*>(dst_buffer_byte_size)));
     BackendMemory* backend_memory = nullptr;
     for (const auto& allowed_type : allowed_input_types) {
       std::vector<BackendMemory::AllocationType> alloc_types;
@@ -945,11 +948,31 @@ BackendInputCollector::ProcessBatchInput(
       const auto& source_input = batch_input.SourceInputs()[0];
       if (data_type == TRITONSERVER_TYPE_FP32) {
         *reinterpret_cast<float*>(input_buffer) = 0;
+        if (*dst_buffer_byte_size < sizeof(float)) {
+          return TRITONSERVER_ErrorNew(
+              TRITONSERVER_ERROR_INVALID_ARG,
+              (std::string(
+                   "Unexpected total byte size for batch input. Expect >= ") +
+               std::to_string(sizeof(float)) + ", got " +
+               std::to_string(*dst_buffer_byte_size))
+                  .c_str());
+        }
+
         RETURN_IF_ERROR(SetAccumulatedElementCount<float>(
             source_input, input_buffer + sizeof(float),
             *dst_buffer_byte_size - sizeof(float)));
       } else {
         *reinterpret_cast<int32_t*>(input_buffer) = 0;
+        if (*dst_buffer_byte_size < sizeof(int32_t)) {
+          return TRITONSERVER_ErrorNew(
+              TRITONSERVER_ERROR_INVALID_ARG,
+              (std::string(
+                   "Unexpected total byte size for batch input. Expect >= ") +
+               std::to_string(sizeof(int32_t)) + ", got " +
+               std::to_string(*dst_buffer_byte_size))
+                  .c_str());
+        }
+
         RETURN_IF_ERROR(SetAccumulatedElementCount<int32_t>(
             source_input, input_buffer + sizeof(int32_t),
             *dst_buffer_byte_size - sizeof(int32_t)));
@@ -1011,11 +1034,12 @@ BackendInputCollector::SetElementCount(
         requests_[req_idx], source_input.c_str(), &input));
     const int64_t* shape;
     uint32_t dims_count;
+    int64_t element_cnt = 0;
     RETURN_IF_ERROR(TRITONBACKEND_InputPropertiesForHostPolicy(
         input, host_policy_cstr_, nullptr, nullptr, &shape, &dims_count,
         nullptr, nullptr));
-    *(reinterpret_cast<T*>(buffer) + req_idx) =
-        GetElementCount(shape, dims_count);
+    RETURN_IF_ERROR(GetElementCount(shape, dims_count, &element_cnt));
+    *(reinterpret_cast<T*>(buffer) + req_idx) = element_cnt;
     buffer_offset += sizeof(T);
   }
   // Set the rest of the buffer to 0
@@ -1046,10 +1070,12 @@ BackendInputCollector::SetAccumulatedElementCount(
         requests_[req_idx], source_input.c_str(), &input));
     const int64_t* shape;
     uint32_t dims_count;
+    int64_t element_cnt = 0;
     RETURN_IF_ERROR(TRITONBACKEND_InputPropertiesForHostPolicy(
         input, host_policy_cstr_, nullptr, nullptr, &shape, &dims_count,
         nullptr, nullptr));
-    accumulated_element_count += GetElementCount(shape, dims_count);
+    RETURN_IF_ERROR(GetElementCount(shape, dims_count, &element_cnt));
+    accumulated_element_count += element_cnt;
     *(reinterpret_cast<T*>(buffer) + req_idx) = accumulated_element_count;
     buffer_offset += sizeof(T);
   }

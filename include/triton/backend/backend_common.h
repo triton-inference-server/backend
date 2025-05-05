@@ -1,4 +1,4 @@
-// Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -320,23 +320,58 @@ std::string ShapeToString(const std::vector<int64_t>& shape);
 ///
 /// \param dims The shape dimensions.
 /// \param dims_count The number of dimensions.
-/// \return The number of elements.
+/// \return The number of elements,
+/// -1 if unable to determine the number,
+/// -2 if the shape contains an invalid dim,
+/// or -3 if the number is too large to represent as an int64_t.
 int64_t GetElementCount(const int64_t* dims, const size_t dims_count);
 
 /// Return the number of elements of a shape.
 ///
 /// \param shape The shape as a vector of dimensions.
-/// \return The number of elements.
+/// \return The number of elements,
+/// -1 if unable to determine the number,
+/// -2 if the shape contains an invalid dim,
+/// or -3 if the number is too large to represent as an int64_t.
 int64_t GetElementCount(const std::vector<int64_t>& shape);
+
+/// Return the number of elements of a shape with error checking.
+///
+/// \param dims The shape dimensions.
+/// \param dims_count The number of dimensions.
+/// \param cnt Returns the number of elements.
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error* GetElementCount(
+    const int64_t* dims, const size_t dims_count, int64_t* cnt);
+
+/// Return the number of elements of a shape with error checking.
+///
+/// \param shape The shape as a vector of dimensions.
+/// \param cnt Returns the number of elements.
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error* GetElementCount(
+    const std::vector<int64_t>& shape, int64_t* cnt);
 
 /// Get the size, in bytes, of a tensor based on datatype and
 /// shape.
 /// \param dtype The data-type.
 /// \param dims The shape.
-/// \return The size, in bytes, of the corresponding tensor, or -1 if
-/// unable to determine the size.
+/// \return The size, in bytes, of the corresponding tensor,
+/// -1 if unable to determine the size,
+/// -2 if the shape contains an invalid dim,
+/// or -3 if the size is too large to represent as an int64_t.
 int64_t GetByteSize(
     const TRITONSERVER_DataType& dtype, const std::vector<int64_t>& dims);
+
+/// Get the size, in bytes, of a tensor based on datatype and
+/// shape with error checking.
+/// \param dtype The data-type.
+/// \param dims The shape.
+/// \param size Returns the size, in bytes, of the corresponding tensor.
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error* GetByteSize(
+    const TRITONSERVER_DataType& dtype, const std::vector<int64_t>& dims,
+    int64_t* size);
 
 /// Get an input tensor's contents into a buffer. This overload expects
 /// both 'buffer' and buffers of the input to be in CPU.

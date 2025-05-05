@@ -1,4 +1,4 @@
-// Copyright 2019-2021, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2019-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -109,7 +109,9 @@ BackendOutputResponder::ProcessTensor(
       batch_size_offset += shape[0];
     }
 
-    const size_t tensor_byte_size = GetByteSize(datatype, batchn_shape);
+    int64_t tensor_byte_size = 0;
+    RESPOND_AND_SET_NULL_IF_ERROR(
+        &response, GetByteSize(datatype, batchn_shape, &tensor_byte_size));
 
     TRITONBACKEND_Output* response_output;
     if (response != nullptr) {
@@ -218,7 +220,9 @@ BackendOutputResponder::ProcessStateTensor(
       batch_size_offset += shape[0];
     }
 
-    const size_t tensor_byte_size = GetByteSize(datatype, batchn_shape);
+    int64_t tensor_byte_size = 0;
+    RESPOND_AND_SET_NULL_IF_ERROR(
+        &response, GetByteSize(datatype, batchn_shape, &tensor_byte_size));
 
     TRITONBACKEND_State* output_state;
     if (response != nullptr) {
@@ -554,8 +558,10 @@ BackendOutputResponder::ProcessBatchOutput(
           }
         }
 
-        const size_t tensor_byte_size =
-            GetByteSize(datatype, output_batchn_shape);
+        int64_t tensor_byte_size = 0;
+        RESPOND_AND_SET_NULL_IF_ERROR(
+            &response,
+            GetByteSize(datatype, output_batchn_shape, &tensor_byte_size));
 
         TRITONBACKEND_Output* response_output;
         if (response != nullptr) {
