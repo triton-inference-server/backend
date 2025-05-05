@@ -166,8 +166,10 @@ GetElementCount(const int64_t* dims, const size_t dims_count)
   for (size_t i = 0; i < dims_count; i++) {
     if (dims[i] == WILDCARD_DIM) {
       return -1;
-    } else if (dims[i] < 0) {
+    } else if (dims[i] < 0) {  // invalid dim
       return -2;
+    } else if (dims[i] == 0) {
+      return 0;
     }
 
     if (first) {
@@ -237,7 +239,7 @@ GetByteSize(
   }
 
   int64_t cnt = GetElementCount(dims);
-  if (cnt < 0) {
+  if (cnt <= 0) {
     return cnt;
   }
 
