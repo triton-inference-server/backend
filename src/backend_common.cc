@@ -1,4 +1,4 @@
-// Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -166,12 +166,20 @@ GetElementCount(const int64_t* dims, const size_t dims_count)
   for (size_t i = 0; i < dims_count; i++) {
     if (dims[i] == WILDCARD_DIM) {
       return -1;
+    } else if (dims[i] < 0) {  // invalid dim
+      return -2;
+    } else if (dims[i] == 0) {
+      return 0;
     }
 
     if (first) {
       cnt = dims[i];
       first = false;
     } else {
+      // Check for overflow before multiplication
+      if (cnt > INT64_MAX / dims[i]) {
+        return -3;
+      }
       cnt *= dims[i];
     }
   }
@@ -185,6 +193,42 @@ GetElementCount(const std::vector<int64_t>& shape)
   return GetElementCount(shape.data(), shape.size());
 }
 
+TRITONSERVER_Error*
+GetElementCount(const int64_t* dims, const size_t dims_count, int64_t* cnt)
+{
+  *cnt = GetElementCount(dims, dims_count);
+  if (*cnt == -2) {
+    return TRITONSERVER_ErrorNew(
+        TRITONSERVER_ERROR_INVALID_ARG,
+        (std::string("shape") + ShapeToString(dims, dims_count) +
+         " contains an invalid dim.")
+            .c_str());
+  } else if (*cnt == -3) {
+    return TRITONSERVER_ErrorNew(
+        TRITONSERVER_ERROR_INVALID_ARG,
+        "unexpected integer overflow while calculating element count.");
+  }
+  return nullptr;  // success
+}
+
+TRITONSERVER_Error*
+GetElementCount(const std::vector<int64_t>& shape, int64_t* cnt)
+{
+  *cnt = GetElementCount(shape.data(), shape.size());
+  if (*cnt == -2) {
+    return TRITONSERVER_ErrorNew(
+        TRITONSERVER_ERROR_INVALID_ARG,
+        (std::string("shape") + ShapeToString(shape) +
+         " contains an invalid dim.")
+            .c_str());
+  } else if (*cnt == -3) {
+    return TRITONSERVER_ErrorNew(
+        TRITONSERVER_ERROR_INVALID_ARG,
+        "unexpected integer overflow while calculating element count.");
+  }
+  return nullptr;  // success
+}
+
 int64_t
 GetByteSize(
     const TRITONSERVER_DataType& dtype, const std::vector<int64_t>& dims)
@@ -195,11 +239,34 @@ GetByteSize(
   }
 
   int64_t cnt = GetElementCount(dims);
-  if (cnt == -1) {
-    return -1;
+  if (cnt <= 0) {
+    return cnt;
   }
 
+  if ((cnt > INT64_MAX / dt_size)) {
+    return -3;
+  }
   return cnt * dt_size;
+}
+
+TRITONSERVER_Error*
+GetByteSize(
+    const TRITONSERVER_DataType& dtype, const std::vector<int64_t>& dims,
+    int64_t* size)
+{
+  *size = GetByteSize(dtype, dims);
+  if (*size == -2) {
+    return TRITONSERVER_ErrorNew(
+        TRITONSERVER_ERROR_INVALID_ARG,
+        (std::string("shape") + ShapeToString(dims) +
+         " contains an invalid dim.")
+            .c_str());
+  } else if (*size == -3) {
+    return TRITONSERVER_ErrorNew(
+        TRITONSERVER_ERROR_INVALID_ARG,
+        "unexpected integer overflow while calculating byte size.");
+  }
+  return nullptr;  // success
 }
 
 TRITONSERVER_Error*
