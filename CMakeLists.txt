@@ -1,4 +1,4 @@
-# Copyright 2020-2024, NVIDIA CORPORATION. All rights reserved.
+# Copyright 2020-2025, NVIDIA CORPORATION. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -120,8 +120,9 @@ if(${TRITON_ENABLE_GPU})
   )
 
   enable_language(CUDA)
+  include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/define.cuda_architectures.cmake)
   set_target_properties(kernel_library_new PROPERTIES LANGUAGE CUDA)
-  set_target_properties(kernel_library_new PROPERTIES CUDA_ARCHITECTURES "75-real;80-real;86-real;87-real;89-real;90-real;100-real;101-real;120-real")
+  set_target_properties(kernel_library_new PROPERTIES CUDA_ARCHITECTURES ${CUDA_ARCHITECTURES})
   set_target_properties(kernel_library_new PROPERTIES POSITION_INDEPENDENT_CODE ON)
   set_target_properties(kernel_library_new PROPERTIES LINKER_LANGUAGE CUDA)
   target_compile_features(kernel_library_new PUBLIC cxx_std_${TRITON_MIN_CXX_STANDARD})
