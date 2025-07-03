@@ -29,39 +29,11 @@ function(set_cuda_architectures_list)
     if(DEFINED ENV{CUDA_ARCH_LIST})
         # Parse the existing CUDA_ARCH_LIST
         set(cuda_arch_input "$ENV{CUDA_ARCH_LIST}")
-        string(REPLACE " " ";" cuda_arch_list "${cuda_arch_input}")
+        string(REGEX REPLACE "PTX" "" cuda_arch_input "${cuda_arch_input}")
+        string(REGEX REPLACE " " "-real;" cuda_arch_input "${cuda_arch_input}")
+        string(REGEX REPLACE "-real;\$" "" cuda_arch_input "${cuda_arch_input}")
 
-        # Convert each architecture to the required format
-        set(converted_archs "")
-        list(LENGTH cuda_arch_list arch_count)
-        math(EXPR last_index "${arch_count} - 1")
-
-        foreach(arch_index RANGE ${last_index})
-            list(GET cuda_arch_list ${arch_index} arch)
-
-            # Remove any trailing characters and convert to integer format
-            string(REGEX REPLACE "\\..*$" "" major_version "${arch}")
-            string(REGEX REPLACE "^.*\\." "" minor_version "${arch}")
-
-            # Handle cases where there's no decimal point
-            if(minor_version STREQUAL "")
-                set(minor_version "0")
-            endif()
-
-            # Convert to the required format (e.g., 7.5 -> 75-real)
-            # Last architecture should not have "real" suffix
-            if(arch_index EQUAL last_index)
-                set(converted_arch "${major_version}${minor_version}")
-            else()
-                set(converted_arch "${major_version}${minor_version}-real")
-            endif()
-
-            list(APPEND converted_archs "${converted_arch}")
-        endforeach()
-
-        # Join the list with semicolons
-        string(REPLACE ";" ";" converted_arch_string "${converted_archs}")
-        set(CUDA_ARCHITECTURES "${converted_arch_string}" PARENT_SCOPE)
+        set(CUDA_ARCHITECTURES "${cuda_arch_input}" PARENT_SCOPE)
 
         message(STATUS "CUDA_ARCH_LIST found, defined CUDA_ARCHITECTURES: $ENV{CUDA_ARCH_LIST}")
     else()
