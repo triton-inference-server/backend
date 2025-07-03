@@ -61,12 +61,12 @@ function(set_cuda_architectures_list)
 
         # Join the list with semicolons
         string(REPLACE ";" ";" converted_arch_string "${converted_archs}")
-        set(CUDA_ARCHITECTURES "${converted_arch_string}" )
+        set(CUDA_ARCHITECTURES "${converted_arch_string}" PARENT_SCOPE)
 
         message(STATUS "CUDA_ARCH_LIST found, defined CUDA_ARCHITECTURES: ${CUDA_ARCHITECTURES}")
     else()
         # Set default value if CUDA_ARCH_LIST is not present
-        set(CUDA_ARCHITECTURES "75-real;80-real;86-real;89-real;90-real;100-real;120" )
+        set(CUDA_ARCHITECTURES "75-real;80-real;86-real;89-real;90-real;100-real;120" PARENT_SCOPE)
         message(STATUS "CUDA_ARCH_LIST not found, using default values for CUDA_ARCHITECTURES: ${CUDA_ARCHITECTURES}")
     endif()
 endfunction()
