@@ -32,6 +32,7 @@ function(set_cuda_architectures_list)
         string(REGEX REPLACE "PTX" "" cuda_arch_input "${cuda_arch_input}")
         string(REGEX REPLACE " " "-real;" cuda_arch_input "${cuda_arch_input}")
         string(REGEX REPLACE "-real;\$" "" cuda_arch_input "${cuda_arch_input}")
+        string(REGEX REPLACE "\\." "" cuda_arch_input "${cuda_arch_input}")
 
         set(CUDA_ARCHITECTURES "${cuda_arch_input}" PARENT_SCOPE)
 
