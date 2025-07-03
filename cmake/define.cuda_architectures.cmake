@@ -63,7 +63,7 @@ function(set_cuda_architectures_list)
         string(REPLACE ";" ";" converted_arch_string "${converted_archs}")
         set(CUDA_ARCHITECTURES "${converted_arch_string}" PARENT_SCOPE)
 
-        message(STATUS "CUDA_ARCH_LIST found, defined CUDA_ARCHITECTURES: ${CUDA_ARCHITECTURES}")
+        message(STATUS "CUDA_ARCH_LIST found, defined CUDA_ARCHITECTURES: ${converted_arch_string}")
     else()
         # Set default value if CUDA_ARCH_LIST is not present
         set(CUDA_ARCHITECTURES "75-real;80-real;86-real;89-real;90-real;100-real;120" PARENT_SCOPE)
@@ -73,3 +73,4 @@ endfunction()
 
 # Call the function to validate and set CUDA_ARCHITECTURES
 set_cuda_architectures_list()
+message(STATUS "Defined CUDA_ARCHITECTURES: ${CUDA_ARCHITECTURES}")
