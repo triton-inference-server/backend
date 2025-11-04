@@ -31,8 +31,8 @@ on:
 
 jobs:
   pre-commit:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v3
-    - uses: pre-commit/action@v3.0.0
+    - uses: actions/checkout@v5.0.0
+    - uses: actions/setup-python@v6.0.0
+    - uses: pre-commit/action@v3.0.1
