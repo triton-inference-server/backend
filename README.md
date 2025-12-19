@@ -297,6 +297,12 @@ a given model instance and to manage the user-defined state associated
 with the model (for more information see [backend
 lifecycles](#backend-lifecycles)).
 
+A backend can optionally implement TRITONBACKEND_ModelInstanceReady. This
+function is called by the Triton server's ready endpoint to check whether
+a model instance is ready to handle requests. The function returns
+`nullptr` (indicating success) if the instance is ready, or a
+`TRITONSERVER_Error` if the instance is not ready.
+
 The backend must take into account threading concerns when
 implementing TRITONBACKEND_ModelInstanceInitialize,
 TRITONBACKEND_ModelInstanceFinalize and
