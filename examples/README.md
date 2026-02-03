@@ -1,5 +1,5 @@
 <!--
-# Copyright 2021-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2021-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -47,7 +47,7 @@ multiple responses per request.
 [*stateful*](https://github.com/triton-inference-server/stateful_backend)
 backend shows an example of how a backend can manage model state
 tensors on the server-side for the [sequence
-batcher](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/model_configuration.md#sequence-batcher)
+batcher](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/batcher.md#sequence-batcher)
 to avoid transferring state tensors between client and server. Triton
 also implements [Implicit State
 Management](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/architecture.md#implicit-state-management)
@@ -160,10 +160,10 @@ I1215 23:46:00.250284 68 server.cc:589]
 
 The models are identical except that the *batching* model enabled the
 [dynamic
-batcher](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/model_configuration.md#dynamic-batcher)
+batcher](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/batcher.md#dynamic-batcher)
 and supports batch sizes up to 8. Note that the *batching* model sets
 the [batch
-delay](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/model_configuration.md#delayed-batching)
+delay](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/batcher.md#delayed-batching)
 to 5 seconds so that the example client described below can
 demonstrate how the *minimal* backend receives a batch of requests.
 
@@ -425,7 +425,7 @@ You can update the path to the filepath of your library.
 You can also update the value of `MAX_BATCH_VOLUME_BYTES` to the maximum volume per batch for your
 use case. After starting Triton, you should see the scheduler apply a volume constraint per batch
 on top of default batching behavior for your model. This can be made more visible by setting a
-[max queue delay](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/model_configuration.md#delayed-batching)
+[max queue delay](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/batcher.md#delayed-batching)
 to give the scheduler more time for each batch to be completed. For example, you could set the
 delay to 100,000 microseconds.
 
