@@ -39,7 +39,7 @@ function(set_cuda_architectures_list)
         message(STATUS "CUDA_ARCH_LIST found, defined CUDA_ARCHITECTURES: $ENV{CUDA_ARCH_LIST}")
     else()
         # Set default value if CUDA_ARCH_LIST is not present
-        set(CUDA_ARCHITECTURES "75-real;80-real;86-real;89-real;90-real;100-real;120" PARENT_SCOPE)
+        set(CUDA_ARCHITECTURES "75-real;80-real;86-real;89-real;90-real;100-real;103-real;120" PARENT_SCOPE)
         message(STATUS "CUDA_ARCH_LIST not found, using default values for CUDA_ARCHITECTURES: ${CUDA_ARCHITECTURES}")
     endif()
 endfunction()
