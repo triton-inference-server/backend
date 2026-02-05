@@ -1,5 +1,5 @@
 <!--
-# Copyright 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2022-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -54,7 +54,7 @@ are not BLS dependent are located.
 The source code contains extensive documentation describing the operation of
 the backend and the use of the
 [Triton Backend API](../../../README.md#triton-backend-api) and the
-[Triton Server API](https://github.com/triton-inference-server/server/blob/main/docs/customization_guide/inference_protocols.md#in-process-triton-server-api).
+[Triton Server API](https://github.com/triton-inference-server/server/blob/main/docs/customization_guide/inprocess_c_api.md).
 Before reading the source code, make sure you understand
 the concepts associated with Triton backend abstractions
 [TRITONBACKEND_Backend](../../../README.md#tritonbackend_backend),
