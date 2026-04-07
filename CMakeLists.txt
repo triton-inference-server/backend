@@ -41,6 +41,10 @@ set(TRITON_REPO_ORGANIZATION "https://github.com/triton-inference-server" CACHE 
 set(TRITON_COMMON_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/common repo")
 set(TRITON_CORE_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/core repo")
 
+
+option(TRITON_COMMON_ENABLE_PROTOBUF "Build protobuf artifacts" OFF)
+option(TRITON_COMMON_ENABLE_GRPC "Build grpc artifacts" OFF)
+
 #
 # Setting C++ standard
 #
@@ -130,9 +134,17 @@ if(${TRITON_ENABLE_GPU})
 
 endif() # TRITON_ENABLE_GPU
 
+
 add_library(
   TritonBackend::triton-backend-utils ALIAS triton-backend-utils
 )
+
+if(TRITON_COMMON_ENABLE_PROTOBUF OR TRITON_COMMON_ENABLE_GRPC)
+  add_dependencies(
+    triton-backend-utils
+    triton-common-model-config
+  )
+endif() # TRITON_COMMON_ENABLE_PROTOBUF OR TRITON_COMMON_ENABLE_GRPC
 
 target_include_directories(
   triton-backend-utils
