@@ -1,4 +1,4 @@
-# Copyright 2020-2026, NVIDIA CORPORATION. All rights reserved.
+# Copyright 2020-2025, NVIDIA CORPORATION. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -24,9 +24,9 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# Must be >= triton-inference-server/common (pulled in via FetchContent).
 cmake_minimum_required(VERSION 3.31.8)
 
+project(tritonbackend LANGUAGES C CXX)
 
 #
 # Options
@@ -38,9 +38,11 @@ option(TRITON_ENABLE_STATS "Include statistics collections in backend utilities"
 option(TRITON_ENABLE_MEMORY_TRACKER "Include device memory tracker in backend utilities" OFF)
 
 set(TRITON_REPO_ORGANIZATION "https://github.com/triton-inference-server" CACHE STRING "Git repository to pull from")
-set(TRITON_THIRD_PARTY_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/third_party repo (standalone superbuild only)")
 set(TRITON_COMMON_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/common repo")
 set(TRITON_CORE_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/core repo")
+
+option(TRITON_COMMON_ENABLE_PROTOBUF "Build protobuf artifacts" OFF)
+option(TRITON_COMMON_ENABLE_GRPC "Build grpc artifacts" OFF)
 
 #
 # Setting C++ standard
@@ -51,100 +53,13 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-#
-# Superbuild: fetch third_party and build protobuf under this build tree, then
-# configure the backend in a sub-build with Protobuf_DIR set (same pattern as
-# server/core). No dependency on other repo build directories.
-#
-# When this repo is included via add_subdirectory/FetchContent (e.g. server
-# tests linking to triton-backend-utils), CMAKE_SOURCE_DIR is the parent
-# project; enable the inner build here so targets and usage requirements
-# (include dirs for triton/backend/*.h) exist in that CMake graph. Standalone
-# configures use the ExternalProject superbuild below and return() before the
-# inner section.
-#
-if(NOT TRITON_BACKEND_INNER_BUILD)
-  if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-    project(triton-backend-superbuild LANGUAGES C CXX)
-
-    set(TRITON_THIRD_PARTY_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/third-party" CACHE PATH
-        "third_party install root for this backend build" FORCE)
-
-    include(FetchContent)
-    FetchContent_Declare(
-      repo-third-party
-      GIT_REPOSITORY ${TRITON_REPO_ORGANIZATION}/third_party.git
-      GIT_TAG ${TRITON_THIRD_PARTY_REPO_TAG}
-    )
-    FetchContent_MakeAvailable(repo-third-party)
-
-    set(LIB_DIR "lib")
-    if(LINUX)
-      file(STRINGS "/etc/os-release" DISTRO_ID_LIKE REGEX "ID_LIKE")
-      if(${DISTRO_ID_LIKE} MATCHES "rhel|centos")
-        set(LIB_DIR "lib64")
-      endif()
-    endif()
-
-    if(WIN32)
-      set(_BACKEND_PROTOBUF_DIR "${TRITON_THIRD_PARTY_INSTALL_PREFIX}/protobuf/cmake")
-    else()
-      set(_BACKEND_PROTOBUF_DIR "${TRITON_THIRD_PARTY_INSTALL_PREFIX}/protobuf/${LIB_DIR}/cmake/protobuf")
-    endif()
-
-    set(_INNER_CACHE
-        -DTRITON_BACKEND_INNER_BUILD:BOOL=ON
-        -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-        -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
-        -DProtobuf_DIR:PATH=${_BACKEND_PROTOBUF_DIR}
-        -DTRITON_REPO_ORGANIZATION:STRING=${TRITON_REPO_ORGANIZATION}
-        -DTRITON_COMMON_REPO_TAG:STRING=${TRITON_COMMON_REPO_TAG}
-        -DTRITON_CORE_REPO_TAG:STRING=${TRITON_CORE_REPO_TAG}
-        -DTRITON_ENABLE_GPU:BOOL=${TRITON_ENABLE_GPU}
-        -DTRITON_ENABLE_MALI_GPU:BOOL=${TRITON_ENABLE_MALI_GPU}
-        -DTRITON_ENABLE_STATS:BOOL=${TRITON_ENABLE_STATS}
-        -DTRITON_ENABLE_MEMORY_TRACKER:BOOL=${TRITON_ENABLE_MEMORY_TRACKER}
-        -DTRITON_MIN_CXX_STANDARD:STRING=${TRITON_MIN_CXX_STANDARD})
-    if(CMAKE_TOOLCHAIN_FILE)
-      list(APPEND _INNER_CACHE "-DCMAKE_TOOLCHAIN_FILE:PATH=${CMAKE_TOOLCHAIN_FILE}")
-    endif()
-
-    include(ExternalProject)
-    ExternalProject_Add(
-      triton-backend
-      DEPENDS protobuf
-      SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
-      BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/inner
-      CMAKE_CACHE_ARGS ${_INNER_CACHE}
-      BUILD_ALWAYS TRUE
-      INSTALL_COMMAND ""
-    )
-
-    # Forward `cmake --install` on the superbuild directory to the inner project.
-    install(
-      CODE
-        "execute_process(COMMAND \"${CMAKE_COMMAND}\" --install \"${CMAKE_CURRENT_BINARY_DIR}/inner\" --prefix \"\${CMAKE_INSTALL_PREFIX}\")"
-    )
-  else()
-    set(TRITON_BACKEND_INNER_BUILD ON CACHE BOOL
-        "Inner build when backend is included as a subdirectory" FORCE)
-  endif()
-endif()
-
-if(NOT TRITON_BACKEND_INNER_BUILD)
-  return()
-endif()
-
-project(tritonbackend LANGUAGES C CXX)
-
 if(TRITON_ENABLE_MEMORY_TRACKER AND NOT TRITON_ENABLE_GPU)
   message(WARNING "TRITON_ENABLE_MEMORY_TRACKER=ON requires TRITON_ENABLE_GPU=ON, TRITON_ENABLE_MEMORY_TRACKER will be disable")
   set(TRITON_ENABLE_MEMORY_TRACKER OFF CACHE BOOL "Device memory tracker disabled" FORCE)
 endif()
 
 #
-# Dependencies (Protobuf_DIR supplied by superbuild, or set Protobuf_DIR when
-# configuring the inner build manually).
+# Dependencies
 #
 include(FetchContent)
 
@@ -160,12 +75,6 @@ FetchContent_Declare(
   GIT_TAG ${TRITON_CORE_REPO_TAG}
   GIT_SHALLOW ON
 )
-
-# triton-common-model-config (see common/protobuf/CMakeLists.txt).
-set(TRITON_COMMON_ENABLE_PROTOBUF ON CACHE BOOL "Build protobuf artifacts in common" FORCE)
-
-find_package(Protobuf CONFIG REQUIRED)
-
 FetchContent_MakeAvailable(repo-common repo-core)
 
 #
@@ -227,6 +136,13 @@ endif() # TRITON_ENABLE_GPU
 add_library(
   TritonBackend::triton-backend-utils ALIAS triton-backend-utils
 )
+
+if(TRITON_COMMON_ENABLE_PROTOBUF OR TRITON_COMMON_ENABLE_GRPC)
+  add_dependencies(
+    triton-backend-utils
+    triton-common-model-config
+  )
+endif() # TRITON_COMMON_ENABLE_PROTOBUF OR TRITON_COMMON_ENABLE_GRPC
 
 target_include_directories(
   triton-backend-utils
@@ -296,7 +212,7 @@ target_link_libraries(
     triton-core-serverapi          # from repo-core
     triton-common-async-work-queue # from repo-common
     triton-common-json             # from repo-common
-    triton-common-model-config     # from repo-common; model_config.h (+ PUBLIC protobuf/proto usage)
+    triton-common-model-config     # from repo-common
 )
 
 if(${TRITON_ENABLE_GPU})
