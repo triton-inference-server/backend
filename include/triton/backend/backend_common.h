@@ -274,7 +274,7 @@ struct CopyParams {
 };
 
 /// The value for a dimension in a shape that indicates that that
-/// dimension can take on any size.
+/// dimension can take on any size. Must match triton::common::WILDCARD_DIM.
 constexpr int WILDCARD_DIM = -1;
 
 constexpr char kTensorRTExecutionAccelerator[] = "tensorrt";
