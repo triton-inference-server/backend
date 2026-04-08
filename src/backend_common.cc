@@ -221,18 +221,8 @@ GetByteSize(
     return triton::common::WILDCARD_SIZE;
   }
 
-  const int64_t cnt = triton::common::GetElementCount(dims);
-  if (cnt == triton::common::WILDCARD_SIZE) {
-    return triton::common::WILDCARD_SIZE;
-  } else if (cnt == triton::common::INVALID_SIZE) {
-    return triton::common::INVALID_SIZE;
-  } else if (
-      cnt == triton::common::OVERFLOW_SIZE ||
-      cnt > INT64_MAX / static_cast<int64_t>(dt_size)) {
-    return triton::common::OVERFLOW_SIZE;
-  }
-
-  return cnt * static_cast<int64_t>(dt_size);
+  const int64_t cnt = triton::common::GetByteSize(dt_size, dims.data(), dims.size());
+  return cnt;
 }
 
 TRITONSERVER_Error*

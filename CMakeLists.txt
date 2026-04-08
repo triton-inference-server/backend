@@ -137,13 +137,6 @@ add_library(
   TritonBackend::triton-backend-utils ALIAS triton-backend-utils
 )
 
-if(TRITON_COMMON_ENABLE_PROTOBUF OR TRITON_COMMON_ENABLE_GRPC)
-  add_dependencies(
-    triton-backend-utils
-    triton-common-model-config
-  )
-endif() # TRITON_COMMON_ENABLE_PROTOBUF OR TRITON_COMMON_ENABLE_GRPC
-
 target_include_directories(
   triton-backend-utils
   PUBLIC
@@ -283,7 +276,7 @@ configure_package_config_file(
 
 install(
   FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/TritonBackendConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/TritonBackendConfig.cmake
   DESTINATION ${INSTALL_CONFIGDIR}
 )
 
