@@ -221,7 +221,7 @@ GetByteSize(
     return triton::common::WILDCARD_SIZE;
   }
 
-  const int64_t cnt = 
+  const int64_t cnt =
       triton::common::GetByteSize(dt_size, dims.data(), dims.size());
   return cnt;
 }
