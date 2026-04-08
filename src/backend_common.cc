@@ -46,6 +46,7 @@
 
 #include <algorithm>
 #include <cerrno>
+#include <climits>
 #include <fstream>
 #include <functional>
 #include <memory>
@@ -212,8 +213,26 @@ int64_t
 GetByteSize(
     const TRITONSERVER_DataType& dtype, const std::vector<int64_t>& dims)
 {
-  return triton::common::GetByteSize(
-      static_cast<inference::DataType>(dtype), dims);
+  // Implemented with TRITONSERVER_DataTypeByteSize so this TU does not require
+  // TRITON_COMMON_ENABLE_PROTOBUF or model_config.pb.h (same rules as
+  // triton::common::GetByteSize(inference::DataType, dims)).
+  const size_t dt_size = TRITONSERVER_DataTypeByteSize(dtype);
+  if (dt_size == 0) {
+    return triton::common::WILDCARD_SIZE;
+  }
+
+  const int64_t cnt = triton::common::GetElementCount(dims);
+  if (cnt == triton::common::WILDCARD_SIZE) {
+    return triton::common::WILDCARD_SIZE;
+  } else if (cnt == triton::common::INVALID_SIZE) {
+    return triton::common::INVALID_SIZE;
+  } else if (
+      cnt == triton::common::OVERFLOW_SIZE ||
+      cnt > INT64_MAX / static_cast<int64_t>(dt_size)) {
+    return triton::common::OVERFLOW_SIZE;
+  }
+
+  return cnt * static_cast<int64_t>(dt_size);
 }
 
 TRITONSERVER_Error*
