@@ -1,0 +1,47 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 31, "patch": 8 },
+  "$comment": "Standalone build presets for triton-backend. For integrated server builds use server/cmake/CMakePresets.json — it includes backend via add_subdirectory and its variables take precedence.",
+  "configurePresets": [
+    {
+      "name": "conan-base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "toolchainFile": "${sourceDir}/build/${presetName}/conan/conan_toolchain.cmake",
+      "cacheVariables": { "CMAKE_EXPORT_COMPILE_COMMANDS": "ON" }
+    },
+    {
+      "name": "release",
+      "inherits": "conan-base",
+      "displayName": "Release (GPU)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "TRITON_ENABLE_GPU": "ON"
+      }
+    },
+    {
+      "name": "debug",
+      "inherits": "conan-base",
+      "displayName": "Debug (GPU)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "TRITON_ENABLE_GPU": "ON"
+      }
+    },
+    {
+      "name": "cpu-only",
+      "inherits": "conan-base",
+      "displayName": "Release CPU-only",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "TRITON_ENABLE_GPU": "OFF"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "release",  "configurePreset": "release" },
+    { "name": "debug",    "configurePreset": "debug" },
+    { "name": "cpu-only", "configurePreset": "cpu-only" }
+  ]
+}
