@@ -1,5 +1,5 @@
 <!--
-# Copyright 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2022-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -55,16 +55,6 @@ each backend on different platforms.
 | FIL          |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |  Unsupported  |
 | TensorRT-LLM |  :heavy_check_mark: GPU <br/> :x: CPU | :heavy_check_mark: GPU <br/> :x: CPU       |
 | vLLM         |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |  Unsupported  |
-
-
-## Windows 10
-
-Only TensorRT and ONNX Runtime backends are supported on Windows.
-
-| Backend      | x86       | ARM-SBSA      |
-| ------------ | --------- | ------------- |
-| TensorRT     |  :heavy_check_mark: GPU <br/> :x: CPU | :heavy_check_mark: GPU <br/> :x: CPU       |
-| ONNX Runtime |  :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU  |   :heavy_check_mark: GPU <br/> :heavy_check_mark: CPU      |
 
 
 ## Jetson JetPack
