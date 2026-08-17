@@ -58,21 +58,26 @@ endif()
 #
 # Dependencies
 #
+option(TRITON_SKIP_THIRD_PARTY_FETCH
+  "Skip FetchContent for common/core deps (provided by parent build or Conan)" OFF)
+
 include(FetchContent)
 
-FetchContent_Declare(
-  repo-common
-  GIT_REPOSITORY ${TRITON_REPO_ORGANIZATION}/common.git
-  GIT_TAG ${TRITON_COMMON_REPO_TAG}
-  GIT_SHALLOW ON
-)
-FetchContent_Declare(
-  repo-core
-  GIT_REPOSITORY ${TRITON_REPO_ORGANIZATION}/core.git
-  GIT_TAG ${TRITON_CORE_REPO_TAG}
-  GIT_SHALLOW ON
-)
-FetchContent_MakeAvailable(repo-common repo-core)
+if(NOT TRITON_SKIP_THIRD_PARTY_FETCH)
+  FetchContent_Declare(
+    repo-common
+    GIT_REPOSITORY ${TRITON_REPO_ORGANIZATION}/common.git
+    GIT_TAG ${TRITON_COMMON_REPO_TAG}
+    GIT_SHALLOW ON
+  )
+  FetchContent_Declare(
+    repo-core
+    GIT_REPOSITORY ${TRITON_REPO_ORGANIZATION}/core.git
+    GIT_TAG ${TRITON_CORE_REPO_TAG}
+    GIT_SHALLOW ON
+  )
+  FetchContent_MakeAvailable(repo-common repo-core)
+endif()
 
 #
 # CUDA
