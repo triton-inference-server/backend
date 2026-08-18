@@ -41,6 +41,9 @@ set(TRITON_REPO_ORGANIZATION "https://github.com/triton-inference-server" CACHE 
 set(TRITON_COMMON_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/common repo")
 set(TRITON_CORE_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/core repo")
 
+option(TRITON_COMMON_ENABLE_PROTOBUF "Build protobuf artifacts" OFF)
+option(TRITON_COMMON_ENABLE_GRPC "Build grpc artifacts" OFF)
+
 #
 # Setting C++ standard
 #
@@ -202,6 +205,7 @@ target_link_libraries(
     triton-core-serverapi          # from repo-core
     triton-common-async-work-queue # from repo-common
     triton-common-json             # from repo-common
+    triton-common-model-config     # from repo-common
 )
 
 if(${TRITON_ENABLE_GPU})
@@ -272,7 +276,7 @@ configure_package_config_file(
 
 install(
   FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/TritonBackendConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/TritonBackendConfig.cmake
   DESTINATION ${INSTALL_CONFIGDIR}
 )
 

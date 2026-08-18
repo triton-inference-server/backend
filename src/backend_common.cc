@@ -1,4 +1,4 @@
-// Copyright 2020-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -26,6 +26,8 @@
 
 #include "triton/backend/backend_common.h"
 
+#include "triton/common/model_config.h"
+
 #ifdef _WIN32
 // suppress the min and max definitions in Windef.h.
 #define NOMINMAX
@@ -44,6 +46,7 @@
 
 #include <algorithm>
 #include <cerrno>
+#include <climits>
 #include <fstream>
 #include <functional>
 #include <memory>
@@ -161,49 +164,26 @@ ShapeToString(const std::vector<int64_t>& shape)
 int64_t
 GetElementCount(const int64_t* dims, const size_t dims_count)
 {
-  bool first = true;
-  int64_t cnt = 0;
-  for (size_t i = 0; i < dims_count; i++) {
-    if (dims[i] == WILDCARD_DIM) {
-      return -1;
-    } else if (dims[i] < 0) {  // invalid dim
-      return -2;
-    } else if (dims[i] == 0) {
-      return 0;
-    }
-
-    if (first) {
-      cnt = dims[i];
-      first = false;
-    } else {
-      // Check for overflow before multiplication
-      if (cnt > INT64_MAX / dims[i]) {
-        return -3;
-      }
-      cnt *= dims[i];
-    }
-  }
-
-  return cnt;
+  return triton::common::GetElementCount(dims, dims_count);
 }
 
 int64_t
 GetElementCount(const std::vector<int64_t>& shape)
 {
-  return GetElementCount(shape.data(), shape.size());
+  return triton::common::GetElementCount(shape);
 }
 
 TRITONSERVER_Error*
 GetElementCount(const int64_t* dims, const size_t dims_count, int64_t* cnt)
 {
-  *cnt = GetElementCount(dims, dims_count);
-  if (*cnt == -2) {
+  *cnt = triton::common::GetElementCount(dims, dims_count);
+  if (*cnt == triton::common::INVALID_SIZE) {
     return TRITONSERVER_ErrorNew(
         TRITONSERVER_ERROR_INVALID_ARG,
         (std::string("shape") + ShapeToString(dims, dims_count) +
          " contains an invalid dim.")
             .c_str());
-  } else if (*cnt == -3) {
+  } else if (*cnt == triton::common::OVERFLOW_SIZE) {
     return TRITONSERVER_ErrorNew(
         TRITONSERVER_ERROR_INVALID_ARG,
         "unexpected integer overflow while calculating element count.");
@@ -214,14 +194,14 @@ GetElementCount(const int64_t* dims, const size_t dims_count, int64_t* cnt)
 TRITONSERVER_Error*
 GetElementCount(const std::vector<int64_t>& shape, int64_t* cnt)
 {
-  *cnt = GetElementCount(shape.data(), shape.size());
-  if (*cnt == -2) {
+  *cnt = triton::common::GetElementCount(shape);
+  if (*cnt == triton::common::INVALID_SIZE) {
     return TRITONSERVER_ErrorNew(
         TRITONSERVER_ERROR_INVALID_ARG,
         (std::string("shape") + ShapeToString(shape) +
          " contains an invalid dim.")
             .c_str());
-  } else if (*cnt == -3) {
+  } else if (*cnt == triton::common::OVERFLOW_SIZE) {
     return TRITONSERVER_ErrorNew(
         TRITONSERVER_ERROR_INVALID_ARG,
         "unexpected integer overflow while calculating element count.");
@@ -233,20 +213,17 @@ int64_t
 GetByteSize(
     const TRITONSERVER_DataType& dtype, const std::vector<int64_t>& dims)
 {
-  size_t dt_size = TRITONSERVER_DataTypeByteSize(dtype);
+  // Implemented with TRITONSERVER_DataTypeByteSize so this TU does not require
+  // TRITON_COMMON_ENABLE_PROTOBUF or model_config.pb.h (same rules as
+  // triton::common::GetByteSize(inference::DataType, dims)).
+  const size_t dt_size = TRITONSERVER_DataTypeByteSize(dtype);
   if (dt_size == 0) {
-    return -1;
+    return triton::common::WILDCARD_SIZE;
   }
 
-  int64_t cnt = GetElementCount(dims);
-  if (cnt <= 0) {
-    return cnt;
-  }
-
-  if ((cnt > INT64_MAX / dt_size)) {
-    return -3;
-  }
-  return cnt * dt_size;
+  const int64_t cnt =
+      triton::common::GetByteSize(dt_size, dims.data(), dims.size());
+  return cnt;
 }
 
 TRITONSERVER_Error*
@@ -255,13 +232,13 @@ GetByteSize(
     int64_t* size)
 {
   *size = GetByteSize(dtype, dims);
-  if (*size == -2) {
+  if (*size == triton::common::INVALID_SIZE) {
     return TRITONSERVER_ErrorNew(
         TRITONSERVER_ERROR_INVALID_ARG,
         (std::string("shape") + ShapeToString(dims) +
          " contains an invalid dim.")
             .c_str());
-  } else if (*size == -3) {
+  } else if (*size == triton::common::OVERFLOW_SIZE) {
     return TRITONSERVER_ErrorNew(
         TRITONSERVER_ERROR_INVALID_ARG,
         "unexpected integer overflow while calculating byte size.");
