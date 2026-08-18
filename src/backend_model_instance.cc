@@ -140,6 +140,7 @@ BackendModelInstance::BackendModelInstance(
 
   common::TritonJson::Value host_policy;
   TRITONSERVER_Error* err = host_policy.Parse(buffer, byte_size);
+  THROW_IF_BACKEND_MODEL_ERROR(TRITONSERVER_MessageDelete(message));
   THROW_IF_BACKEND_MODEL_ERROR(err);
   std::vector<std::string> host_policy_name;
   THROW_IF_BACKEND_MODEL_ERROR(host_policy.Members(&host_policy_name));
