@@ -122,13 +122,18 @@ passed in by the server.
    missing validation into a deployed backend.
 7. **Build and supply chain:** CMake configuration pulls in the common and core
    repositories and, optionally, CUDA toolchain components; unpinned or
-   unverified sources could alter the built library.
+   unverified sources could alter the built library. Both repositories are
+   fetched from `main` by default; pin them with `TRITON_COMMON_REPO_TAG` and
+   `TRITON_CORE_REPO_TAG`.
 
 ## Critical Security Assumptions
 
-- The Triton Inference Server core validates request metadata and enforces
-  authentication, authorization and TLS; this library assumes callers are
-  already authenticated and that inputs have passed those checks.
+- The Triton Inference Server core validates request metadata. Authentication,
+  authorization and TLS are deployment responsibilities, not guaranteed checks:
+  the documented example server command and the example clients use plain HTTP
+  on `localhost:8000` with no credentials. This library assumes the deployer
+  has enforced these controls before requests reach a backend, and that callers
+  are already authenticated.
 - Byte sizes, shapes and buffer pointers handed in through the
   `TRITONBACKEND_*` API are assumed consistent with each other; this library
   does not independently re-verify them in every helper.
