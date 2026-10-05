@@ -30,121 +30,51 @@
 
 ## Reporting a Vulnerability
 
-**Please do not report security vulnerabilities through public GitHub issues,
-discussions, or pull requests.**
+NVIDIA is dedicated to the security and trust of our software products and services, including all source code repositories managed through our organization.
 
-To report a potential security vulnerability in this repository or any other
-NVIDIA product, use one of the following channels:
+To report a potential security vulnerability, please use one of the following channels:
 
-1. **NVIDIA Vulnerability Disclosure Program** (preferred):
-   [https://www.nvidia.com/en-us/security/](https://www.nvidia.com/en-us/security/)
-2. **Email**: [psirt@nvidia.com](mailto:psirt@nvidia.com). Please encrypt
-   sensitive reports with NVIDIA's public PGP key
-   ([PGP key page](https://www.nvidia.com/en-us/security/pgp-key)).
-3. **GitHub Private Vulnerability Reporting**: use the **Security** tab of this
-   repository, if enabled.
+1. **NVIDIA Vulnerability Disclosure Program** (preferred): https://www.nvidia.com/en-us/security/
+2. **Web form:** [Security Vulnerability Submission Form](https://www.nvidia.com/object/submit-security-vulnerability.html)
+3. **Email:** [NVIDIA PSIRT](mailto:psirt@nvidia.com). Please encrypt sensitive reports with NVIDIA's [PGP key](https://www.nvidia.com/en-us/security/pgp-key).
+4. **GitHub Private Vulnerability Reporting (where enabled):** use the "Report a vulnerability" button on the Security tab of this repository.
 
-OEM partners should contact their NVIDIA Customer Program Manager.
+**Do not open a public issue or pull request to report a vulnerability.**
 
 Please include:
 
-1. Product and version or branch that contains the vulnerability
-2. Type of vulnerability (for example code execution, denial of service,
-   buffer overflow)
-3. Step-by-step instructions to reproduce the issue
-4. Proof-of-concept or exploit code, if available
-5. Potential impact, including how an attacker could exploit the issue
+* Product or component name and version or branch
+* Type of vulnerability
+* Steps to reproduce
+* Proof of concept, if available
+* Potential impact and how it could be exploited
 
-NVIDIA PSIRT acknowledges reports, assesses severity, coordinates a fix and
-disclosure timeline with the reporter, and publishes security bulletins at
-[https://www.nvidia.com/en-us/security/](https://www.nvidia.com/en-us/security/).
+See https://www.nvidia.com/en-us/security/ for past NVIDIA Security Bulletins and Notices.
 
 ## Security Architecture and Context
 
-**Project:** Triton Inference Server Backend. This repository provides the
-backend API documentation, the C++ utility library built from `src/` and
-`include/triton/backend/` (input collection, output responding, memory
-management, model and instance helpers, common parsing and file utilities),
-and example backends under `examples/`.
+**Project:** Common source, scripts and utilities for creating Triton backends.
 
-**Classification:** Library / SDK. It is compiled into, and runs inside the
-process of, backend implementations that are loaded by Triton Inference
-Server. It does not open network listeners, implement authentication, or
-store data itself.
+**Software type:** Software component (library, backend, client or tool) used as part of a Triton Inference Server deployment.
 
-**Repository Exposure Classification:** Public (repository visibility is public
-on GitHub).
+**Security boundaries:** The main security boundary is between this component and the data, models and configuration it is given, and between it and the server or application that hosts it.
 
-**Service Exposure Classification:** Not determined (low confidence). The
-exposure depends on how the embedding server and backend are deployed.
+**Repository Exposure Classification:** Public.
 
-**Primary security responsibility:** memory safety and correct bounds handling
-when copying tensor data between request, response, host, pinned and CUDA
-device memory, and safe handling of model configuration values and file paths
-passed in by the server.
-
-**Key interfaces and boundaries:**
-
-- The `TRITONBACKEND_*` C API between the server and a backend. Requests,
-  tensor shapes and byte sizes originate from clients of the server.
-- Model configuration (`config.pbtxt` / JSON), parsed in `src/backend_common.cc`
-  (for example shape, batch input and batch output parsing).
-- Local file helpers in `src/backend_common.cc` (`ReadTextFile`, `FileExists`,
-  `IsDirectory`, directory listing) that operate on paths supplied by the
-  caller.
-- Host and device memory paths in `src/backend_memory.cc`,
-  `src/backend_input_collector.cc` and `src/backend_output_responder.cc`,
-  including `memcpy`, CUDA copy calls and CUDA kernels (`src/kernel.cu`).
+**Service Exposure Classification:** Deployment-dependent. Exposure depends on how the software is deployed and configured by the operator.
 
 ## Threat Model
 
-1. **Out-of-bounds read or write in tensor copy paths:** a request whose
-   declared shape, batch size or byte size does not match the supplied buffer
-   could cause the input collector or output responder
-   (`backend_input_collector.cc`, `backend_output_responder.cc`,
-   `backend_common.cc` copy helpers) to read or write past a buffer.
-2. **Integer overflow in size calculations:** large dimensions or batch sizes
-   multiplied into byte counts could wrap and produce undersized allocations
-   followed by oversized copies.
-3. **Malformed model configuration:** crafted shape, batch input or batch output
-   entries could trigger parsing errors, unchecked indexing or excessive
-   allocation in the `ParseShape` and `BatchInput` / `BatchOutput` parsing
-   code.
-4. **Unbounded file reads and path handling:** `ReadTextFile` sizes its buffer
-   from the file length and performs no path restriction, so a caller that
-   passes an attacker-influenced path could read unintended files or exhaust
-   memory.
-5. **Resource exhaustion through memory allocation:** repeated or very large
-   pinned, host or CUDA allocations by the memory helpers could degrade or deny
-   service to the hosting server.
-6. **Unsafe example code reused in production:** the example backends and clients
-   are illustrative and omit hardening; copying them unchanged could carry
-   missing validation into a deployed backend.
-7. **Build and supply chain:** CMake configuration pulls in the common and core
-   repositories and, optionally, CUDA toolchain components; unpinned or
-   unverified sources could alter the built library. Both repositories are
-   fetched from `main` by default; pin them with `TRITON_COMMON_REPO_TAG` and
-   `TRITON_CORE_REPO_TAG`.
+1. **Untrusted input:** Requests, models, configuration or data supplied to this component may be malformed or malicious, and could cause crashes, memory errors or unintended behavior if not validated.
+2. **Supply chain:** Source and build dependencies fetched at build or install time may be compromised, outdated or unpinned.
+3. **Network exposure:** When deployed behind a network-facing server, endpoints may be reachable by untrusted clients. This component does not by itself provide authentication, authorization or encryption.
+4. **Resource exhaustion:** Oversized or numerous requests may consume memory, compute or other resources and degrade availability.
+5. **Information disclosure:** Logs, metrics and error messages may reveal sensitive data such as paths, identifiers or request content.
 
 ## Critical Security Assumptions
 
-- The Triton Inference Server core validates request metadata. Authentication,
-  authorization and TLS are deployment responsibilities, not guaranteed checks:
-  the documented example server command and the example clients use plain HTTP
-  on `localhost:8000` with no credentials. This library assumes the deployer
-  has enforced these controls before requests reach a backend, and that callers
-  are already authenticated.
-- Byte sizes, shapes and buffer pointers handed in through the
-  `TRITONBACKEND_*` API are assumed consistent with each other; this library
-  does not independently re-verify them in every helper.
-- Model configuration files and the model repository are assumed to be
-  trusted, administrator-controlled content.
-- File paths passed to the file helpers are assumed to be trusted and are not
-  sandboxed.
-- The operating system, GPU driver and CUDA runtime are assumed to provide
-  correct memory isolation between processes.
-- Backends built on this library are assumed to be run in a deployment where
-  the hosting server is not directly exposed to untrusted networks without
-  appropriate network controls.
-- Example code in `examples/` is assumed to be used for learning and testing
-  only.
+* The component is deployed in a trusted environment or behind a gateway that provides authentication, authorization, TLS and rate limiting.
+* Models, configuration and other inputs come from trusted sources.
+* Dependencies and the build environment are kept up to date and obtained from trusted sources.
+* Operators protect secrets, certificates and credentials, and restrict access to logs and metrics.
+* Host operating system, driver and hardware security are the operator's responsibility.
