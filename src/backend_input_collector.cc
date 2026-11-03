@@ -1,4 +1,4 @@
-// Copyright 2019-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2019-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -250,11 +250,6 @@ BackendInputCollector::ProcessTensor(
       FlushPendingPinned(buffer, buffer_byte_size, memory_type, memory_type_id);
   need_sync_ |= FlushPendingCopyKernel(
       buffer, buffer_byte_size, memory_type, memory_type_id);
-#ifdef TRITON_ENABLE_GPU
-  if (need_sync_ && (event_ != nullptr)) {
-    cudaEventRecord(event_, stream_);
-  }
-#endif  // TRITON_ENABLE_GPU
 }
 
 TRITONSERVER_Error*
@@ -362,6 +357,7 @@ BackendInputCollector::Finalize()
 #ifdef TRITON_ENABLE_GPU
   if ((!deferred_pinned_.empty()) && need_sync_) {
     if (event_ != nullptr) {
+      cudaEventRecord(event_, stream_);
       cudaEventSynchronize(event_);
     } else {
       cudaStreamSynchronize(stream_);
@@ -388,8 +384,8 @@ BackendInputCollector::Finalize()
   }
 
 #ifdef TRITON_ENABLE_GPU
-  // Record the new event location if deferred copies occur
-  if ((!deferred_pinned_.empty()) && need_sync_ && (event_ != nullptr)) {
+  // Record completion after all input copies have been submitted.
+  if (need_sync_ && (event_ != nullptr)) {
     cudaEventRecord(event_, stream_);
   }
 #endif  // TRITON_ENABLE_GPU
