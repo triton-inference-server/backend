@@ -1,4 +1,4 @@
-// Copyright 2020-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -1356,6 +1356,22 @@ TryParseModelStringParameter(
     std::string string_value;
     RETURN_IF_ERROR(json_value.MemberAsString("string_value", &string_value));
     return ParseUnsignedLongLongValue(string_value, value);
+  } else {
+    *value = default_value;
+    return nullptr;  // success
+  }
+}
+
+TRITONSERVER_Error*
+TryParseModelStringParameter(
+    triton::common::TritonJson::Value& params, const std::string& mkey,
+    double* value, const double& default_value)
+{
+  triton::common::TritonJson::Value json_value;
+  if (params.Find(mkey.c_str(), &json_value)) {
+    std::string string_value;
+    RETURN_IF_ERROR(json_value.MemberAsString("string_value", &string_value));
+    return ParseDoubleValue(string_value, value);
   } else {
     *value = default_value;
     return nullptr;  // success
