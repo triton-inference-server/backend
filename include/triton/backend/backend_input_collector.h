@@ -1,4 +1,4 @@
-// Copyright 2019-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2019-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -53,7 +53,8 @@ using cudaEvent_t = void*;
 class BackendInputCollector {
  public:
   // The caller can optionally provide 'event' for internal synchronization
-  // instead of using 'stream'. If 'host_policy_name' is provided, it must be
+  // instead of using 'stream'. The event is recorded in Finalize(), after
+  // processing the input tensors. If 'host_policy_name' is provided, it must be
   // valid for the lifetime of the collector
   explicit BackendInputCollector(
       TRITONBACKEND_Request** requests, const uint32_t request_count,
