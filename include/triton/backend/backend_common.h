@@ -1,4 +1,4 @@
-// Copyright 2020-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -691,6 +691,17 @@ TRITONSERVER_Error* TryParseModelStringParameter(
 TRITONSERVER_Error* TryParseModelStringParameter(
     triton::common::TritonJson::Value& params, const std::string& mkey,
     uint64_t* value, const uint64_t& default_value);
+
+/// Try to parse the requested parameter.
+///
+/// \param params The param in model config
+/// \param mkey Key in the model config.
+/// \param value The parsed double value.
+/// \param default_value Default value to use when key is not found.
+/// \return a TRITONSERVER_Error indicating success or failure.
+TRITONSERVER_Error* TryParseModelStringParameter(
+    triton::common::TritonJson::Value& params, const std::string& mkey,
+    double* value, const double& default_value);
 
 /// Get a string representation of a tensor buffer.
 ///
